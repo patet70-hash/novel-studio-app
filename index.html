@@ -380,6 +380,17 @@ function saveDraft(){clearTimeout(dsT);dsT=setTimeout(()=>api(`books/${book}/out
 const parseJ=s=>{try{return JSON.parse(s)}catch(e){try{return JSON.parse(String(s).replace(/,\s*([}\]])/g,"$1"))}catch(e2){return null}}};
 const blockInfo=(t,k)=>{const m=new RegExp("```"+k+"[^\\n]*\\n([\\s\\S]*?)(```|$)").exec(t);return m?{body:m[1],closed:m[2]==="```"}:null};
 const blockOf=(t,k)=>{const m=new RegExp("```"+k+"[^\\n]*\\n([\\s\\S]*?)(```|$)").exec(t);return m?m[1]:""};
+function dlPdf(url){toast("กำลังสร้าง PDF…");return fetch(url).then(async r=>{if(!r.ok){let m="";try{m=(await r.json()).error}catch(e){}throw new Error(m||("HTTP "+r.status))}
+ const fm=/filename="?([^";]+)"?/.exec(r.headers.get("content-disposition")||"");const name=fm?fm[1]:"novel.pdf";const blob=await r.blob();const file=new File([blob],name,{type:"application/pdf"});const u=URL.createObjectURL(blob);
+ const old=document.getElementById("pdfdlg");if(old)old.remove();const d=document.createElement("div");d.id="pdfdlg";d.style.cssText="position:fixed;left:8px;right:8px;bottom:12px;z-index:9999;background:#262421;color:#f2ede4;border:1px solid #8a7f6d;border-radius:12px;padding:12px;box-shadow:0 6px 24px #0008;font-size:15px";
+ d.innerHTML=`<div style="margin-bottom:8px">✅ PDF พร้อมแล้ว: <b>${esc(name)}</b> (${Math.round(blob.size/1024)} KB)</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button data-p="save">⬇ บันทึก / แชร์</button><button data-p="open">เปิดอ่าน</button><button data-p="x">ปิด</button></div>`;
+ document.body.appendChild(d);const close=()=>{d.remove();setTimeout(()=>URL.revokeObjectURL(u),30000)};
+ d.querySelector("[data-p=x]").onclick=close;
+ d.querySelector("[data-p=open]").onclick=()=>{window.open(u,"_blank")};
+ d.querySelector("[data-p=save]").onclick=async()=>{try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:name});close();return}}catch(e){if(e&&e.name==="AbortError")return}
+  const a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();toast("ส่งไฟล์ให้เบราว์เซอร์แล้ว — ถ้าไม่ขึ้น กด “เปิดอ่าน” แล้วใช้ปุ่มแชร์")}
+ }).catch(e=>toast("สร้าง PDF ไม่สำเร็จ: "+e.message))}
+const shortBar=(i,s)=>`<div class="prop small">⚠ ตอนนี้ยาว ${s.have} คำ สั้นกว่าเป้า ${s.target} คำ (${Math.round(s.have/s.target*100)}%) <button data-act="short" data-mi="${i}">เขียนต่อให้ถึงเป้า</button></div>`;
 const truncBar=i=>`<div class="prop small">⚠ คำตอบถูกตัดเพราะเกินความยาวสูงสุด <button data-act="cont" data-mi="${i}">เขียนต่อ</button></div>`;
 /* --- chat blocks inside messages --- */
 function fmt(t,ctx){ctx=ctx||{sc:"overview",mi:-1,arr:[]};const parts=[];const re=/```(draft|outline|chapter|edit)[^\n]*\n([\s\S]*?)(```|$)/g;let last=0,m;
@@ -406,7 +417,8 @@ function fmt(t,ctx){ctx=ctx||{sc:"overview",mi:-1,arr:[]};const parts=[];const r
  parts.push(esc(t.slice(last)));return parts.join("")}
 function bindActs(box,sc,arr,saver){box.querySelectorAll("[data-act]").forEach(b=>b.onclick=async()=>{const act=b.dataset.act,mi=+b.dataset.mi;
  try{
-  if(act==="cont"){const w=box.closest(".cbox");const msg="เขียนต่อจากประโยคสุดท้ายที่ค้างไว้ ใช้รูปแบบเดิม ไม่ต้องเริ่มใหม่";if(w){w.querySelector("textarea").value=msg;sendScope(w,sc)}else{$("#inp").value=msg;$("#send").click()}}
+  if(act==="short"){const w=box.closest(".cbox"),m0=arr[mi],s=m0&&m0.short;if(w&&s){const need=Math.max(150,Math.round((s.target-s.have)*1.05));w.querySelector("textarea").value=`The chapter is ${s.have} words but the target is ${s.target}. Continue directly from the last sentence of the manuscript with about ${need} more words of the SAME scene (more dialogue, interior thought, concrete detail). Do not summarise, do not wrap up early, do not repeat anything already written.`;m0.short=null;sendScope(w,sc)}}
+  else if(act==="cont"){const w=box.closest(".cbox");const msg="เขียนต่อจากประโยคสุดท้ายที่ค้างไว้ ใช้รูปแบบเดิม ไม่ต้องเริ่มใหม่";if(w){w.querySelector("textarea").value=msg;sendScope(w,sc)}else{$("#inp").value=msg;$("#send").click()}}
   else if(act==="undo"){const m=arr[mi];const r=await(await api(`books/${book}/chapters/${sc}/undo`,js("POST",{snap:m.applied.snap}))).json();CT[sc]=r.text;m.undone=true;saver();syncEditor(sc);renderMS();toast("ย้อนกลับแล้ว")}
   else if(act==="cp"){navigator.clipboard&&navigator.clipboard.writeText(decodeURIComponent(b.dataset.b));toast("คัดลอกแล้ว")}
   else if(act==="ins")await insertInto(sc,decodeURIComponent(b.dataset.b));
@@ -427,7 +439,7 @@ async function readSSE(r,onDelta,onFin){const rd=r.body.getReader(),dc=new TextD
  while((i=buf.indexOf("\n"))>=0){const ln=buf.slice(0,i).trim();buf=buf.slice(i+1);if(!ln.startsWith("data:"))continue;const p=ln.slice(5).trim();if(p==="[DONE]")continue;try{const j=JSON.parse(p).choices[0];const c=j.delta&&j.delta.content;if(c)onDelta(c);if(j.finish_reason&&onFin)onFin(j.finish_reason)}catch(e){}}}}
 /* --- per-card chat box --- */
 function drawMsgs(w,sc,stream){const box=w.querySelector(".cmsgs"),arr=CH[sc]||[];const atEnd=box.scrollTop+box.clientHeight>=box.scrollHeight-60;
- box.innerHTML=arr.length?arr.map((m,i)=>`<div class="am ${m.role==="user"?"user":""}">${m.role==="user"?esc(m.content):fmt(m.content,{sc,mi:i,arr})+(m.trunc?truncBar(i):"")+(m.applyErr&&!/```edit/.test(m.content)?`<div class="small" style="color:#e66">⚠ ${esc(m.applyErr.map(x=>x.why).join(" · "))}</div>`:"")}</div>`).join(""):`<p class="small" style="padding:4px 2px">${sc==="outline"?"AI ตัวนี้แก้ได้เฉพาะโครงเรื่อง (Outline)":"AI ตัวนี้โฟกัสเฉพาะตอนนี้ — เรื่องภาพรวมไปคุยที่แท็บแชท"}</p>`;
+ box.innerHTML=arr.length?arr.map((m,i)=>`<div class="am ${m.role==="user"?"user":""}">${m.role==="user"?esc(m.content):fmt(m.content,{sc,mi:i,arr})+(m.trunc?truncBar(i):"")+(m.short&&!m.trunc?shortBar(i,m.short):"")+(m.applyErr&&!/```edit/.test(m.content)?`<div class="small" style="color:#e66">⚠ ${esc(m.applyErr.map(x=>x.why).join(" · "))}</div>`:"")}</div>`).join(""):`<p class="small" style="padding:4px 2px">${sc==="outline"?"AI ตัวนี้แก้ได้เฉพาะโครงเรื่อง (Outline)":"AI ตัวนี้โฟกัสเฉพาะตอนนี้ — เรื่องภาพรวมไปคุยที่แท็บแชท"}</p>`;
  bindActs(box,sc,arr,()=>saveChat2(sc));if(!stream||atEnd)box.scrollTop=box.scrollHeight;if(w._cn)w._cn()}
 function chatBox(sc,locked,ph){const w=document.createElement("div");w.className="cbox";
  w.innerHTML=`<div class="chd"><button class="ct" data-a="ct"></button><span class="small pv"></span><button class="top" data-a="top" title="เลื่อนไปที่ต้นฉบับ">⤒ ต้นฉบับ</button></div><div class="cmsgs"></div><div class="crow"><textarea rows="2" placeholder="${esc(ph)}" ${locked?"disabled":""}></textarea><button class="p" data-a="send" ${locked?"disabled":""}>ส่ง</button><button data-a="stop" style="display:none">หยุด</button><button data-a="clr" ${locked?"disabled":""}>ล้าง</button></div>${locked?`<div class="small cnote">🔒 ตอนนี้ล็อกอยู่ — ปลดล็อกเพื่อคุยกับ AI</div>`:""}`;
@@ -455,7 +467,7 @@ async function autoApply(sc,arr,i){const m=arr[i];if(!/^ch\d+$/.test(sc)||!m||m.
  const c=chs.find(x=>x.id===sc);if(c&&c.locked){m.applyErr=[{why:"ตอนนี้ล็อกอยู่"}];return}
  try{clearTimeout(saveTm[sc]);if(CT[sc]!==undefined)await saveChapter(sc,true);
   const r=await(await api(`books/${book}/chapters/${sc}/edit`,js("POST",{edits,append}))).json();
-  CT[sc]=r.text;m.applied={snap:r.snap,n:edits.length,appended:!!append};syncEditor(sc);toast(edits.length?`แก้ในต้นฉบับแล้ว ${edits.length} จุด`:"ต่อท้ายต้นฉบับแล้ว")}
+  CT[sc]=r.text;m.applied={snap:r.snap,n:edits.length,appended:!!append};syncEditor(sc);if(append){const c2=chs.find(x=>x.id===sc);if(c2&&c2.target>0&&c2.words<c2.target*0.85)m.short={have:c2.words,target:c2.target}}toast(edits.length?`แก้ในต้นฉบับแล้ว ${edits.length} จุด`:"ต่อท้ายต้นฉบับแล้ว")}
  catch(e){let errs=[{why:e.message}];m.applyErr=errs;toast("แก้ไม่สำเร็จ: "+e.message)}}
 async function sendScope(w,sc){const ta=w.querySelector("textarea"),t=ta.value.trim();if(!t||!book)return;const arr=await ensureChat(sc);ta.value="";arr.push({role:"user",content:t});arr.push({role:"assistant",content:""});drawMsgs(w,sc);
  const sb=w.querySelector("[data-a=send]"),st=w.querySelector("[data-a=stop]");sb.style.display="none";st.style.display="";w._ctrl=new AbortController();w._busy=true;
@@ -498,7 +510,7 @@ function outlineCard(){const d=document.createElement("div");d.className="card2 
 function chapterCard(c,n){const id=c.id,lk=!!c.locked,fo=isFolded(id);const d=document.createElement("div");d.className="card2 chc"+(lk?" lockd":"");d.dataset.id=id;
  d.innerHTML=`<div class="hd"><button class="i" data-a="fold" title="พับ/ขยาย">${fo?"▸":"▾"}</button><span class="small">ตอน ${n}</span><input class="ttl" value="${esc(c.title)}" ${lk?"disabled":""}><span class="small cnt">${cntText(c)}</span><button class="i ${lk?"on":""}" data-a="lock" title="${lk?"ปลดล็อก":"ล็อกตอนที่เสร็จแล้ว"}">${lk?"🔒":"🔓"}</button><button class="i" data-a="pdf" title="ดาวน์โหลด PDF ตอนนี้">⬇ PDF</button><button class="i" data-a="del" title="ย้ายลงถังขยะ" ${lk?"disabled":""}>🗑</button>${fo?`<span class="sum">${esc(c.summary||"(ยังไม่มีสรุป)")}</span>`:""}</div>`;
  const A=a=>d.querySelector(`[data-a=${a}]`);
- A("pdf").onclick=async()=>{try{clearTimeout(saveTm[id]);if(CT[id]!==undefined)await saveChapter(id,true)}catch(e){}location.href=`api/books/${book}/export.pdf?size=${$("#sz").value}&ch=${id}`};
+ A("pdf").onclick=async()=>{try{clearTimeout(saveTm[id]);if(CT[id]!==undefined)await saveChapter(id,true)}catch(e){}dlPdf(`api/books/${book}/export.pdf?size=${$("#sz").value}&ch=${id}`)};
  A("fold").onclick=()=>{FOLDS[id]=!fo;saveFolds();renderMS()};
  A("lock").onclick=async()=>{try{await api(`books/${book}/outline/${id}`,js("PUT",{locked:!lk}));c.locked=!lk;if(c.locked){FOLDS[id]=true;saveFolds()}renderMS()}catch(e){toast("ไม่สำเร็จ: "+e.message)}};
  A("del").onclick=async()=>{if(!confirm(`ย้ายตอน "${c.title}" ลงถังขยะ? (กู้คืนได้ที่แท็บถังขยะ)`))return;try{await api(`books/${book}/chapters/${id}`,{method:"DELETE"});delete CT[id];delete CH[id];await refreshChs()}catch(e){toast("ไม่สำเร็จ: "+e.message)}};
@@ -538,9 +550,9 @@ $("#nb").onclick=async()=>{const t=prompt("ชื่อเรื่อง");if(!
 $("#book").onchange=()=>{book=$("#book").value;loadBook()};
 $("#dls").onclick=async()=>{const ids=chs.filter(c=>window._exsel[c.id]).map(c=>c.id);if(!ids.length){toast("ติ๊กเลือกตอนที่ต้องการก่อน");return}
  for(const id of ids){try{clearTimeout(saveTm[id]);if(CT[id]!==undefined)await saveChapter(id,true)}catch(e){}}
- location.href=`api/books/${book}/export.pdf?size=${$("#sz").value}&ch=${ids.join(",")}`};
+ dlPdf(`api/books/${book}/export.pdf?size=${$("#sz").value}&ch=${ids.join(",")}`)};
 $("#dla").onclick=()=>{chs.forEach(c=>window._exsel[c.id]=true);drawExl()};$("#dlc").onclick=()=>{window._exsel={};drawExl()};
-$("#dl").onclick=()=>{location.href=`api/books/${book}/export.pdf?size=${$("#sz").value}`};
+$("#dl").onclick=()=>{dlPdf(`api/books/${book}/export.pdf?size=${$("#sz").value}`)};
 $("#csel").onchange=()=>{cur=$("#csel").value};
 function render(){const el=$("#msgs");el.innerHTML=chat.map((m,i)=>`<div class="m ${m.role}">${m.role=="user"?esc(m.content):fmt(m.content,{sc:"overview",mi:i,arr:chat})+(m.trunc?truncBar(i):"")}</div>`).join("");
  bindActs(el,"overview",chat,saveChat);el.scrollTop=el.scrollHeight}
