@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Novel Studio</title>
+<script>(function(){var m='dark';try{m=localStorage.getItem('theme')||'dark'}catch(e){}window.__applyTheme=function(m){var t=m==='auto'?(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'):m;document.documentElement.setAttribute('data-theme',t)};window.__applyTheme(m)})()</script>
+<style>
+:root{--bg:#f5f1ea;--pn:#fffdf9;--tx:#2b2620;--mu:#8a8174;--ac:#c4673a;--bd:#e3dccf;--us:#ece4d6}
+:root[data-theme=dark]{color-scheme:dark;--bg:#16140f;--pn:#201d18;--tx:#ece6da;--mu:#a0978a;--ac:#e8905f;--bd:#363128;--us:#2d2922}
+:root[data-theme=light]{color-scheme:light}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font:15px/1.55 -apple-system,"Segoe UI",Sarabun,"Noto Sans Thai",sans-serif;display:flex;flex-direction:column}
+header{display:flex;gap:8px;align-items:center;padding:8px 12px;background:var(--pn);border-bottom:1px solid var(--bd);flex-wrap:wrap}
+header b{font-family:Georgia,serif;font-size:17px}
+select,input,textarea,button{font:inherit;color:inherit;background:var(--pn);border:1px solid var(--bd);border-radius:8px;padding:6px 10px}
+button{cursor:pointer}button.p{background:var(--ac);border-color:var(--ac);color:#fff}button:disabled{opacity:.5}
+nav{display:flex;gap:2px;padding:0 8px;background:var(--pn);border-bottom:1px solid var(--bd);overflow-x:auto}
+nav button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:10px 14px;white-space:nowrap}
+nav button.on{border-color:var(--ac);color:var(--ac);font-weight:600}
+main{flex:1;min-height:0;display:flex;flex-direction:column}
+.tab{display:none;flex:1;min-height:0;flex-direction:column}.tab.on{display:flex}
+#msgs{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.m{max-width:820px;width:100%;margin:0 auto;white-space:pre-wrap;word-wrap:break-word}
+.m.user{background:var(--us);padding:10px 14px;border-radius:14px;align-self:flex-end}
+.draft{border:1px solid var(--ac);border-radius:10px;margin:8px 0;background:var(--pn);white-space:pre-wrap;font-family:Georgia,"EB Garamond",serif;font-size:16px}
+.draft .bar{display:flex;gap:6px;padding:6px 8px;border-bottom:1px solid var(--bd);font:13px sans-serif;color:var(--mu);align-items:center;flex-wrap:wrap}
+.draft .body{padding:10px 14px}
+#cbar{border-top:1px solid var(--bd);background:var(--pn);padding:8px 12px}
+#cbar .row{max-width:820px;margin:0 auto;display:flex;gap:8px;align-items:flex-end}
+#inp{flex:1;resize:none;max-height:180px}
+.small{font-size:12px;color:var(--mu)}
+.split{flex:1;min-height:0;display:flex}
+#chl{width:220px;border-right:1px solid var(--bd);overflow:auto;padding:8px;background:var(--pn)}
+#chl div{padding:7px 9px;border-radius:8px;cursor:pointer}#chl div.on{background:var(--us)}
+#ed{flex:1;display:flex;flex-direction:column;padding:10px;gap:8px;min-width:0}
+#edt{flex:1;resize:none;font-family:Georgia,"EB Garamond",serif;font-size:17px;line-height:1.6}
+.pad{padding:14px;overflow:auto;max-width:820px;width:100%;margin:0 auto}
+/* setup */
+#t-setup .pad{padding-bottom:80px}
+.bar2{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+details.sec{background:var(--pn);border:1px solid var(--bd);border-radius:12px;margin:10px 0;overflow:hidden}
+details.sec>summary{padding:11px 14px;font-weight:600;cursor:pointer;list-style:none;display:flex;justify-content:space-between}
+details.sec>summary::after{content:"▾";color:var(--mu)}details.sec[open]>summary::after{content:"▴"}
+.fr{display:flex;align-items:center;gap:6px;padding:8px 12px;border-top:1px solid var(--bd)}
+.fr .lb{width:110px;flex:none;color:var(--mu);font-size:13px}
+.fr .val{flex:1;min-width:0;text-align:left;border:1px dashed var(--bd);border-radius:8px;padding:6px 10px;background:none;overflow:hidden;text-overflow:ellipsis}
+.fr .val.empty{color:var(--mu)}
+.fr button.i{padding:4px 8px;border:0;background:none;opacity:.7}.fr button.i.on{opacity:1}
+.fr textarea{flex:1;min-height:56px;resize:vertical}
+.card2{background:var(--pn);border:1px solid var(--ac);border-radius:12px;margin:10px 0;overflow:hidden}
+.card2 .hd{display:flex;gap:6px;align-items:center;padding:8px 12px;background:var(--us)}
+.card2 .hd input{flex:1;min-width:0}
+.sub{margin:6px 12px 10px;border:1px solid var(--bd);border-radius:10px;overflow:hidden}
+.sub .hd{background:none;border-bottom:1px solid var(--bd);display:flex;gap:6px;padding:6px 8px;align-items:center}
+.sub .hd input{flex:1;min-width:0}
+.card2.lockd{border-style:dashed}
+.card2 .hd{flex-wrap:wrap}.card2 .hd .sum{flex-basis:100%;font-size:12px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card2 .hd button.i{padding:4px 8px;border:0;background:none}.card2 .hd button.i.on{opacity:1}
+.am{max-width:92%;white-space:pre-wrap;word-wrap:break-word;padding:8px 12px;margin:6px 0;border-radius:12px;background:var(--us)}
+.am.user{margin-left:auto;background:var(--ac);color:#fff}
+.prop{border:1px solid var(--ac);border-radius:10px;margin:6px 0;padding:8px 10px;background:var(--pn)}
+.prop pre{white-space:pre-wrap;font-family:inherit;font-size:13px;line-height:1.5;margin:6px 0;max-height:40vh;overflow:auto}
+#achat{padding:8px 12px;max-height:50vh;overflow:auto}
+/* picker */
+#pk{margin:auto auto 0;width:min(100%,680px);max-height:84vh;border-radius:16px 16px 0 0;padding:0;border:1px solid var(--bd);background:var(--pn);color:var(--tx)}
+#pk[open]{display:flex;flex-direction:column}
+#pk::backdrop{background:rgba(0,0,0,.45)}
+#pk .ph{padding:12px 14px;border-bottom:1px solid var(--bd);display:flex;gap:8px;align-items:center}
+#pk .ph b{flex:1}
+#pk .pc{padding:8px 14px;display:flex;gap:6px;border-bottom:1px solid var(--bd)}#pk .pc input{flex:1;min-width:0}
+#pl{flex:1;overflow:auto;padding:4px 8px;min-height:30vh}
+#pl label{display:flex;gap:10px;align-items:center;padding:9px 8px;border-radius:8px;cursor:pointer}
+#pl label:hover{background:var(--us)}#pl label.sel{background:var(--us);font-weight:600}
+#pl .gh{position:sticky;top:0;background:var(--pn);color:var(--ac);font-size:12px;font-weight:700;padding:8px 8px 4px;letter-spacing:.03em}
+#pl label span.en{font-size:12px;color:var(--mu);margin-left:auto;text-align:right}
+#pk .pf{padding:10px 14px;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end}
+.df{margin:4px 0;font-size:13px;line-height:1.5}.df del{display:block;background:rgba(220,70,70,.18);text-decoration:line-through;padding:2px 6px;border-radius:4px}.df ins{display:block;background:rgba(60,170,90,.2);text-decoration:none;padding:2px 6px;border-radius:4px;margin-top:2px}
+.cbox{border-top:1px solid var(--bd);padding:8px 12px;background:var(--bg)}
+.cmsgs{max-height:42vh;overflow:auto}
+.chd{display:flex;align-items:center;gap:8px;min-width:0}
+.chd .ct{flex:0 0 auto;font-weight:600}
+.chd .pv{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chd .top{flex:0 0 auto}
+.cbox.shut .cmsgs,.cbox.shut .crow,.cbox.shut .cnote{display:none}
+.cbox:not(.shut) .chd{margin-bottom:6px}
+.chd .typing{color:var(--ac,#6cf)}
+.crow{display:flex;gap:6px;align-items:flex-end;margin-top:6px}.crow textarea{flex:1;resize:vertical}
+.chc textarea.ed{width:calc(100% - 24px);margin:0 12px 10px;min-height:260px;resize:vertical;font-family:Georgia,"EB Garamond",serif;font-size:17px;line-height:1.6}
+.chc textarea.sm{flex:1}
+.dr{border-top:1px solid var(--bd);padding:8px 12px}.drh{display:flex;gap:6px;align-items:center}.drh .dt{flex:1;min-width:0}.drh .dw{width:80px}
+.dr .ds{width:100%;margin-top:6px;resize:vertical}
+.card2 .hd .ttl{flex:1;min-width:120px;font-weight:600}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ac);color:#fff;padding:8px 16px;border-radius:20px;z-index:99;opacity:0;transition:opacity .25s;max-width:90vw;font-size:14px}
+@media(max-width:700px){.split{flex-direction:column}#chl{width:auto;max-height:28vh;border-right:0;border-bottom:1px solid var(--bd)}.fr .lb{width:84px}}
+</style></head><body>
+<header><b>📖 Novel Studio</b>
+<select id="book"></select><button id="nb">+ เรื่องใหม่</button><button id="delb" title="ลบนิยายเรื่องนี้ (ย้ายไปถังขยะ)">🗑</button>
+<span class="small" id="st">…</span><span style="flex:1"></span>
+<button id="thb" title="โหมดสี">🌙</button><button id="setb">⚙︎</button></header>
+<nav><button data-t="chat" class="on">แชท</button><button data-t="ms">ต้นฉบับ</button><button data-t="setup">ตั้งค่าเรื่อง</button><button data-t="ex">ส่งออก PDF</button><button data-t="tr">ถังขยะ</button></nav>
+<main>
+<section class="tab on" id="t-chat">
+ <div id="msgs"></div>
+ <div id="cbar"><div class="row">
+  <textarea id="inp" rows="2" placeholder="พิมพ์ภาษาไทยได้ — เนื้อนิยายจะอยู่ในกล่อง draft"></textarea>
+  <button class="p" id="send">ส่ง</button><button id="stop" style="display:none">หยุด</button></div>
+  <div class="row small" style="margin-top:4px"><span>ตอนที่ใช้เป็นบริบท: <select id="csel"></select></span>
+  <label><input type="checkbox" id="think"> คิดก่อนตอบ</label><button id="clr">ล้างแชท</button></div></div>
+</section>
+<section class="tab" id="t-ms"><div class="pad" id="msw" style="max-width:900px"></div></section>
+<section class="tab" id="t-setup"><div class="pad" id="su"></div></section>
+<section class="tab" id="t-tr"><div class="pad" id="trw"></div></section>
+<section class="tab" id="t-ex"><div class="pad"><h3>ส่งออก PDF</h3>
+ <p><select id="sz"><option value="novel">ขนาดนิยาย 5.5×8.5 นิ้ว</option><option value="mobile">ขนาดมือถือ 90×160 มม.</option></select>
+ <button class="p" id="dl">ดาวน์โหลด PDF ทั้งเล่ม</button></p><p class="small" id="exs"></p>
+ <h3 style="margin-top:14px">เลือกเป็นรายตอน</h3><div id="exl"></div><p><button id="dls">ดาวน์โหลดตอนที่เลือก</button> <button id="dla">เลือกทั้งหมด</button> <button id="dlc">ล้างที่เลือก</button></p></div></section>
+</main>
+<dialog id="pk"><div class="ph"><b id="pt"></b><span class="small" id="pn"></span><button id="px">✕</button></div>
+ <div class="pc"><input id="pi" placeholder="ค้นหา หรือพิมพ์เองแล้วกด + เพิ่ม"><button id="pa">+ เพิ่ม</button></div>
+ <div id="pl"></div><div class="pf"><button id="pclr">ล้าง</button><button class="p" id="pok">ตกลง</button></div></dialog>
+<dialog id="dlg" style="max-width:640px;width:92%;background:var(--pn);color:var(--tx);border:1px solid var(--bd);border-radius:12px"><h3>ตั้งค่า</h3>
+ <p class="small">System prompt (ใช้ {lang} แทนภาษาต้นฉบับ)</p><textarea id="sys" rows="12" style="width:100%"></textarea>
+ <p>max tokens <input id="mx" type="number" size="6"> temperature <input id="tp" type="number" step="0.1" size="4"></p>
+ <p><button class="p" id="sset">บันทึก</button> <button id="cset">ปิด</button></p></dialog>
+<dialog id="prev" style="max-width:720px;width:94%;background:var(--pn);color:var(--tx);border:1px solid var(--bd);border-radius:12px"><h3>Bible ที่ส่งให้โมเดล</h3><pre id="prevt" style="white-space:pre-wrap;max-height:60vh;overflow:auto;font-size:13px"></pre><button id="prevx">ปิด</button></dialog>
+<script>
+/* ===== card pools: "ไทย|English;..." ===== */
+const PL={
+genre:"สืบสวน|detective mystery;ไซไฟ|science fiction;แฟนตาซี|fantasy;ระทึกขวัญ|thriller;สยองขวัญ|horror;โรแมนติก|romance;ดราม่า|drama;แอคชั่น|action;ผจญภัย|adventure;ดิสโทเปีย|dystopian;ไซเบอร์พังค์|cyberpunk;สตีมพังค์|steampunk;อิงประวัติศาสตร์|historical fiction;ชีวิตมหาวิทยาลัย|campus life;ตลก|comedy;อีโรติก|erotic fiction;ซูเปอร์ฮีโร่|superhero;หลังโลกแตก|post-apocalyptic;อาชญากรรมนัวร์|crime noir;เหนือธรรมชาติ|supernatural mystery;สงคราม|war;การเมือง|political intrigue;ย้อนเวลา|time travel;ต่างโลก|portal fantasy",
+tone:"มืดหม่น|dark and brooding;อบอุ่น|warm;ตลกร้าย|darkly humorous;ตึงเครียด|tense;ซาบซึ้ง|emotional;เสียดสี|satirical;เศร้า|melancholic;เร็วหวือหวา|pulpy and fast;นิ่งสงบ|quiet and contemplative;เย้ายวน|sensual;ดิบเถื่อน|gritty;เหมือนฝัน|dreamlike",
+intensity:"ทุกวัย ไม่มีเนื้อหาผู้ใหญ่|all ages, no adult content;โรแมนติกอ่อน ตัดฉาก|light romance, fade to black;เย้ายวน|sensual and suggestive;ผู้ใหญ่ชัดเจน|explicit adult content;ผู้ใหญ่ดิบเข้มข้น|hardcore explicit adult content;ความรุนแรงเข้ม|graphic violence",
+era:"ปัจจุบัน|present day;อนาคตใกล้|near future;อนาคตไกล|far future;ยุคกลาง|medieval era;ศตวรรษที่ 19|19th century;ยุค 1920|1920s;ยุค 1980|1980s;ยุคโบราณ|ancient times;สยามโบราณ|ancient Siam;หลังหายนะ|post-collapse;ยุคสงคราม|wartime;ยุควิกตอเรีย|Victorian era;ยุคฟื้นฟูศิลปวิทยา|Renaissance;ยุคเอโดะ|Edo-period Japan;จีนโบราณ|ancient China;ยุค 1950|1950s;ยุค 1970|1970s;ยุค 1990|1990s;ยุคเดินทางข้ามดวงดาว|interstellar age;ประวัติศาสตร์ทางเลือก|alternate history;ยุคเวทมนตร์|age of magic",
+place:"§เมืองสมัยใหม่;มหานคร|sprawling metropolis;เมืองเล็ก|small town;กรุงเทพฯ|Bangkok;ย่านเมืองเก่า|old town quarter;ย่านตึกระฟ้า|skyscraper district;ย่านชานเมือง|suburbs;ตลาดสด|wet market;ตรอกซอกซอย|back alleys;สถานีรถไฟใต้ดิน|subway station;ที่จอดรถใต้ดิน|underground parking garage;ย่านชุมชนแออัด|crowded slum;ท่าเรือพาณิชย์|commercial harbour;§ชนบทและธรรมชาติ;ชนบท|countryside;เกาะห่างไกล|remote island;ป่าลึก|deep forest;ทะเลทราย|desert;ภูเขา|mountain region;หมู่บ้านชาวประมง|fishing village;ทุ่งนา|rice fields;ถ้ำ|cave system;ชายหาด|beach;ทะเลสาบ|lakeside;หุบเขาหมอก|misty valley;ป่าดิบชื้น|jungle;ทุ่งน้ำแข็งขั้วโลก|polar tundra;ฟาร์ม|farmstead;§แฟนตาซีและยุคกลาง;อาณาจักรยุคกลาง|medieval kingdom;ปราสาท|castle;หอคอยเวทมนตร์|wizard's tower;วิหารโบราณ|ancient temple;ป่าเอลฟ์|elven forest;ดันเจี้ยน|dungeon;เมืองลอยฟ้า|floating city;โรงเตี๊ยม|tavern inn;สถาบันเวทมนตร์|magic academy;ป้อมคนแคระ|dwarven hold;ตลาดมืดแห่งเวทมนตร์|arcane black market;ชายแดนปีศาจ|demon-haunted borderlands;§ไซไฟและอวกาศ;สถานีอวกาศ|space station;ยานอวกาศ|starship;อาณานิคมดาวอังคาร|Mars colony;เมืองใต้ดิน|underground city;ห้องแล็บลับ|secret laboratory;เมืองไซเบอร์พังค์|neon cyberpunk city;ดาวเคราะห์ต่างถิ่น|alien planet;ฐานใต้ทะเลลึก|deep-sea base;เมืองในโดม|domed city;ซากยานอับปาง|derelict spaceship;ศูนย์ข้อมูล|data center;โลกเสมือนจริง|virtual world;§สยองขวัญและลึกลับ;คฤหาสน์|manor estate;โรงพยาบาลร้าง|abandoned hospital;บ้านผีสิง|haunted house;สุสาน|cemetery;โบสถ์ร้าง|derelict church;ป่าต้องสาป|cursed forest;โรงเรียนร้าง|abandoned school;โรงแรมเก่าทรุดโทรม|decrepit hotel;ห้องใต้ดิน|cellar;หมู่บ้านต้องสาป|cursed village;เรือผี|ghost ship;ศูนย์วิจัยลับ|black-site facility;§ประวัติศาสตร์และย้อนยุค;พระราชวังโบราณ|royal palace;เมืองท่าเก่า|old port city;ตลาดน้ำ|floating market;เมืองยุควิกตอเรีย|Victorian city;คาบาเรต์ยุค 1920|1920s cabaret;ค่ายทหารเก่า|old army barracks;สนามเพลาะ|trenches;ปราสาทญี่ปุ่น|Japanese castle;บาซาร์ตะวันออก|eastern bazaar;ท่าเรืออาณานิคม|colonial harbour;อารามโบราณ|ancient monastery;§ในร่มและสถานที่ส่วนตัว;อพาร์ตเมนต์เล็ก|small apartment;คอนโดหรู|luxury condo;สำนักงาน|office;สถานีตำรวจ|police station;ห้องสมุด|library;ร้านกาแฟ|café;ร้านหนังสือเก่า|old bookshop;โรงพยาบาล|hospital;ห้องพิจารณาคดี|courtroom;โรงเรียนประจำ|boarding school;มหาวิทยาลัย|university campus;ครัวร้านอาหาร|restaurant kitchen;โรงแรม|hotel;วิลล่าตากอากาศ|holiday villa;ห้องใต้หลังคา|attic;ฟิตเนส|gym;§การเดินทาง;เรือกลางทะเล|ship at sea;รถไฟข้ามประเทศ|long-distance train;รถบัสกลางคืน|night bus;สนามบิน|airport;ท่าเรือ|harbour docks;ถนนกลางทะเลทราย|desert highway;เรือสำราญ|cruise ship;§สงครามและความมั่นคง;ฐานทัพ|military base;ค่ายผู้ลี้ภัย|refugee camp;เมืองถูกปิดล้อม|besieged city;เขตกันชน|demilitarized zone;เรือนจำ|prison;สำนักข่าวกรอง|intelligence agency headquarters;บังเกอร์|bunker;§!ชีวิตกลางคืนและสถานที่ผู้ใหญ่ (ไม่สุ่ม);บาร์|bar;ไนต์คลับ|nightclub;โรงแรมรัก|love hotel;ซาวน่าและสปา|sauna and spa;คลับสมาชิกส่วนตัว|private members' club;บ่อนคาสิโน|casino;ย่านโคมแดง|red-light district;ห้องสวีทส่วนตัว|private suite;เรือยอร์ชส่วนตัว|private yacht;ห้องนอนใหญ่|master bedroom",
+atmos:"§สภาพอากาศ;ฝนตกตลอด|perpetual rain;หมอกหนา|thick fog;แดดแผดเผา|blazing sun;หิมะปกคลุม|snow-bound;พายุกระหน่ำ|raging storm;ลมร้อนชื้น|humid heat;ฟ้าครึ้ม|overcast skies;§แสงและสี;ไฟนีออนยามค่ำ|neon-lit nights;ย่ำสนธยาไม่สิ้นสุด|eternal twilight;แสงเทียนริบหรี่|flickering candlelight;แสงทองยามเช้า|golden morning light;ความมืดสนิท|pitch darkness;แสงจันทร์นวล|silver moonlight;§อารมณ์ของฉาก;เงียบเหงาร้าง|desolate and silent;ตลาดพลุกพล่าน|crowded markets;หมอกควันพิษ|smog-choked;อบอุ่นเป็นกันเอง|cozy and intimate;หรูหราโอ่อ่า|opulent and decadent;คุกรุ่นตึงเครียด|simmering tension;เหนือจริงเหมือนฝัน|dreamlike and surreal;น่าขนลุก|eerie and unsettling;โรแมนติก|romantic;อึกทึกวุ่นวาย|chaotic and loud;สงบเยือกเย็น|serene and still;ทรุดโทรมเสื่อมโทรม|decaying and squalid;เย้ายวน|sultry and sensual",
+rules:"เวทมนตร์มีราคาต้องจ่าย|magic has a cost;บรรษัทผูกขาดเทคโนโลยี|megacorporations control technology;ความทรงจำซื้อขายได้|memories can be traded;AI มีสิทธิ์ตามกฎหมาย|AIs have legal rights;ไม่มีสิ่งเหนือธรรมชาติ|no supernatural elements;ผู้มีพลังพิเศษต้องขึ้นทะเบียน|powered people are registered;เทพเจ้ายุ่งเกี่ยวมนุษย์|gods interfere in mortal affairs;สังคมแบ่งชนชั้นเข้มงวด|rigid class system;รัฐสอดแนมประชาชน|surveillance state;ภัยธรรมชาติรุนแรง|catastrophic weather",
+logline:"นักสืบนอนไม่หลับไขคดีศพที่มีความทรงจำของคนอื่น|An insomniac inspector investigates a corpse carrying someone else's memories.;หัวขโมยฝีมือดีถูกจ้างขโมยของที่ไม่มีอยู่จริง|A master thief is hired to steal something that does not exist.;หมอประจำเมืองค้นพบว่ายาที่แจกทุกคนกำลังลบความรัก|A town doctor discovers that the medicine given to everyone is erasing love.;อดีตทหารต้องคุ้มกันผู้หญิงที่ทุกคนอยากให้ตาย|A former soldier must escort the one woman everyone wants dead.;นักเขียนนิยายพบว่าตัวละครของเขากำลังเกิดขึ้นจริง|A novelist finds his fictional murders are happening in real life.;วิศวกรบนสถานีอวกาศได้รับข้อความจากตัวเองในอนาคต|A station engineer receives a message from her future self.",
+conflict:"ตัวละครกับสังคม|character vs society;ไล่ล่าฆาตกร|hunt for a killer;ความลับในอดีตที่ถูกฝัง|buried secret from the past;ถูกพันธมิตรหักหลัง|betrayal by an ally;แข่งกับเวลา|race against time;รักต้องห้าม|forbidden love;ล้างแค้น|revenge;เอาตัวรอด|survival;ไถ่บาป|redemption;ชิงอำนาจ|power struggle;ตัวตนที่ถูกซ่อน|hidden identity;ภัยคุกคามต่างโลก|otherworldly threat",
+theme:"ความทรงจำและตัวตน|memory and identity;ความยุติธรรมกับกฎหมาย|justice versus law;อิสรภาพ|freedom;ความรักและการสูญเสีย|love and loss;อำนาจที่กัดกิน|corruption of power;สายสัมพันธ์ครอบครัว|family bonds;มนุษย์กับเครื่องจักร|human versus machine;การให้อภัย|forgiveness;ความโดดเดี่ยว|loneliness;ความปรารถนา|desire;การเติบโต|coming of age",
+ending:"สุขสมหวัง|happy ending;ขมปนหวาน|bittersweet ending;โศกนาฏกรรม|tragic ending;ปลายเปิด|open ending;หักมุม|twist ending;ทิ้งปมภาคต่อ|cliffhanger for a sequel",
+structure:"สามองก์|three-act structure;การเดินทางของวีรบุรุษ|hero's journey;คลี่ปมทีละชั้น|slow-burn mystery reveals;สลับหลายมุมมอง|alternating POVs;ตอนสั้นต่อเนื่อง|episodic chapters;สลับอดีตกับปัจจุบัน|dual timeline",
+pov:"บุคคลที่สามจำกัด|third-person limited;บุคคลที่สามรอบรู้|third-person omniscient;บุคคลที่หนึ่ง|first person;สลับหลายมุมมอง|multiple POVs",
+tense:"อดีต|past tense;ปัจจุบัน|present tense",
+prose:"ประโยคสั้นคม|short sharp sentences;บรรยายละเอียดอลังการ|rich descriptive prose;เน้นบทสนทนา|dialogue-driven;ภาษากวี|lyrical;ตรงไปตรงมา|plain and direct;เน้นความคิดภายใน|deep interior monologue;อารมณ์ขันแห้ง|dry humor;จังหวะเร็ว|fast-paced",
+lang:"อังกฤษ|English;ไทย|Thai",
+scenelen:"ฉากสั้น ~300 คำ|about 300 words per scene;~600 คำ|about 600 words per scene;~1000 คำ|about 1000 words per scene;~1500 คำ|about 1500 words per scene",
+role:"ตัวเอก|protagonist;คู่หู|partner;ตัวร้าย|antagonist;คนรัก|love interest;ผู้ชี้แนะ|mentor;คู่แข่ง|rival;ตัวละครสมทบ|supporting character;ผู้ช่วย|sidekick;ลูกสมุนตัวร้าย|henchman;เหยื่อ|victim;แหล่งข่าว|informant;ตัวสร้างสีสัน|comic relief;พันธมิตร|ally;คนนอกที่ถูกลากเข้ามา|bystander drawn in",
+gender:"หญิง|woman;ชาย|man;ไม่ระบุเพศ|non-binary person;แอนดรอยด์|android;หญิงข้ามเพศ|trans woman;ชายข้ามเพศ|trans man;เพศลื่นไหล|genderfluid person;สิ่งเหนือธรรมชาติ|supernatural being",
+age:"20 ต้นๆ|early twenties;20 กลางๆ|mid twenties;20 ปลาย|late twenties;30 ต้นๆ|early thirties;30 กลางๆ|mid thirties;30 ปลาย|late thirties;40 ต้นๆ|early forties;40 ปลาย|late forties;50 ปี|in their fifties;60 ปี|in their sixties;70 ขึ้นไป|seventy or older;อมตะไม่แก่|ageless immortal who looks about thirty",
+occ:"§กฎหมายและความมั่นคง;นักสืบ|detective;ตำรวจ|police officer;ทหาร|soldier;ทนายความ|lawyer;ผู้พิพากษา|judge;สายลับ|spy;บอดี้การ์ด|bodyguard;เจ้าหน้าที่ข่าวกรอง|intelligence officer;§การแพทย์และวิทยาศาสตร์;หมอ|doctor;พยาบาล|nurse;นักวิทยาศาสตร์|scientist;วิศวกร|engineer;นักชีววิทยา|biologist;จิตแพทย์|psychiatrist;แฮกเกอร์|hacker;นักบิน|pilot;§ธุรกิจและบริการ;ผู้บริหาร|corporate executive;พ่อค้า|merchant;เชฟ|chef;บาร์เทนเดอร์|bartender;เจ้าของร้าน|shop owner;เลขานุการ|personal assistant;นักบัญชี|accountant;คนขับแท็กซี่|taxi driver;เกษตรกร|farmer;§ศิลปะและสื่อ;นักข่าว|journalist;ศิลปิน|artist;นักเขียน|writer;นักดนตรี|musician;นักแสดง|actor;ช่างภาพ|photographer;อาจารย์|professor;ครู|teacher;นักศึกษา|university student;นักกีฬา|athlete;§โลกใต้ดิน;หัวขโมย|thief;นักฆ่า|assassin;ผู้ลักลอบ|smuggler;นักเลง|gangster;ทหารรับจ้าง|mercenary;นักต้มตุ๋น|con artist;§แฟนตาซีและโบราณ;จอมเวทย์|mage;อัศวิน|knight;พระ/นักบวช|priest;นักเล่นแร่แปรธาตุ|alchemist;ช่างตีเหล็ก|blacksmith;นักล่าสัตว์ประหลาด|monster hunter;ขุนนาง|noble;หมอผี|shaman",
+pers:"ฉลาดเฉียบ|sharp-witted;ใจเย็น|calm;ช่างสงสัย|curious;ดื้อรั้น|stubborn;ขี้เล่น|playful;เย็นชาระวังตัว|cold and guarded;อ่อนโยน|gentle;เจ้าเล่ห์|cunning;ซื่อสัตย์|loyal;ใจร้อน|hot-tempered;ขี้อาย|shy;มั่นใจ|confident;ประชดประชัน|sardonic;ลึกลับ|enigmatic;เห็นอกเห็นใจ|empathetic;เจ้าระเบียบ|meticulous;เสน่ห์แรง|charming;อุดมคติสูง|idealistic;ช่างสงสัยในทุกสิ่ง|cynical;ชอบบงการ|manipulative;บุ่มบ่าม|reckless;อดทน|patient;ปกป้องคนใกล้ตัว|protective;ปิดบังความลับ|secretive;หยิ่งทะนง|arrogant;ถ่อมตน|humble;เจ้าชู้|flirtatious;หวงแหนเจ้าของ|possessive;ใจเด็ดเดี่ยว|resolute;ขี้สงสัยเจ้าหึง|jealous;เก็บอารมณ์|stoic;ขบถ|rebellious;ครอบงำ|dominant;อ่อนไหว|sensitive",
+goal:"ไขความจริง|uncover the truth;ล้างแค้น|take revenge;ปกป้องคนที่รัก|protect loved ones;ไถ่บาปในอดีต|atone for a past mistake;ร่ำรวย|gain wealth;ได้รับการยอมรับ|earn recognition;หนีอดีต|escape the past;ครองอำนาจ|seize power;ตามหาคนที่หายไป|find someone who vanished;ได้ความรักที่แท้|find true love;ปลดปล่อยตัวเองจากคำสาป|break a curse;สร้างบ้านที่ปลอดภัย|build a safe home;พิสูจน์ตัวเอง|prove themselves;ล้มระบบ|bring down the system",
+flaw:"ไว้ใจใครไม่ได้|trusts no one;ดื่มหนัก|drinks too much;นอนไม่หลับเรื้อรัง|chronic insomnia;บุ่มบ่ามดื้อรั้น|reckless stubbornness;ปากร้าย|sharp tongue;ปล่อยวางอดีตไม่ได้|cannot let go of the past;หลงตัวเอง|vain;กลัวความใกล้ชิด|fears intimacy;โกหกเก่ง|compulsive liar;ติดการพนัน|gambling habit;หึงหวงรุนแรง|violent jealousy;กลัวที่แคบ|claustrophobic;ขี้ขลาดเมื่อถึงเวลา|freezes under pressure;ยึดติดความสมบูรณ์แบบ|perfectionist",
+voice:"พูดสั้นกระชับ|speaks tersely;สุภาพเป็นทางการ|formal and polite;พูดตลก|quick with jokes;พูดน้อย|rarely speaks;สำเนียงถิ่น|regional dialect;ประชดแห้งๆ|dry sarcasm;อบอุ่นปลอบใจ|warm and soothing;เสียงทุ้มต่ำ|low husky voice;พูดเร็วรัว|rapid-fire talker;กระซิบนุ่ม|soft-spoken;ใช้ศัพท์เทคนิค|technical jargon;สำเนียงต่างชาติ|foreign accent;ชอบสั่ง|commanding tone",
+hair:"§ผมสั้น;ผมสั้นเกรียน|buzz cut;ผมสั้นเรียบ|short cropped hair;ผมทรงพิกซี่|pixie cut;ผมทรงอันเดอร์คัท|undercut;ผมโมฮอว์ก|mohawk;ผมโกน|shaved head;หัวล้าน|bald;ผมเถิกหน้าผาก|receding hairline;§ผมกลาง;ผมบ๊อบ|bob cut;ผมยาวประบ่า|shoulder-length hair;ผมแสกกลาง|center-parted hair;ผมหน้าม้า|blunt bangs;ผมยุ่งเหยิง|messy tousled hair;ผมหวีเรียบแผ่นหลัง|slicked-back hair;ผมหยิก|curly hair;ผมลอนคลื่น|wavy hair;ผมตรง|straight hair;ผมอัฟโฟร|afro;§ผมยาวและผมมัด;ผมยาวสลวย|long flowing hair;ผมยาวถึงเอว|very long hair reaching the waist;ผมหางม้า|ponytail;ผมมัดต่ำ|tied-back hair;ผมมัดจุก|top knot;ผมรวบเป็นมวย|hair in a bun;ผมเปียยาว|long braid;ผมเปียสองข้าง|twin braids;ผมดรอเรด|dreadlocks",
+hcolor:"ดำสนิท|black hair;น้ำตาลเข้ม|dark brown hair;น้ำตาลอ่อน|light brown hair;บลอนด์ทอง|blonde hair;บลอนด์แพลทินัม|platinum blonde hair;แดงเพลิง|fiery red hair;แดงน้ำตาลออเบิร์น|auburn hair;ขาวเงิน|silver-white hair;เทา|grey hair;เกลือกับพริกไทย|salt-and-pepper hair;ไล่สี|ombre hair;สองสี|two-tone hair;น้ำเงิน|blue hair;ชมพู|pink hair;ม่วง|purple hair;เขียว|green hair",
+skin:"ขาวซีด|pale skin;ขาวอมชมพู|fair skin;ผิวสีน้ำผึ้ง|honey-toned skin;ผิวแทน|tanned skin;ผิวสีทองแทนนวล|warm golden-tan skin;ผิวมะกอก|olive skin;ผิวสีบรอนซ์|bronze skin;ผิวคล้ำ|dark skin;ผิวน้ำตาลเข้ม|deep brown skin;ผิวมีกระ|freckled skin;ผิวเป็นด่างขาว|skin with vitiligo patches;ผิวอมเทา (ไม่ใช่มนุษย์)|ashen grey skin;ผิวเขียว (ไม่ใช่มนุษย์)|green skin;ผิวฟ้า (ไม่ใช่มนุษย์)|blue skin",
+height:"สูงมาก|very tall;สูง|tall;สูงปานกลาง|average height;ค่อนข้างเตี้ย|on the short side;เตี้ยมาก|very short;ยักษ์ใหญ่|towering giant",
+eyes:"ตาน้ำตาลเข้ม|dark brown eyes;ตาสีน้ำตาลอ่อน|hazel eyes;ตาสีอำพัน|amber eyes;ตาสีเทา|grey eyes;ตาสีเขียว|green eyes;ตาสีฟ้า|blue eyes;ตาสีม่วง|violet eyes;ตาสีดำสนิท|jet-black eyes;ตาสองสี|heterochromatic eyes;ตาสีทอง|golden eyes;ตาสีแดง|red eyes;ตาเรืองแสง|glowing eyes;ตาคม|sharp eyes;ตาอิดโรย|tired, shadowed eyes;ตาโตใส|large expressive eyes;ตาเรียวยาว|almond-shaped eyes;ตาตี่เล็กแหลมคม|narrow piercing eyes",
+build:"ผอมเพรียว|slim;ล่ำสัน|muscular;สมส่วน|average build;ตัวเล็ก|petite;สูงโปร่ง|tall and lean;อวบอิ่ม|curvy;นักกีฬา|athletic;ผอมแห้งแกร่ง|wiry;ไหล่กว้าง|broad-shouldered;ท้วม|heavyset;บอบบาง|willowy;ล่ำเตี้ยแข็งแรง|short and sturdy;เปล่งปลั่งเต็มตัว|voluptuous;ตัวสูงเก้งก้าง|lanky;กล้ามเป็นมัดสวย|toned",
+feat:"แผลเป็น|a scar;รอยสัก|tattoos;ไฝเด่น|a distinctive mole;แว่นตา|glasses;ผิวแทน|tanned skin;ผิวขาว|fair skin;ผิวเข้ม|dark skin;แขนกล|a prosthetic arm;หนวด|a mustache;เคราเต็ม|a full beard;หนวดเคราขึ้นรำไร|stubble;กระที่หน้า|freckles;เจาะหู/จมูก|piercings;แผลไหม้|burn scars;ปานแต่กำเนิด|a birthmark;ขาไม่ปกติ|a slight limp;นิ้วขาด|a missing finger;ผ้าปิดตา|an eye patch;รอยสักเรืองแสง|glowing tattoos;อวัยวะไซเบอร์|cybernetic implants;เล็บยาว|long manicured nails;หูแหลม|pointed ears;ปีก|wings",
+ostyle:"ชุดทำงานทางการ|formal workwear;โค้ทยาว|long trench coat;ชุดลำลอง|casual wear;ชุดมหาวิทยาลัย|university attire;ชุดเกราะ|armor;ชุดราตรี|evening gown;ชุดนอน|sleepwear;ชุดว่ายน้ำ|swimwear;ชุดชั้นใน|lingerie;สูทตัดเข้ารูป|tailored suit;เสื้อหนังสไตล์สตรีท|street-worn leather;เทคแวร์ล้ำสมัย|techwear;ชุดย้อนยุค|period costume;ชุดแพทย์|medical scrubs;เครื่องแบบ|uniform;ชุดกีฬา|sportswear;เสื้อฮู้ดกับยีนส์|hoodie and jeans;ชุดไทยโบราณ|traditional Thai dress;กิโมโน|kimono;ชุดเชฟ|chef whites;เครื่องแบบทหารเต็มยศ|military dress uniform;ชุดคลุมเวทมนตร์|mage robes;ชุดนักผจญภัย|adventurer's gear;ชุดสูทกันฝน|rain slicker;ชุดนักบินอวกาศ|flight suit;ชุดค็อกเทล|cocktail dress;ชุดคลุมอาบน้ำ|bathrobe;ชุดหนังรัดรูป|tight leather outfit;ชุดแม่บ้านย้อนยุค|vintage maid uniform",
+ocolor:"ดำ|black;ขาว|white;เทา|grey;แดงเข้ม|crimson;กรมท่า|navy;เขียวป่า|forest green;ทอง|gold;เงิน|silver;ม่วง|violet;ครีม|cream;น้ำตาลโกโก้|chocolate brown;ฟ้าสด|sky blue;ชมพูพาสเทล|pastel pink;ส้มอิฐ|burnt orange;เขียวมรกต|emerald;น้ำเงินเข้ม|midnight blue;ลายพราง|camouflage;ลายสก๊อต|tartan",
+oacc:"นาฬิกาข้อมือ|a wristwatch;ต่างหู|earrings;แว่นกันแดด|sunglasses;ผ้าพันคอ|a scarf;ถุงมือ|gloves;สร้อยคอ|a necklace;หมวก|a hat;รองเท้าบูท|boots;อาวุธติดตัว|a holstered weapon;แหวน|rings;กำไลข้อมือ|bracelets;เนคไท|a necktie;เข็มขัดหนัง|a leather belt;กระเป๋าสะพาย|a satchel;ปลอกคอ|a choker;ผ้าคลุมไหล่|a shawl;ถุงน่อง|stockings;รองเท้าส้นสูง|high heels;หน้ากาก|a mask",
+tod:"รุ่งเช้า|dawn;เช้า|morning;กลางวัน|midday;บ่าย|afternoon;เย็น|dusk;ค่ำ|evening;กลางคืน|night;เที่ยงคืน|midnight;ก่อนรุ่งสาง|the small hours"};
+const POOL={};for(const k in PL){let g='',ex=false;POOL[k]=[];for(const x of PL[k].split(';')){if(x[0]==='§'){ex=x[1]==='!';g=x.slice(ex?2:1);continue}const[a,b]=x.split('|');POOL[k].push({th:a,en:b,g,ex})}}
+const NAMES="Mara Voss;Teo Alvarez;Kenji Moriyama;Lena Okafor;Ilya Petrov;Sofia Marchetti;Daniel Cho;Amara Singh;Rafael Duarte;Noor Haddad;Hana Lindqvist;Victor Reyes;Elena Rossi;Jun Tanaka;Marcus Bell;Priya Nair;Anya Volkova;Tomas Novak".split(';');
+const LOCNAMES="The Glass Quarter;Harbor Nine;Old Archive;Red Lantern Market;Sky Terminal;Mercy Hospital;Black Pine Manor;Lower Docks;Station Zero;The Salt Flats".split(';');
+/* ===== field specs ===== */
+const F=(k,th,en,t,pool,n)=>({k,th,en,t,pool,n});
+const TOP=[
+ {id:'g',th:'แนวเรื่องและโทน',en:'Genre & Tone',f:[F('genre','แนวเรื่อง','Genre','multi','genre',[1,2]),F('tone','โทน','Tone','multi','tone',[1,2]),F('intensity','ระดับเนื้อหา','Content intensity','single','intensity')]},
+ {id:'s',th:'ฉากและโลก',en:'Setting',f:[F('era','ยุคสมัย','Era','single','era'),F('place','สถานที่หลัก','Main setting','multi','place',[1,2]),F('atmos','บรรยากาศ','Atmosphere','multi','atmos',[1,2]),F('rules','กฎของโลก','World rules','multi','rules',[1,2])]},
+ {id:'p',th:'พล็อตและโครงเรื่อง',en:'Plot',f:[F('logline','ไอเดียหลัก','Logline','single','logline'),F('conflict','ปมขัดแย้ง','Central conflict','multi','conflict',[1,2]),F('theme','แก่นเรื่อง','Themes','multi','theme',[1,2]),F('ending','ตอนจบ','Ending','single','ending'),F('structure','โครงสร้าง','Structure','single','structure'),F('outline','เค้าโครงรายบท','Chapter outline','text')]},
+ {id:'w',th:'รูปแบบการเขียน',en:'Writing style',f:[F('lang','ภาษาต้นฉบับ','Manuscript language','single','lang'),F('pov','มุมมอง','Point of view','single','pov'),F('tense','กาล','Tense','single','tense'),F('prose','สไตล์ร้อยแก้ว','Prose style','multi','prose',[1,2]),F('scenelen','ความยาวฉาก','Scene length','single','scenelen')]}];
+const CHF=[F('role','บทบาท','Role','single','role'),F('gender','เพศ','Gender','single','gender'),F('age','อายุ (ผู้ใหญ่)','Age (adult)','single','age'),F('occ','อาชีพ','Occupation','multi','occ',[1,1]),F('pers','นิสัย','Personality','multi','pers',[2,3]),F('goal','เป้าหมาย','Goal','single','goal'),F('flaw','จุดอ่อน','Flaw','single','flaw'),F('voice','น้ำเสียงการพูด','Speech','multi','voice',[1,2]),F('hair','ทรงผม','Hairstyle','single','hair'),F('hcolor','สีผม','Hair color','single','hcolor'),F('skin','สีผิว','Skin tone','single','skin'),F('height','ความสูง','Height','single','height'),F('eyes','ดวงตา','Eyes','single','eyes'),F('build','รูปร่าง','Build','single','build'),F('feat','จุดเด่น','Distinguishing features','multi','feat',[0,2]),F('bg','ประวัติ/พื้นหลัง','Backstory','text'),F('rel','ความสัมพันธ์','Relationships','text')];
+const OUF=[F('ostyle','สไตล์','Style','multi','ostyle',[1,2]),F('ocolor','สี','Colors','multi','ocolor',[1,2]),F('oacc','เครื่องประดับ','Accessories','multi','oacc',[0,2]),F('odet','รายละเอียดเพิ่ม','Details','text')];
+const LOF=[F('ltype','ประเภทสถานที่','Type','multi','place',[1,1]),F('latm','บรรยากาศ','Atmosphere','multi','atmos',[1,2]),F('ltod','ช่วงเวลา','Time of day','single','tod'),F('ldet','รายละเอียดภาพ','Visual details','text')];
+/* ===== state ===== */
+const $=s=>document.querySelector(s);
+let book="",chat=[],chs=[],cur="",ctrl=null,S=null,meta={title:"",author:"",lang:"English"},saveT=null;
+const emptySetup=()=>({v:{},locks:{},chars:[],locs:[],notes:"",synth:"",synthNotes:"",assist:[]});
+const api=async(p,o={})=>{const r=await fetch("api/"+p,o);if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||r.status);return r};
+const js=(m,b)=>({method:m,headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});
+const uid=()=>Math.random().toString(36).slice(2,8);
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button,.tab").forEach(x=>x.classList.remove("on"));b.classList.add("on");$("#t-"+b.dataset.t).classList.add("on");if(b.dataset.t==="tr")loadTrash()});
+/* ===== value helpers ===== */
+const gv=(o,k)=>(o[k]=o[k]||{s:[],c:""});
+const thOf=(pool,en)=>{const c=(POOL[pool]||[]).find(x=>x.en===en);return c?c.th:en};
+function summ(f,val){const a=(val.s||[]).map(e=>thOf(f.pool,e));if(val.c)a.push(val.c);return a.join(" · ")}
+function rnd(f){const p=POOL[f.pool].filter(x=>!x.ex);const n=f.t==='single'?1:(f.n?f.n[0]+Math.floor(Math.random()*(f.n[1]-f.n[0]+1)):1);const a=[...p].sort(()=>Math.random()-.5).slice(0,n);return{s:a.map(x=>x.en),c:""}}
+function rndName(){return NAMES[Math.floor(Math.random()*NAMES.length)]}
+function rndOutfit(i){const v={};OUF.filter(f=>f.pool).forEach(f=>v[f.k]=rnd(f));return{id:uid(),name:["ชุดประจำ","ชุดทำงาน","ชุดพิเศษ","ชุดลำลอง"][i%4],v:Object.assign(v,{odet:{s:[],c:""}})}}
+function rndChar(role){const v={};CHF.filter(f=>f.pool).forEach(f=>v[f.k]=rnd(f));v.role={s:[role],c:""};return{id:uid(),name:rndName(),v,outfits:[rndOutfit(0),rndOutfit(1)]}}
+function rndLoc(){const v={};LOF.filter(f=>f.pool).forEach(f=>v[f.k]=rnd(f));return{id:uid(),name:LOCNAMES[Math.floor(Math.random()*LOCNAMES.length)],v}}
+function regenChars(){if(S.locks.chars)return;const keep=S.chars.filter(c=>c.locked);const have=keep.map(c=>(c.v.role||{s:[]}).s[0]);
+ const roles=['protagonist',['partner','love interest'][Math.floor(Math.random()*2)],'antagonist'].filter(r=>!have.includes(r));
+ const need=Math.max(0,3-keep.length);S.chars=[...keep,...roles.slice(0,need).map(r=>rndChar(r))]}
+function regenLocs(){if(S.locks.locs)return;const keep=S.locs.filter(l=>l.locked);const n=Math.max(0,3-keep.length);S.locs=[...keep,...Array.from({length:n},()=>rndLoc())]}
+function randomAll(){for(const sec of TOP)for(const f of sec.f){if(!f.pool||S.locks[f.k]||f.k==='lang')continue;S.v[f.k]=rnd(f)}
+ regenChars();regenLocs();
+ const l=S.v.lang;if(l&&(l.s[0]||l.c))meta.lang=l.s[0]||l.c}
+/* ===== compile to bible (English) ===== */
+function line(f,val){const a=[...(val.s||[])];if(val.c)a.push(val.c);return a.length?`- ${f.en}: ${a.join(", ")}\n`:""}
+function compile(){let o=`# Story bible\n\nTitle: ${meta.title||"(untitled)"}\n`;
+ for(const sec of TOP){let b="";for(const f of sec.f){if(f.t==='text'){const t=(S.v[f.k]||{}).c;if(t)b+=`- ${f.en}: ${t}\n`}else b+=line(f,gv(S.v,f.k))}if(b)o+=`\n## ${sec.en}\n${b}`}
+ if(S.chars.length){o+=`\n## Characters (all adults)\n`;for(const c of S.chars){o+=`\n### ${c.name||"Unnamed"}\n`;for(const f of CHF){if(f.t==='text'){const t=(c.v[f.k]||{}).c;if(t)o+=`- ${f.en}: ${t}\n`}else o+=line(f,gv(c.v,f.k))}
+  for(const u of c.outfits){let b="";for(const f of OUF){if(f.t==='text'){const t=(u.v[f.k]||{}).c;if(t)b+=`${f.en}: ${t}; `}else{const x=gv(u.v,f.k),a=[...x.s];if(x.c)a.push(x.c);if(a.length)b+=`${f.en}: ${a.join(", ")}; `}}if(b)o+=`- Outfit "${u.name}": ${b}\n`}}}
+ if(S.locs.length){o+=`\n## Locations\n`;for(const l of S.locs){let b="";for(const f of LOF){if(f.t==='text'){const t=(l.v[f.k]||{}).c;if(t)b+=`${f.en}: ${t}; `}else{const x=gv(l.v,f.k),a=[...x.s];if(x.c)a.push(x.c);if(a.length)b+=`${f.en}: ${a.join(", ")}; `}}o+=`- ${l.name||"Unnamed"} — ${b}\n`}}
+ if(S.synth)o+=`\n## Synthesis (editor's cohesion pass)\n${S.synth}\n`;
+ if(S.notes)o+=`\n## Author notes\n${S.notes}\n`;return o}
+/* ===== autosave ===== */
+function dirty(){clearTimeout(saveT);$("#st").textContent="กำลังบันทึก…";saveT=setTimeout(async()=>{try{await api(`books/${book}/setup`,js("PUT",{setup:S,bible:compile()}));await api(`books/${book}/meta`,js("PUT",meta));$("#st").textContent="บันทึกแล้ว ✓";setTimeout(status,1500)}catch(e){$("#st").textContent="บันทึกไม่สำเร็จ: "+e.message}},900)}
+/* ===== picker ===== */
+let pkCtx=null;
+function openPicker(f,val,done){pkCtx={f,val:{s:[...val.s],c:val.c||""},done};$("#pt").textContent=f.th;$("#pi").value="";drawPk();$("#pk").showModal()}
+function drawPk(){const{f,val}=pkCtx,q=$("#pi").value.trim().toLowerCase();const single=f.t==='single';
+ const items=POOL[f.pool].filter(x=>!q||x.th.toLowerCase().includes(q)||x.en.toLowerCase().includes(q));
+ const known=new Set(POOL[f.pool].map(x=>x.en));const legacy=val.s.filter(e=>!known.has(e)).map(e=>`<label class="sel" data-e="${esc(e)}"><input type="${single?'radio':'checkbox'}" checked><span>${esc(e)}</span><span class="en">ค่าเดิม (แตะเพื่อเอาออก)</span></label>`).join("");
+ const custom=val.c?`<label class="sel" data-c="1"><input type="checkbox" checked><span>✎ ${esc(val.c)}</span><span class="en">พิมพ์เอง (แตะเพื่อลบ)</span></label>`:"";
+ let lastG=null;$("#pl").innerHTML=custom+legacy+items.map(x=>(!q&&x.g&&x.g!==lastG?(lastG=x.g,`<div class="gh">${esc(x.g)}</div>`):"")+`<label class="${val.s.includes(x.en)?"sel":""}" data-e="${esc(x.en)}"><input type="${single?"radio":"checkbox"}" ${val.s.includes(x.en)?"checked":""}><span>${esc(x.th)}</span><span class="en">${esc(x.en)}</span></label>`).join("")||`<p class="small" style="padding:10px">ไม่พบ — พิมพ์แล้วกด "+ เพิ่ม" เพื่อใช้ข้อความเอง</p>`;
+ $("#pn").textContent=single?"เลือก 1":"เลือกได้หลายใบ";
+ $("#pl").querySelectorAll("label").forEach(l=>l.onclick=e=>{e.preventDefault();if(l.dataset.c){val.c="";drawPk();return}const en=l.dataset.e;
+  if(single)val.s=val.s.includes(en)?[]:[en];else val.s=val.s.includes(en)?val.s.filter(x=>x!==en):[...val.s,en];drawPk()})}
+$("#pi").oninput=()=>pkCtx&&drawPk();
+$("#pa").onclick=()=>{const t=$("#pi").value.trim();if(!t||!pkCtx)return;pkCtx.val.c=pkCtx.val.c?pkCtx.val.c+", "+t:t;$("#pi").value="";drawPk()};
+$("#pi").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("#pa").click()}};
+$("#pclr").onclick=()=>{pkCtx.val.s=[];pkCtx.val.c="";drawPk()};
+$("#px").onclick=()=>$("#pk").close();
+$("#pok").onclick=()=>{pkCtx.done(pkCtx.val);$("#pk").close()};
+/* ===== AI assistant (proposal -> apply) ===== */
+const ALLF=()=>({top:TOP.flatMap(x=>x.f),ch:CHF,ou:OUF,lo:LOF});
+function specText(){const t=f=>`${f.k} (${f.en}${f.t==='text'?', free text':''})`;
+ return "TOP-LEVEL fields (key 'top'): "+TOP.flatMap(x=>x.f).filter(f=>f.k!=='lang').map(t).join("; ")+"\nCHARACTER fields: "+CHF.map(t).join("; ")+"\nOUTFIT fields: "+OUF.map(t).join("; ")+"\nLOCATION fields: "+LOF.map(t).join("; ")}
+function lockedText(){const a=[];Object.keys(S.locks).forEach(k=>{if(S.locks[k])a.push(k==='chars'?"ALL characters":k==='locs'?"ALL locations":"top field "+k)});S.chars.forEach(c=>{if(c.locked)a.push("character "+c.name)});S.locs.forEach(l=>{if(l.locked)a.push("location "+l.name)});return a.join("; ")||"(none)"}
+function parseProp(t){const m=/```proposal\s*\n([\s\S]*?)(```|$)/.exec(t);if(!m)return{text:t,prop:null,err:false};const text=(t.slice(0,m.index)+t.slice(m.index+m[0].length)).trim();let prop=null,err=false;
+ try{prop=JSON.parse(m[1].trim())}catch(e){try{prop=JSON.parse(m[1].trim().replace(/,\s*([}\]])/g,"$1"))}catch(e2){err=true}}return{text,prop,err}}
+function setFieldVal(obj,f,val){if(val===null||val===undefined||val==="")return;
+ if(f.t==='text'){obj[f.k]={s:[],c:String(Array.isArray(val)?val.join(", "):val)};return}
+ const parts=(Array.isArray(val)?val:String(val).split(/\s*[,;]\s*/)).map(x=>String(x).trim()).filter(Boolean);const pool=POOL[f.pool]||[];const s=[],c=[];
+ for(const p of parts){const q=p.toLowerCase();const hit=pool.find(x=>x.en.toLowerCase()===q||x.th===p);if(hit&&!s.includes(hit.en)&&!(f.t==='single'&&s.length))s.push(hit.en);else c.push(p)}
+ obj[f.k]={s,c:c.join(", ")}}
+const fth=(specs,k)=>{const f=specs.find(x=>x.k===k);return f?f.th:k};
+function applyProp(p,dry){const L=[];const A=ALLF();
+ const flat=(o,specs)=>Object.keys(o||{}).map(k=>`${fth(specs,k)}=${Array.isArray(o[k])?o[k].join(", "):o[k]}`).join("; ");
+ if(p.top){for(const k of Object.keys(p.top)){const f=A.top.find(x=>x.k===k);if(!f||k==='lang')continue;if(S.locks[k]){L.push(`🔒 ข้าม ${f.th} (ล็อกอยู่)`);continue}
+  L.push(`• ${f.th}: ${Array.isArray(p.top[k])?p.top[k].join(", "):p.top[k]}`);if(!dry){if(!S.v[k])S.v[k]={s:[],c:""};setFieldVal(S.v,f,p.top[k])}}}
+ const items=(arr,list,specs,mk,kind,lockAll)=>{for(const it of (arr||[])){const name=String(it.name||"").trim();if(!name)continue;
+   if(lockAll){L.push(`🔒 ข้าม${kind} ${name} (ล็อกทั้งชุด)`);continue}
+   let ex=list.find(x=>x.name.trim().toLowerCase()===name.toLowerCase());
+   if(ex&&ex.locked){L.push(`🔒 ข้าม${kind} ${name} (ล็อกอยู่)`);continue}
+   L.push(`• ${kind}${ex?" (อัปเดต)":" (ใหม่)"} ${name}: ${flat(it.fields,specs)}`);
+   if(!dry){if(!ex){ex=mk(name);list.push(ex)}for(const k of Object.keys(it.fields||{})){const f=specs.find(x=>x.k===k);if(f){if(!ex.v[k])ex.v[k]={s:[],c:""};setFieldVal(ex.v,f,it.fields[k])}}}
+   if(kind==="ตัวละคร")for(const o of (it.outfits||[])){const on=String(o.name||"").trim();if(!on)continue;L.push(`   ↳ ชุด ${on}: ${flat(o.fields,OUF)}`);
+    if(!dry){let ou=ex.outfits.find(x=>x.name.trim().toLowerCase()===on.toLowerCase());if(!ou){ou={id:uid(),name:on,v:{}};ex.outfits.push(ou)}
+     for(const k of Object.keys(o.fields||{})){const f=OUF.find(x=>x.k===k);if(f){if(!ou.v[k])ou.v[k]={s:[],c:""};setFieldVal(ou.v,f,o.fields[k])}}}}}};
+ items(p.characters,S.chars,CHF,n=>({id:uid(),name:n,v:{},outfits:[]}),"ตัวละคร",!!S.locks.chars);
+ items(p.locations,S.locs,LOF,n=>({id:uid(),name:n,v:{}}),"สถานที่",!!S.locks.locs);
+ return L}
+function drawAssist(){const el=$("#achat");if(!el)return;const arr=S.assist||[];
+ if(!arr.length){el.innerHTML=`<p class="small">ยังไม่มีบทสนทนา — บอกสเปคที่อยากได้ได้เลย เช่น แนวเรื่อง ตัวเอก คู่ตัวละคร ฉาก หรือพิมพ์ "ช่วยคิดให้ทั้งหมด" แล้วผมจะถามเพิ่มและเสนอให้</p>`;return}
+ el.innerHTML="";arr.forEach((m,i)=>{const d=document.createElement('div');
+  if(m.role==='user'){d.className='am user';d.textContent=m.content;el.appendChild(d);return}
+  const r=parseProp(m.content);d.className='am';d.textContent=r.text||(r.prop?"(ข้อเสนอ)":m.content);el.appendChild(d);
+  if(r.err){const e=document.createElement('div');e.className='small';e.textContent="⚠ ข้อเสนอรูปแบบไม่ถูกต้อง — ลองพิมพ์ให้ AI เสนอใหม่";el.appendChild(e)}
+  if(r.prop){const pd=document.createElement('div');pd.className='prop';const lines=applyProp(r.prop,true);
+   if(m.applied)pd.innerHTML=`<b>✓ ใช้ข้อเสนอนี้แล้ว</b>`;else if(m.dismissed)pd.innerHTML=`<span class="small">ไม่ใช้ข้อเสนอนี้</span>`;
+   else{pd.innerHTML=`<b>📋 ข้อเสนอ</b> <span class="small">(${lines.length} รายการ)</span><pre>${esc(lines.join("\n")||"(ไม่มีอะไรจะเปลี่ยน)")}</pre><div class="bar2"><button class="p" data-a="ok">✅ ใช้ข้อเสนอนี้</button><button data-a="no">ไม่ใช้</button></div>`;
+    pd.querySelector('[data-a=ok]').onclick=()=>{applyProp(r.prop,false);m.applied=true;S.synth=S.synth;dirty();renderSetup()};
+    pd.querySelector('[data-a=no]').onclick=()=>{m.dismissed=true;dirty();drawAssist()}}
+   el.appendChild(pd)}});el.scrollTop=el.scrollHeight}
+async function asend(){const t=$("#ain").value.trim();if(!t||!S)return;S.assist=S.assist||[];const b=$("#asend");
+ S.assist.push({role:'user',content:t});const ph={role:'assistant',content:"กำลังคิด…"};S.assist.push(ph);$("#ain").value="";b.disabled=true;drawAssist();
+ const msgs=S.assist.slice(0,-1).slice(-16).map(m=>({role:m.role,content:m.content}));
+ try{const r=await(await api("assist",js("POST",{spec:specText(),state:compile(),locked:lockedText(),messages:msgs}))).json();ph.content=r.reply||"(ไม่มีคำตอบ)"}
+ catch(e){ph.content="[ใช้ไม่ได้ — พอดเปิดอยู่และโมเดลพร้อมไหม? "+e.message+"]"}
+ b.disabled=false;dirty();drawAssist()}
+/* ===== setup UI ===== */
+function row(f,obj,lockKey,rerender,ro){
+ const d=document.createElement('div');d.className='fr';
+ if(f.t==='text'){const v=gv(obj,f.k);d.innerHTML=`<span class="lb">${f.th}</span><textarea placeholder="พิมพ์เอง…">${esc(v.c||"")}</textarea>`;
+  d.querySelector('textarea').oninput=e=>{v.c=e.target.value;dirty()};if(ro)d.querySelector('textarea').disabled=true;return d}
+ const v=gv(obj,f.k),sm=summ(f,v);
+ d.innerHTML=`<span class="lb">${f.th}</span><button class="val ${sm?"":"empty"}">${sm?esc(sm):"แตะเพื่อเลือก…"}</button><button class="i" title="สุ่มช่องนี้">🎲</button>${lockKey?`<button class="i ${S.locks[lockKey]?"on":""}" title="ล็อก">${S.locks[lockKey]?"🔒":"🔓"}</button>`:""}`;
+ const b=d.querySelectorAll('button');
+ b[0].onclick=()=>openPicker(f,v,nv=>{obj[f.k]=nv;dirty();rerender()});
+ b[1].onclick=()=>{obj[f.k]=rnd(f);dirty();rerender()};
+ if(b[2])b[2].onclick=()=>{S.locks[lockKey]=!S.locks[lockKey];dirty();rerender()};
+ if(ro)b.forEach(x=>x.disabled=true);
+ return d}
+function renderSetup(){const el=$("#su");if(!S){el.innerHTML="";return}const keep=[...el.querySelectorAll('details')].map(d=>d.open);
+ el.innerHTML=`<div class="bar2"><button class="p" id="rall">🎲 สุ่มทั้งเรื่อง</button><button id="rfine">✨ ให้โมเดลขัดเกลา</button><button id="pvw">ดู Bible</button><span class="small">ช่องที่ล็อก 🔒 จะไม่ถูกสุ่มทับ · ทุกช่องแก้ได้</span></div>
+ <div class="fr" style="border:1px solid var(--bd);border-radius:12px;background:var(--pn);flex-wrap:wrap"><span class="lb">ชื่อเรื่อง</span><input id="mt" style="flex:1 1 140px;min-width:0" value="${esc(meta.title||"")}"><span class="lb" style="width:60px">ผู้แต่ง</span><input id="ma" style="flex:1 1 140px;min-width:0" value="${esc(meta.author||"")}"></div>
+ <details class="sec" id="asst" open><summary>💬 คุยกับ AI เพื่อช่วยสร้างรายละเอียด</summary><div id="achat"></div>
+ <div class="fr" style="flex-wrap:wrap"><textarea id="ain" placeholder="เช่น ขอตัวเอกเป็นนักสืบหญิง 30 กว่า เรื่องมืดๆ ในเมืองฝนตก — หรือพิมพ์ว่า 'ช่วยคิดให้ทั้งหมด'" style="flex:1 1 220px"></textarea><button class="p" id="asend">ส่ง</button><button id="aclr" title="ล้างแชทนี้">ล้าง</button></div>
+ <div class="fr"><span class="small">AI จะถามสเปคที่ขาด แล้วเสนอเป็นข้อเสนอให้กด "ใช้" · ช่องที่ล็อก 🔒 (ทั้งช่อง ตัวละคร สถานที่) จะไม่ถูกแตะ · ต้องรอโมเดลพร้อม</span></div></details>`;
+ const rer=()=>renderSetup();
+ for(const sec of TOP){const dt=document.createElement('details');dt.className='sec';dt.innerHTML=`<summary>${sec.th}</summary>`;
+  for(const f of sec.f)dt.appendChild(row(f,S.v,f.pool?f.k:null,rer));el.appendChild(dt)}
+ /* characters */
+ const sumOf=(o,keys,specs)=>keys.map(k=>{const f=specs.find(x=>x.k===k);return f?summ(f,gv(o,k)):""}).filter(Boolean).join(" · ");
+ const cs=document.createElement('details');cs.className='sec';cs.innerHTML=`<summary>ตัวละคร (${S.chars.length})</summary>`;
+ const cb=document.createElement('div');cb.className='fr';cb.innerHTML=`<button id="addc">+ เพิ่มตัวละคร</button><button id="rc">🎲 สุ่มชุดใหม่ (ข้ามที่ล็อก)</button><button id="fc1">▸ พับทั้งหมด</button><button id="fc2">▾ ขยายทั้งหมด</button><button class="i ${S.locks.chars?"on":""}" id="lc" title="ล็อกชุดตัวละครทั้งหมด">${S.locks.chars?"🔒":"🔓"}</button>`;cs.appendChild(cb);
+ for(const c of S.chars){const cd=document.createElement('div');cd.className='card2'+(c.locked?' lockd':'');const ro=!!c.locked;
+  cd.innerHTML=`<div class="hd"><button class="i" data-a="fold" title="พับ/ขยาย">${c.folded?"▸":"▾"}</button><input value="${esc(c.name)}" placeholder="ชื่อตัวละคร" ${ro?"disabled":""}><button class="i" data-a="nm" title="สุ่มชื่อ" ${ro?"disabled":""}>🎲</button><button class="i" data-a="all" title="สุ่มทั้งตัว" ${ro?"disabled":""}>🔄</button><button class="i ${c.locked?"on":""}" data-a="lock" title="ล็อกตัวละครนี้ (ไม่ถูกสุ่ม/AI แก้ทับ)">${c.locked?"🔒":"🔓"}</button><button class="i" data-a="del" title="ลบ" ${ro?"disabled":""}>🗑</button>${c.folded?`<span class="sum">${esc(sumOf(c.v,['role','gender','age','occ'],CHF)||"(ยังไม่มีรายละเอียด)")}${c.outfits.length?" · "+c.outfits.length+" ชุด":""}</span>`:""}</div>`;
+  const A=a=>cd.querySelector(`[data-a=${a}]`);cd.querySelector('input').oninput=e=>{c.name=e.target.value;dirty()};
+  A('fold').onclick=()=>{c.folded=!c.folded;dirty();rer()};
+  A('lock').onclick=()=>{c.locked=!c.locked;if(c.locked)c.folded=true;dirty();rer()};
+  A('nm').onclick=()=>{c.name=rndName();dirty();rer()};
+  A('all').onclick=()=>{const n=rndChar((c.v.role||{s:[]}).s[0]||'supporting character');n.id=c.id;n.name=c.name;Object.assign(c,n);dirty();rer()};
+  A('del').onclick=()=>{if(confirm("ลบตัวละครนี้?")){S.chars=S.chars.filter(x=>x!==c);dirty();rer()}};
+  if(!c.folded){
+   for(const f of CHF)cd.appendChild(row(f,c.v,null,rer,ro));
+   const oh=document.createElement('div');oh.className='fr';oh.innerHTML=`<span class="lb">ชุดแต่งกาย</span><button class="oadd" ${ro?"disabled":""}>+ เพิ่มชุด</button>`;cd.appendChild(oh);
+   oh.querySelector('button').onclick=()=>{c.outfits.push(rndOutfit(c.outfits.length));dirty();rer()};
+   for(const u of c.outfits){const od=document.createElement('div');od.className='sub';od.innerHTML=`<div class="hd"><input value="${esc(u.name)}" placeholder="ชื่อชุด" ${ro?"disabled":""}><button class="i" ${ro?"disabled":""}>🎲</button><button class="i" ${ro?"disabled":""}>🗑</button></div>`;
+    const ob=od.querySelectorAll('.hd button');od.querySelector('input').oninput=e=>{u.name=e.target.value;dirty()};
+    ob[0].onclick=()=>{const n=rndOutfit(0);u.v=n.v;dirty();rer()};ob[1].onclick=()=>{c.outfits=c.outfits.filter(x=>x!==u);dirty();rer()};
+    for(const f of OUF)od.appendChild(row(f,u.v,null,rer,ro));cd.appendChild(od)}}
+  cs.appendChild(cd)}
+ el.appendChild(cs);
+ /* locations */
+ const ls=document.createElement('details');ls.className='sec';ls.innerHTML=`<summary>สถานที่และพื้นหลังฉาก (${S.locs.length})</summary>`;
+ const lb=document.createElement('div');lb.className='fr';lb.innerHTML=`<button id="addl">+ เพิ่มสถานที่</button><button id="rl">🎲 สุ่มชุดใหม่ (ข้ามที่ล็อก)</button><button id="fl1">▸ พับทั้งหมด</button><button id="fl2">▾ ขยายทั้งหมด</button><button class="i ${S.locks.locs?"on":""}" id="ll" title="ล็อกชุดสถานที่ทั้งหมด">${S.locks.locs?"🔒":"🔓"}</button>`;ls.appendChild(lb);
+ for(const l of S.locs){const ld=document.createElement('div');ld.className='card2'+(l.locked?' lockd':'');const ro=!!l.locked;
+  ld.innerHTML=`<div class="hd"><button class="i" data-a="fold" title="พับ/ขยาย">${l.folded?"▸":"▾"}</button><input value="${esc(l.name)}" placeholder="ชื่อสถานที่" ${ro?"disabled":""}><button class="i" data-a="rnd" title="สุ่มสถานที่นี้" ${ro?"disabled":""}>🎲</button><button class="i ${l.locked?"on":""}" data-a="lock" title="ล็อกสถานที่นี้">${l.locked?"🔒":"🔓"}</button><button class="i" data-a="del" title="ลบ" ${ro?"disabled":""}>🗑</button>${l.folded?`<span class="sum">${esc(sumOf(l.v,['ltype','latm','ltod'],LOF)||"(ยังไม่มีรายละเอียด)")}</span>`:""}</div>`;
+  const A=a=>ld.querySelector(`[data-a=${a}]`);ld.querySelector('input').oninput=e=>{l.name=e.target.value;dirty()};
+  A('fold').onclick=()=>{l.folded=!l.folded;dirty();rer()};
+  A('lock').onclick=()=>{l.locked=!l.locked;if(l.locked)l.folded=true;dirty();rer()};
+  A('rnd').onclick=()=>{const n=rndLoc();l.v=n.v;l.name=n.name;dirty();rer()};
+  A('del').onclick=()=>{S.locs=S.locs.filter(x=>x!==l);dirty();rer()};
+  if(!l.folded)for(const f of LOF)ld.appendChild(row(f,l.v,null,rer,ro));
+  ls.appendChild(ld)}
+ el.appendChild(ls);
+ /* synth + notes */
+ const sn=document.createElement('details');sn.className='sec';sn.open=!!S.synth;sn.innerHTML=`<summary>บทสรุปจากโมเดล และหมายเหตุของผู้แต่ง</summary><div class="fr"><span class="lb">สรุป (โมเดล)</span><textarea id="syn" style="min-height:120px" placeholder="กด ✨ ให้โมเดลขัดเกลา — แก้ไขเองได้">${esc(S.synth||"")}</textarea></div>${S.synthNotes?`<div class="fr"><span class="lb">ข้อขัดแย้งที่พบ</span><div class="small" style="white-space:pre-wrap">${esc(S.synthNotes)}</div></div>`:""}<div class="fr"><span class="lb">หมายเหตุ</span><textarea id="nts" placeholder="อะไรก็ได้ที่อยากให้โมเดลรู้">${esc(S.notes||"")}</textarea></div>`;el.appendChild(sn);
+ el.querySelectorAll('details').forEach((d,i)=>{if(keep[i])d.open=true});
+ $("#mt").oninput=e=>{meta.title=e.target.value;dirty()};$("#ma").oninput=e=>{meta.author=e.target.value;dirty()};
+ $("#syn").oninput=e=>{S.synth=e.target.value;dirty()};$("#nts").oninput=e=>{S.notes=e.target.value;dirty()};
+ $("#rall").onclick=()=>{if(S.chars.length&&!S.locks.chars&&!confirm("สุ่มใหม่จะทับช่องที่ไม่ได้ล็อกทั้งหมด (รวมตัวละครและสถานที่) ดำเนินการ?"))return;randomAll();S.synth="";S.synthNotes="";dirty();renderSetup();el.querySelectorAll('details.sec').forEach(d=>d.open=true)};
+ $("#asend").onclick=asend;$("#ain").onkeydown=e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();asend()}};
+ $("#aclr").onclick=()=>{if(!confirm("ล้างแชทผู้ช่วยนี้? (ค่าที่ใช้ไปแล้วไม่หาย)"))return;S.assist=[];dirty();drawAssist()};drawAssist();
+ $("#pvw").onclick=()=>{$("#prevt").textContent=compile();$("#prev").showModal()};
+ $("#addc").onclick=()=>{S.chars.push(rndChar('supporting character'));dirty();rer()};$("#rc").onclick=()=>{regenChars();dirty();rer()};$("#fc1").onclick=()=>{S.chars.forEach(c=>c.folded=true);dirty();rer()};$("#fc2").onclick=()=>{S.chars.forEach(c=>c.folded=false);dirty();rer()};
+ $("#lc").onclick=()=>{S.locks.chars=!S.locks.chars;dirty();rer()};
+ $("#addl").onclick=()=>{S.locs.push(rndLoc());dirty();rer()};$("#rl").onclick=()=>{regenLocs();dirty();rer()};$("#fl1").onclick=()=>{S.locs.forEach(l=>l.folded=true);dirty();rer()};$("#fl2").onclick=()=>{S.locs.forEach(l=>l.folded=false);dirty();rer()};$("#ll").onclick=()=>{S.locks.locs=!S.locks.locs;dirty();rer()};
+ $("#rfine").onclick=async()=>{const b=$("#rfine");b.disabled=true;b.textContent="โมเดลกำลังคิด…";try{const r=await(await api("refine",js("POST",{bible:compile()}))).json();S.synth=r.synth;S.synthNotes=r.notes;dirty();renderSetup();$("#t-setup .sec:last-of-type").open=true}catch(e){alert("ใช้ไม่ได้ (พอดเปิดอยู่ไหม?): "+e.message);b.disabled=false;b.textContent="✨ ให้โมเดลขัดเกลา"}};
+}
+$("#prevx").onclick=()=>$("#prev").close();
+/* ===== books / chapters / chat (unchanged logic) ===== */
+async function status(){try{const s=await(await api("status")).json();$("#st").textContent=s.llm?"● โมเดลพร้อม":"○ โมเดลยังโหลดอยู่";window._set=s.settings}catch(e){$("#st").textContent="✕ ติดต่อไม่ได้"}}
+async function loadBooks(sel){const bs=await(await api("books")).json();$("#book").innerHTML=bs.map(b=>`<option value="${b.id}">${esc(b.title)}</option>`).join("");
+ if(sel)$("#book").value=sel;book=$("#book").value;if(book)await loadBook();else{chat=[];S=null;render();renderSetup()}}
+async function loadBook(){const d=await(await api("books/"+book)).json();chat=d.chat;chs=d.chapters;meta=Object.assign({title:"",author:"",lang:"English"},d.meta);S=Object.assign(emptySetup(),d.setup||{});if(!S.v.lang)S.v.lang={s:[meta.lang==='Thai'?'Thai':'English'],c:''};
+ cur=chs.length?chs[chs.length-1].id:"";CT={};CH={};OUT={draft:d.draft||null};loadFolds();$("#csel").innerHTML="";fillCsel();$("#csel").value=cur;render();renderMS();renderSetup()}
+/* ===== manuscript: Outline card + chapter cards (each with its own AI chat) ===== */
+let OUT={draft:null},CT={},CH={},FOLDS={},saveTm={},chatTm={},metaTm={},dsT=null;
+const bodyOf=t=>t.replace(/^\s*#\s+.*\n?/,"");
+const titleOf=(t,id)=>{const m=/^\s*#\s+(.+)/.exec(t);return m?m[1].trim():id};
+const wcount=t=>bodyOf(t).trim().split(/\s+/).filter(Boolean).length;
+const setHead=(t,ti)=>/^\s*#\s+/.test(t)?t.replace(/^\s*#\s+.*/,"# "+ti):"# "+ti+"\n\n"+t;
+function loadFolds(){try{FOLDS=JSON.parse(localStorage.getItem("fold:"+book)||"{}")}catch(e){FOLDS={}}}
+function saveFolds(){try{localStorage.setItem("fold:"+book,JSON.stringify(FOLDS))}catch(e){}}
+const workId=()=>{const c=chs.find(c=>!c.locked);return c?c.id:""};
+const isFolded=id=>FOLDS[id]===undefined?id!==workId():!!FOLDS[id];
+const outFolded=()=>FOLDS.outline===undefined?(chs.length>0&&!OUT.draft):!!FOLDS.outline;
+const gotoTab=t=>document.querySelector(`nav button[data-t=${t}]`).click();
+function toast(m){let t=$("#toast");if(!t){t=document.createElement("div");t.id="toast";document.body.appendChild(t)}t.textContent=m;t.style.opacity=1;clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity=0,2600)}
+async function ensureCh(id){if(CT[id]===undefined){const d=await(await api(`books/${book}/chapters/${id}`)).json();CT[id]=d.text||""}return CT[id]}
+async function ensureChat(sc){if(CH[sc]===undefined){try{CH[sc]=await(await api(`books/${book}/chat/${sc}`)).json()}catch(e){CH[sc]=[]}}return CH[sc]}
+function saveChat2(sc){clearTimeout(chatTm[sc]);chatTm[sc]=setTimeout(()=>api(`books/${book}/chat/${sc}`,js("PUT",{messages:CH[sc]})).catch(()=>{}),400)}
+function fillCsel(){const v=$("#csel").value||cur;$("#csel").innerHTML=`<option value="">(ไม่ใช้)</option>`+chs.map(c=>`<option value="${c.id}">${esc(c.title)}</option>`).join("");$("#csel").value=chs.some(c=>c.id===v)?v:"";cur=$("#csel").value}
+async function refreshChs(){const d=await(await api("books/"+book)).json();chs=d.chapters;OUT.draft=d.draft||null;fillCsel();renderMS()}
+const cntText=c=>c.words+(c.target?" / "+c.target:"")+" คำ";
+const cardOf=id=>document.querySelector(`.chc[data-id="${id}"]`);
+function setSt(id,t){const e=cardOf(id)&&cardOf(id).querySelector(".st");if(e)e.textContent=t}
+function updHead(id){const c=chs.find(x=>x.id===id),e=cardOf(id);if(!c||!e)return;const w=e.querySelector(".cnt");if(w)w.textContent=cntText(c)}
+function saveChapter(id,now){clearTimeout(saveTm[id]);const run=async()=>{if(CT[id]===undefined)return;try{await api(`books/${book}/chapters/${id}`,js("PUT",{text:CT[id]}));const c=chs.find(x=>x.id===id);if(c){c.words=wcount(CT[id]);c.title=titleOf(CT[id],id)}updHead(id);setSt(id,"บันทึกแล้ว ✓")}catch(e){setSt(id,"บันทึกไม่สำเร็จ: "+e.message)}};if(now)return run();setSt(id,"กำลังบันทึก…");saveTm[id]=setTimeout(run,1000)}
+function saveMeta(id,patch){clearTimeout(metaTm[id]);metaTm[id]=setTimeout(()=>api(`books/${book}/outline/${id}`,js("PUT",patch)).catch(e=>toast("บันทึกไม่สำเร็จ: "+e.message)),700)}
+function saveDraft(){clearTimeout(dsT);dsT=setTimeout(()=>api(`books/${book}/outline-draft`,js("PUT",{items:OUT.draft})).catch(e=>toast("บันทึกฉบับร่างไม่สำเร็จ: "+e.message)),700)}
+const parseJ=s=>{try{return JSON.parse(s)}catch(e){try{return JSON.parse(String(s).replace(/,\s*([}\]])/g,"$1"))}catch(e2){return null}}};
+const blockInfo=(t,k)=>{const m=new RegExp("```"+k+"[^\\n]*\\n([\\s\\S]*?)(```|$)").exec(t);return m?{body:m[1],closed:m[2]==="```"}:null};
+const blockOf=(t,k)=>{const m=new RegExp("```"+k+"[^\\n]*\\n([\\s\\S]*?)(```|$)").exec(t);return m?m[1]:""};
+const truncBar=i=>`<div class="prop small">⚠ คำตอบถูกตัดเพราะเกินความยาวสูงสุด <button data-act="cont" data-mi="${i}">เขียนต่อ</button></div>`;
+/* --- chat blocks inside messages --- */
+function fmt(t,ctx){ctx=ctx||{sc:"overview",mi:-1,arr:[]};const parts=[];const re=/```(draft|outline|chapter|edit)[^\n]*\n([\s\S]*?)(```|$)/g;let last=0,m;
+ while((m=re.exec(t))){parts.push(esc(t.slice(last,m.index)));const kind=m[1],body=m[2].replace(/\n+$/,""),closed=m[3]==="```",msg=(ctx.arr||[])[ctx.mi]||{};
+  if(kind==="edit"){const o=closed?parseJ(body):null;
+   if(!closed)parts.push(`<div class="prop small">กำลังเตรียมแก้ต้นฉบับ…</div>`);
+   else if(!o||!Array.isArray(o.edits))parts.push(`<div class="prop small">⚠ รูปแบบคำสั่งแก้ไม่ถูกต้อง — ไม่มีอะไรถูกเปลี่ยน</div>`);
+   else{const list=o.edits.map(e=>`<div class="df"><del>${esc(String(e.find||""))}</del><ins>${esc(String(e.replace||""))}</ins></div>`).join("");
+    let st="";if(msg.applyErr)st=`<div class="small" style="color:#e66">⚠ ${esc(msg.applyErr.map(x=>x.why).join(" · "))} — ไม่มีอะไรถูกเปลี่ยน ลองสั่งใหม่ให้เจาะจงขึ้น</div>`;
+    else if(msg.undone)st=`<div class="small">↩ ย้อนกลับแล้ว</div>`;
+    else if(msg.applied)st=`<div class="small">✓ แก้ในต้นฉบับแล้ว ${msg.applied.n||o.edits.length} จุด ${msg.applied.snap?`<button data-act="undo" data-mi="${ctx.mi}">↩ ย้อนกลับ</button>`:""}</div>`;
+    parts.push(`<div class="prop"><b>✎ แก้เฉพาะจุด ${o.edits.length} จุด</b>${list}${st}</div>`)}}
+  else if(kind==="draft"&&ctx.sc&&ctx.sc.startsWith("ch")&&msg.applied&&msg.applied.appended)parts.push(`<div class="draft"><div class="bar"><b>✍︎ draft</b><span>✓ ต่อท้ายต้นฉบับแล้ว</span>${msg.applied.snap&&!msg.undone?`<button data-act="undo" data-mi="${ctx.mi}">↩ ย้อนกลับ</button>`:""}${msg.undone?"<span>↩ ย้อนกลับแล้ว</span>":""}</div><div class="body">${esc(body)}</div></div>`);
+  else if(kind==="draft")parts.push(`<div class="draft"><div class="bar"><b>✍︎ draft</b><button data-act="ins" data-b="${encodeURIComponent(body)}">แทรกท้ายตอน${ctx.sc&&ctx.sc.startsWith("ch")?"นี้":""}</button><button data-act="cp" data-b="${encodeURIComponent(body)}">คัดลอก</button></div><div class="body">${esc(body)}</div></div>`);
+  else if(kind==="outline"){const o=closed?parseJ(body):null;
+   if(!closed)parts.push(`<div class="prop small">กำลังร่างโครงเรื่อง…</div>`);
+   else if(!o||!Array.isArray(o.chapters))parts.push(`<div class="prop small">⚠ รูปแบบโครงเรื่องไม่ถูกต้อง — ลองให้ AI ส่งใหม่</div>`);
+   else parts.push(`<div class="prop"><b>📋 ข้อเสนอโครงเรื่อง ${o.chapters.length} ตอน</b><pre>${esc(o.chapters.map((c,i)=>`${i+1}. ${c.title||""}${c.words?" ("+c.words+" คำ)":""}\n   ${c.summary||""}`).join("\n"))}</pre>${msg.done?`<b>✓ ส่งแล้ว</b>`:`<button class="p" data-act="osend" data-mi="${ctx.mi}">${ctx.sc==="overview"?"📥 ส่งไปช่อง Outline":"✅ ใช้เป็นฉบับร่างใน Outline"}</button>`}</div>`)}
+  else{const o=closed?parseJ(body):null;
+   if(!closed)parts.push(`<div class="prop small">กำลังร่างข้อเสนอ…</div>`);
+   else if(!o)parts.push(`<div class="prop small">⚠ รูปแบบข้อเสนอไม่ถูกต้อง</div>`);
+   else parts.push(`<div class="prop"><b>✎ ข้อเสนอปรับตอนนี้</b><pre>${esc([o.title?"ชื่อ: "+o.title:"",o.summary?"สรุป: "+o.summary:"",o.words?"ความยาวเป้าหมาย: "+o.words+" คำ":""].filter(Boolean).join("\n"))}</pre>${msg.done?`<b>✓ ใช้แล้ว</b>`:`<button class="p" data-act="capply" data-mi="${ctx.mi}">✅ ใช้</button>`}</div>`)}
+  last=re.lastIndex;if(!closed)break}
+ parts.push(esc(t.slice(last)));return parts.join("")}
+function bindActs(box,sc,arr,saver){box.querySelectorAll("[data-act]").forEach(b=>b.onclick=async()=>{const act=b.dataset.act,mi=+b.dataset.mi;
+ try{
+  if(act==="cont"){const w=box.closest(".cbox");const msg="เขียนต่อจากประโยคสุดท้ายที่ค้างไว้ ใช้รูปแบบเดิม ไม่ต้องเริ่มใหม่";if(w){w.querySelector("textarea").value=msg;sendScope(w,sc)}else{$("#inp").value=msg;$("#send").click()}}
+  else if(act==="undo"){const m=arr[mi];const r=await(await api(`books/${book}/chapters/${sc}/undo`,js("POST",{snap:m.applied.snap}))).json();CT[sc]=r.text;m.undone=true;saver();syncEditor(sc);renderMS();toast("ย้อนกลับแล้ว")}
+  else if(act==="cp"){navigator.clipboard&&navigator.clipboard.writeText(decodeURIComponent(b.dataset.b));toast("คัดลอกแล้ว")}
+  else if(act==="ins")await insertInto(sc,decodeURIComponent(b.dataset.b));
+  else if(act==="osend"){const o=parseJ(blockOf(arr[mi].content,"outline"));if(!o||!Array.isArray(o.chapters))throw new Error("โครงเรื่องไม่ถูกต้อง");
+   OUT.draft=o.chapters.map(x=>({title:String(x.title||""),summary:String(x.summary||""),words:+x.words||0}));
+   await api(`books/${book}/outline-draft`,js("PUT",{items:OUT.draft}));arr[mi].done=true;saver();FOLDS.outline=false;saveFolds();renderMS();
+   if(sc==="overview"){gotoTab("ms");toast("ส่งไปช่อง Outline แล้ว — ตรวจ/แก้ แล้วกดอนุมัติ")}else toast("อัปเดตฉบับร่างแล้ว — กดอนุมัติเมื่อพร้อม")}
+  else if(act==="capply"){const o=parseJ(blockOf(arr[mi].content,"chapter")),c=chs.find(x=>x.id===sc);if(!o||!c)throw new Error("ข้อเสนอไม่ถูกต้อง");if(c.locked)throw new Error("ตอนนี้ล็อกอยู่");
+   const patch={};if(o.summary!=null){patch.summary=String(o.summary);c.summary=patch.summary}if(o.words!=null){patch.target=+o.words||0;c.target=patch.target}
+   if(Object.keys(patch).length)await api(`books/${book}/outline/${sc}`,js("PUT",patch));
+   if(o.title){const t=await ensureCh(sc);CT[sc]=setHead(t,String(o.title));c.title=String(o.title);await saveChapter(sc,true)}
+   arr[mi].done=true;saver();renderMS();toast("ปรับตอนนี้แล้ว")}
+ }catch(e){toast("ไม่สำเร็จ: "+e.message)}})}
+async function insertInto(sc,txt){const id=/^ch\d+$/.test(sc)?sc:$("#csel").value;if(!id){toast("ยังไม่มีตอนที่เลือก — เลือกตอนที่ช่อง “ตอนที่ใช้เป็นบริบท” หรือสร้างตอนก่อน");return}
+ const c=chs.find(x=>x.id===id);if(c&&c.locked){toast("ตอนนี้ล็อกอยู่ — ปลดล็อกก่อนแทรก");return}
+ const t=await ensureCh(id);CT[id]=t.replace(/\s+$/,"")+"\n\n"+txt+"\n";await saveChapter(id,true);renderMS();toast("แทรกท้ายตอนแล้ว ("+(c?c.title:id)+")")}
+async function readSSE(r,onDelta,onFin){const rd=r.body.getReader(),dc=new TextDecoder();let buf="";for(;;){const{done,value}=await rd.read();if(done)break;buf+=dc.decode(value,{stream:true});let i;
+ while((i=buf.indexOf("\n"))>=0){const ln=buf.slice(0,i).trim();buf=buf.slice(i+1);if(!ln.startsWith("data:"))continue;const p=ln.slice(5).trim();if(p==="[DONE]")continue;try{const j=JSON.parse(p).choices[0];const c=j.delta&&j.delta.content;if(c)onDelta(c);if(j.finish_reason&&onFin)onFin(j.finish_reason)}catch(e){}}}}
+/* --- per-card chat box --- */
+function drawMsgs(w,sc,stream){const box=w.querySelector(".cmsgs"),arr=CH[sc]||[];const atEnd=box.scrollTop+box.clientHeight>=box.scrollHeight-60;
+ box.innerHTML=arr.length?arr.map((m,i)=>`<div class="am ${m.role==="user"?"user":""}">${m.role==="user"?esc(m.content):fmt(m.content,{sc,mi:i,arr})+(m.trunc?truncBar(i):"")+(m.applyErr&&!/```edit/.test(m.content)?`<div class="small" style="color:#e66">⚠ ${esc(m.applyErr.map(x=>x.why).join(" · "))}</div>`:"")}</div>`).join(""):`<p class="small" style="padding:4px 2px">${sc==="outline"?"AI ตัวนี้แก้ได้เฉพาะโครงเรื่อง (Outline)":"AI ตัวนี้โฟกัสเฉพาะตอนนี้ — เรื่องภาพรวมไปคุยที่แท็บแชท"}</p>`;
+ bindActs(box,sc,arr,()=>saveChat2(sc));if(!stream||atEnd)box.scrollTop=box.scrollHeight;if(w._cn)w._cn()}
+function chatBox(sc,locked,ph){const w=document.createElement("div");w.className="cbox";
+ w.innerHTML=`<div class="chd"><button class="ct" data-a="ct"></button><span class="small pv"></span><button class="top" data-a="top" title="เลื่อนไปที่ต้นฉบับ">⤒ ต้นฉบับ</button></div><div class="cmsgs"></div><div class="crow"><textarea rows="2" placeholder="${esc(ph)}" ${locked?"disabled":""}></textarea><button class="p" data-a="send" ${locked?"disabled":""}>ส่ง</button><button data-a="stop" style="display:none">หยุด</button><button data-a="clr" ${locked?"disabled":""}>ล้าง</button></div>${locked?`<div class="small cnote">🔒 ตอนนี้ล็อกอยู่ — ปลดล็อกเพื่อคุยกับ AI</div>`:""}`;
+ const ck="c_"+sc,setShut=()=>{const open=FOLDS[ck]===true;w.classList.toggle("shut",!open);const b=w.querySelector("[data-a=ct]");b.innerHTML=`💬 แชท <span class="cn"></span> ${open?"▾":"▸"}`;w._cn()};
+ w._cn=()=>{const arr=CH[sc]||[],n=arr.length,b=w.querySelector(".cn");if(b)b.textContent=n?`(${n})`:"";const pv=w.querySelector(".pv"),open=FOLDS[ck]===true;if(!pv)return;
+  if(w._busy){pv.innerHTML=`<span class="typing">● AI กำลังพิมพ์…</span>`;return}
+  if(open||!n){pv.textContent=n?"":"ยังไม่มีข้อความ";return}
+  const l=arr[arr.length-1],t=String(l.content||"").replace(/```[\s\S]*?(```|$)/g," [บล็อก] ").replace(/\s+/g," ").trim();pv.textContent=(l.role==="user"?"คุณ: ":"AI: ")+t.slice(0,80)};
+ w.querySelector("[data-a=ct]").onclick=()=>{FOLDS[ck]=!(FOLDS[ck]===true);saveFolds();setShut();if(FOLDS[ck]===true){const m=w.querySelector(".cmsgs");m.scrollTop=m.scrollHeight}};
+ w.querySelector("[data-a=top]").onclick=()=>{const card=w.closest(".card2");if(!card)return;const t=card.querySelector("textarea.ed")||card;t.scrollIntoView({behavior:"smooth",block:"start"})};
+ setShut();
+ ensureChat(sc).then(()=>drawMsgs(w,sc));
+ const ta=w.querySelector("textarea");
+ w.querySelector("[data-a=send]").onclick=()=>sendScope(w,sc);
+ ta.onkeydown=e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();sendScope(w,sc)}};
+ w.querySelector("[data-a=clr]").onclick=()=>{if(!confirm("ล้างแชทนี้? (ต้นฉบับไม่ถูกลบ)"))return;CH[sc]=[];saveChat2(sc);drawMsgs(w,sc)};
+ w.querySelector("[data-a=stop]").onclick=()=>w._ctrl&&w._ctrl.abort();
+ return w}
+function syncEditor(id){const c=chs.find(x=>x.id===id);if(c){c.words=wcount(CT[id]);c.title=titleOf(CT[id],id)}const card=cardOf(id);if(card){const ed=card.querySelector("textarea.ed");if(ed)ed.value=CT[id];const ti=card.querySelector(".ttl");if(ti&&c)ti.value=c.title}updHead(id)}
+async function autoApply(sc,arr,i){const m=arr[i];if(!/^ch\d+$/.test(sc)||!m||m.role!=="assistant")return;
+ const eb=blockInfo(m.content,"edit"),db=blockInfo(m.content,"draft");let edits=[],append="";
+ if(eb){if(!eb.closed)return;const o=parseJ(eb.body);if(!o||!Array.isArray(o.edits))return;edits=o.edits}
+ if(db&&(db.closed||m.trunc)&&db.body.trim())append=db.body.replace(/\n+$/,"");
+ if(!edits.length&&!append)return;
+ const c=chs.find(x=>x.id===sc);if(c&&c.locked){m.applyErr=[{why:"ตอนนี้ล็อกอยู่"}];return}
+ try{clearTimeout(saveTm[sc]);if(CT[sc]!==undefined)await saveChapter(sc,true);
+  const r=await(await api(`books/${book}/chapters/${sc}/edit`,js("POST",{edits,append}))).json();
+  CT[sc]=r.text;m.applied={snap:r.snap,n:edits.length,appended:!!append};syncEditor(sc);toast(edits.length?`แก้ในต้นฉบับแล้ว ${edits.length} จุด`:"ต่อท้ายต้นฉบับแล้ว")}
+ catch(e){let errs=[{why:e.message}];m.applyErr=errs;toast("แก้ไม่สำเร็จ: "+e.message)}}
+async function sendScope(w,sc){const ta=w.querySelector("textarea"),t=ta.value.trim();if(!t||!book)return;const arr=await ensureChat(sc);ta.value="";arr.push({role:"user",content:t});arr.push({role:"assistant",content:""});drawMsgs(w,sc);
+ const sb=w.querySelector("[data-a=send]"),st=w.querySelector("[data-a=stop]");sb.style.display="none";st.style.display="";w._ctrl=new AbortController();w._busy=true;
+ try{const r=await fetch("api/chat",{...js("POST",{book,scope:sc,chapter:/^ch\d+$/.test(sc)?sc:"",thinking:false,messages:arr.slice(0,-1).map(m=>({role:m.role,content:m.content}))}),signal:w._ctrl.signal});
+  if(!r.ok)throw new Error((await r.json()).error);await readSSE(r,c=>{arr[arr.length-1].content+=c;drawMsgs(w,sc,true)},f=>{if(f==="length")arr[arr.length-1].trunc=true})}
+ catch(e){if(e.name!=="AbortError")arr[arr.length-1].content+="\n[ผิดพลาด: "+e.message+"]"}
+ sb.style.display="";st.style.display="none";w._busy=false;await autoApply(sc,arr,arr.length-1);drawMsgs(w,sc);saveChat2(sc)}
+/* --- cards --- */
+function msBar(){const d=document.createElement("div");d.className="bar2";d.innerHTML=`<button data-a="n">+ ตอนใหม่</button><button data-a="f1">▸ พับทั้งหมด</button><button data-a="f2">▾ ขยายทั้งหมด</button><span class="small">${chs.length} ตอน / ${chs.reduce((a,c)=>a+c.words,0)} คำ</span>`;
+ d.querySelector("[data-a=n]").onclick=async()=>{const t=prompt("ชื่อตอน","Chapter "+(chs.length+1));if(t===null)return;const r=await(await api(`books/${book}/chapters`,js("POST",{title:t}))).json();FOLDS[r.id]=false;saveFolds();await refreshChs()};
+ d.querySelector("[data-a=f1]").onclick=()=>{FOLDS.outline=true;chs.forEach(c=>FOLDS[c.id]=true);saveFolds();renderMS()};
+ d.querySelector("[data-a=f2]").onclick=()=>{FOLDS.outline=false;chs.forEach(c=>FOLDS[c.id]=false);saveFolds();renderMS()};
+ return d}
+function outlineCard(){const d=document.createElement("div");d.className="card2 olc";const fo=outFolded(),dr=OUT.draft;
+ d.innerHTML=`<div class="hd"><button class="i" data-a="fold" title="พับ/ขยาย">${fo?"▸":"▾"}</button><b>📋 Outline</b><span class="small">${dr?`ฉบับร่าง ${dr.length} ตอน · ยังไม่อนุมัติ`:(chs.length?chs.length+" ตอน":"ยังไม่มีโครง")}</span>${fo?`<span class="sum">${esc(dr?dr.map(x=>x.title).join(" → "):(chs.map(c=>c.title).join(" → ")||"คุยในแท็บแชทแล้วกด “ส่งไปช่อง Outline” หรือเริ่มโครงเปล่าที่นี่"))}</span>`:""}</div>`;
+ d.querySelector("[data-a=fold]").onclick=()=>{FOLDS.outline=!fo;saveFolds();renderMS()};
+ if(fo)return d;
+ const b=document.createElement("div");d.appendChild(b);
+ if(dr){const rows=dr.map((it,i)=>{const cid="ch"+String(i+1).padStart(2,"0"),c=chs.find(x=>x.id===cid);const badge=c?(c.locked?"🔒 ตอนล็อก — ไม่ถูกแก้":(c.words>0?"✍︎ มีเนื้อหาแล้ว — คงเนื้อหาและชื่อเดิม (แก้สรุป/ความยาวได้ที่การ์ดตอน)":"ว่าง — จะอัปเดตชื่อ/สรุป")):"ใหม่ — จะสร้างตอนนี้";
+   return `<div class="dr" data-i="${i}"><div class="drh"><b>${i+1}</b><input class="dt" value="${esc(it.title)}" placeholder="ชื่อตอน"><input class="dw" type="number" min="0" step="100" value="${it.words||""}" placeholder="คำ"><button class="i" data-a="up" title="เลื่อนขึ้น">↑</button><button class="i" data-a="dn" title="เลื่อนลง">↓</button><button class="i" data-a="rm" title="เอาออกจากโครง">🗑</button></div><textarea class="ds" rows="2" placeholder="สรุปตอนนี้ (ไทย)">${esc(it.summary||"")}</textarea><div class="small">${badge}</div></div>`}).join("");
+  b.innerHTML=`<div class="fr small">ฉบับร่าง — แก้ได้ทุกช่อง แล้วกดอนุมัติเพื่อสร้าง/อัปเดตตอนในต้นฉบับ (ตอนที่มีเนื้อหาหรือล็อกจะไม่ถูกเขียนทับ)</div>${rows}<div class="fr"><button data-a="add">+ เพิ่มตอน</button><button class="p" data-a="ok">✅ อนุมัติ → สร้างตอน</button><button data-a="drop">ทิ้งฉบับร่าง</button></div>`;
+  b.querySelectorAll(".dr").forEach(r=>{const i=+r.dataset.i;
+   r.querySelector(".dt").oninput=e=>{dr[i].title=e.target.value;saveDraft()};r.querySelector(".dw").oninput=e=>{dr[i].words=+e.target.value||0;saveDraft()};r.querySelector(".ds").oninput=e=>{dr[i].summary=e.target.value;saveDraft()};
+   r.querySelector("[data-a=up]").onclick=()=>{if(i>0){[dr[i-1],dr[i]]=[dr[i],dr[i-1]];saveDraft();renderMS()}};
+   r.querySelector("[data-a=dn]").onclick=()=>{if(i<dr.length-1){[dr[i+1],dr[i]]=[dr[i],dr[i+1]];saveDraft();renderMS()}};
+   r.querySelector("[data-a=rm]").onclick=()=>{dr.splice(i,1);saveDraft();renderMS()}});
+  b.querySelector("[data-a=add]").onclick=()=>{dr.push({title:"Chapter "+(dr.length+1),summary:"",words:2500});saveDraft();renderMS()};
+  b.querySelector("[data-a=drop]").onclick=async()=>{if(!confirm("ทิ้งฉบับร่างนี้? (ตอนที่มีอยู่ไม่ถูกแตะ)"))return;OUT.draft=null;await api(`books/${book}/outline-draft`,js("PUT",{items:null}));renderMS()};
+  b.querySelector("[data-a=ok]").onclick=async()=>{if(!dr.length)return toast("ฉบับร่างว่าง");if(!confirm(`อนุมัติโครง ${dr.length} ตอน?\nตอนใหม่จะถูกสร้าง ตอนว่างจะอัปเดตชื่อ ตอนที่มีเนื้อหาหรือล็อกจะไม่ถูกเขียนทับ`))return;
+   try{clearTimeout(dsT);const r=await(await api(`books/${book}/outline`,js("PUT",{chapters:dr}))).json();const cnt=k=>r.report.filter(x=>x.state===k).length;
+    await api(`books/${book}/outline-draft`,js("PUT",{items:null}));OUT.draft=null;r.report.forEach(x=>{if(x.state==="created"||x.state==="retitled-empty")delete CT[x.id]});r.trashed.forEach(id=>delete CT[id]);
+    FOLDS.outline=true;const first=r.report.find(x=>x.state==="created"||x.state==="retitled-empty");if(first){FOLDS[first.id]=false}saveFolds();await refreshChs();
+    toast(`สร้าง ${cnt("created")} · อัปเดต ${cnt("retitled-empty")} · คงเนื้อหา ${cnt("kept-has-text")} · ข้าม(ล็อก) ${cnt("locked-skipped")} · ย้ายลงถัง ${r.trashed.length}`)}catch(e){toast("อนุมัติไม่สำเร็จ: "+e.message)}}}
+ else if(chs.length){b.innerHTML=chs.map((c,i)=>`<div class="fr"><span style="flex:1;min-width:0"><b>${i+1}.</b> ${esc(c.title)}${c.locked?" 🔒":""}<div class="small">${esc(c.summary||"(ยังไม่มีสรุป)")} · ${cntText(c)}</div></span></div>`).join("")+`<div class="fr"><button data-a="edit">✎ แก้โครงเป็นฉบับร่าง</button><span class="small">หรือสั่ง AI ด้านล่างให้ปรับ</span></div>`;
+  b.querySelector("[data-a=edit]").onclick=()=>{const max=Math.max(...chs.map(c=>+c.id.replace(/\D/g,"")||0));OUT.draft=Array.from({length:max},(_,k)=>{const c=chs.find(x=>x.id==="ch"+String(k+1).padStart(2,"0"));return c?{title:c.title,summary:c.summary||"",words:c.target||0}:{title:"(ตอนว่าง)",summary:"",words:0}});saveDraft();renderMS()}}
+ else{b.innerHTML=`<div class="fr small">ยังไม่มีโครงเรื่อง — คุยตกลงกับ AI ที่แท็บแชทแล้วกด “ส่งไปช่อง Outline” หรือสั่ง AI ด้านล่าง หรือเริ่มเอง</div><div class="fr"><button data-a="blank">+ เริ่มโครงเปล่า</button></div>`;
+  b.querySelector("[data-a=blank]").onclick=()=>{OUT.draft=[{title:"Chapter 1",summary:"",words:2500}];saveDraft();renderMS()}}
+ d.appendChild(chatBox("outline",false,"ปรับโครงเรื่องที่นี่ เช่น “เพิ่มเป็น 10 ตอน ตอนละ 2,500 คำ” หรือ “ตอน 4 ให้เป็นฉากไล่ล่า”"));
+ return d}
+function chapterCard(c,n){const id=c.id,lk=!!c.locked,fo=isFolded(id);const d=document.createElement("div");d.className="card2 chc"+(lk?" lockd":"");d.dataset.id=id;
+ d.innerHTML=`<div class="hd"><button class="i" data-a="fold" title="พับ/ขยาย">${fo?"▸":"▾"}</button><span class="small">ตอน ${n}</span><input class="ttl" value="${esc(c.title)}" ${lk?"disabled":""}><span class="small cnt">${cntText(c)}</span><button class="i ${lk?"on":""}" data-a="lock" title="${lk?"ปลดล็อก":"ล็อกตอนที่เสร็จแล้ว"}">${lk?"🔒":"🔓"}</button><button class="i" data-a="pdf" title="ดาวน์โหลด PDF ตอนนี้">⬇ PDF</button><button class="i" data-a="del" title="ย้ายลงถังขยะ" ${lk?"disabled":""}>🗑</button>${fo?`<span class="sum">${esc(c.summary||"(ยังไม่มีสรุป)")}</span>`:""}</div>`;
+ const A=a=>d.querySelector(`[data-a=${a}]`);
+ A("pdf").onclick=async()=>{try{clearTimeout(saveTm[id]);if(CT[id]!==undefined)await saveChapter(id,true)}catch(e){}location.href=`api/books/${book}/export.pdf?size=${$("#sz").value}&ch=${id}`};
+ A("fold").onclick=()=>{FOLDS[id]=!fo;saveFolds();renderMS()};
+ A("lock").onclick=async()=>{try{await api(`books/${book}/outline/${id}`,js("PUT",{locked:!lk}));c.locked=!lk;if(c.locked){FOLDS[id]=true;saveFolds()}renderMS()}catch(e){toast("ไม่สำเร็จ: "+e.message)}};
+ A("del").onclick=async()=>{if(!confirm(`ย้ายตอน "${c.title}" ลงถังขยะ? (กู้คืนได้ที่แท็บถังขยะ)`))return;try{await api(`books/${book}/chapters/${id}`,{method:"DELETE"});delete CT[id];delete CH[id];await refreshChs()}catch(e){toast("ไม่สำเร็จ: "+e.message)}};
+ const ti=d.querySelector(".ttl");
+ ti.oninput=async()=>{const t=await ensureCh(id);CT[id]=setHead(t,ti.value||id);const ed=d.querySelector("textarea.ed");if(ed)ed.value=CT[id];saveChapter(id)};
+ if(!fo){const b=document.createElement("div");
+  b.innerHTML=`<div class="fr"><span class="lb">สรุปตอน</span><textarea class="sm" rows="2" placeholder="ตอนนี้เกิดอะไรขึ้น (ไทย)" ${lk?"disabled":""}>${esc(c.summary||"")}</textarea></div><div class="fr"><span class="lb">เป้าหมาย (คำ)</span><input class="tg" type="number" min="0" step="100" value="${c.target||""}" style="width:110px" ${lk?"disabled":""}><button data-a="sg" ${lk?"disabled":""}>🎲 สุ่มสรุปใหม่</button><span class="small st"></span></div><textarea class="ed" placeholder="กำลังโหลด…" disabled></textarea>`;
+  d.appendChild(b);const sm=b.querySelector("textarea.sm"),tg=b.querySelector(".tg"),ed=b.querySelector("textarea.ed");
+  sm.oninput=()=>{c.summary=sm.value;saveMeta(id,{summary:sm.value})};
+  tg.oninput=()=>{c.target=+tg.value||0;saveMeta(id,{target:c.target});updHead(id)};
+  b.querySelector("[data-a=sg]").onclick=async e=>{const bt=e.target;bt.disabled=true;bt.textContent="กำลังคิด…";try{const r=await(await api("outline/suggest",js("POST",{book,id,hint:sm.value}))).json();sm.value=r.summary;c.summary=r.summary;saveMeta(id,{summary:r.summary})}catch(er){toast("ใช้ไม่ได้ (โมเดลพร้อมไหม?): "+er.message)}bt.disabled=false;bt.textContent="🎲 สุ่มสรุปใหม่"};
+  ensureCh(id).then(t=>{ed.value=t;ed.placeholder="เขียนต้นฉบับตอนนี้ หรือให้ AI ด้านล่างช่วยเขียนแล้วกดแทรก";ed.disabled=false;ed.readOnly=lk;
+   ed.oninput=()=>{CT[id]=ed.value;const nt=titleOf(ed.value,id);if(ti.value!==nt&&document.activeElement!==ti)ti.value=nt;saveChapter(id)}}).catch(e=>{ed.placeholder="โหลดไม่ได้: "+e.message});
+  d.appendChild(chatBox(id,lk,"คุยกับ AI ของตอนนี้ เช่น “ขอร่างฉากเปิดตอนนี้ ~800 คำ” หรือ “ปรับท้ายตอนให้ตึงขึ้น”"))}
+ return d}
+function renderMS(){const el=$("#msw");if(!el||!book)return;const sc=el.scrollTop;el.innerHTML="";el.appendChild(msBar());el.appendChild(outlineCard());chs.forEach((c,i)=>el.appendChild(chapterCard(c,i+1)));el.scrollTop=sc;
+ $("#exs").textContent=chs.length+" ตอน / "+chs.reduce((a,c)=>a+c.words,0)+" คำ";drawExl()}
+window._exsel=window._exsel||{};
+function drawExl(){const el=$("#exl");if(!el)return;const sel=window._exsel;
+ el.innerHTML=chs.length?chs.map((c,i)=>`<label class="fr" style="gap:8px;align-items:center"><input type="checkbox" data-id="${c.id}" ${sel[c.id]?"checked":""}><span style="flex:1;min-width:0">ตอน ${i+1} · ${esc(c.title)} <span class="small">${c.words} คำ</span></span></label>`).join(""):`<p class="small">ยังไม่มีตอน</p>`;
+ el.querySelectorAll("input").forEach(x=>x.onchange=()=>{sel[x.dataset.id]=x.checked})}
+
+$("#delb").onclick=async()=>{if(!book)return;const t=(meta.title||book).trim();const a=prompt('ลบนิยายเรื่อง "'+t+'" ?\nทั้งเรื่องจะถูกย้ายไปถังขยะ (กู้คืนได้ที่แท็บถังขยะ)\nพิมพ์ชื่อเรื่องให้ตรงเพื่อยืนยัน:');if(a===null)return;if(a.trim()!==t){alert("ชื่อไม่ตรง — ไม่ได้ลบ");return}
+ try{await api("books/"+book,{method:"DELETE"});S=null;await loadBooks();alert("ย้ายไปถังขยะแล้ว")}catch(e){alert("ลบไม่สำเร็จ: "+e.message)}};
+async function loadTrash(){const el=$("#trw");el.innerHTML='<p class="small">กำลังโหลด…</p>';let d;try{d=await(await api("trash?book="+encodeURIComponent(book||""))).json()}catch(e){el.textContent="โหลดถังขยะไม่ได้: "+e.message;return}
+ const ago=t=>new Date(t*1000).toLocaleString("th-TH");
+ const bk=d.books.map(b=>`<div class="fr"><span style="flex:1;min-width:0">📕 ${esc(b.title)}<div class="small">${b.chapters} ตอน · ${b.words} คำ · ลบเมื่อ ${ago(b.at)}</div></div><button data-k="rb" data-i="${esc(b.tid)}">กู้คืน</button><button data-k="xb" data-i="${esc(b.tid)}" data-t="${esc(b.title)}">ลบถาวร</button></div>`).join("")||'<p class="small" style="padding:6px 12px">ไม่มี</p>';
+ const ch=d.chapters.map(c=>`<div class="fr"><span style="flex:1;min-width:0">📄 ${esc(c.title)}<div class="small">${c.words} คำ · ${ago(c.at)}</div></div><button data-k="rc" data-i="${esc(c.file)}">กู้คืน</button><button data-k="xc" data-i="${esc(c.file)}" data-t="${esc(c.title)}">ลบถาวร</button></div>`).join("")||'<p class="small" style="padding:6px 12px">ไม่มี</p>';
+ el.innerHTML=`<h3>🗑 ถังขยะ</h3><p class="small">ของที่ลบจะอยู่ที่นี่ กู้คืนได้ หรือเลือกลบถาวร (ลบถาวรแล้วกู้ไม่ได้)</p><h4>นิยายที่ลบ (${d.books.length})</h4>${bk}<h4>ตอนที่ลบ ในเรื่อง "${esc(meta.title||"-")}" (${d.chapters.length})</h4>${ch}`;
+ el.querySelectorAll("button[data-k]").forEach(b=>b.onclick=async()=>{const k=b.dataset.k,i=b.dataset.i,t=b.dataset.t||"";
+  try{if(k==="rb"){const r=await(await api("trash/restore",js("POST",{kind:"book",tid:i}))).json();await loadBooks(r.id);await loadTrash()}
+  else if(k==="rc"){await api("trash/restore",js("POST",{kind:"chapter",book,file:i}));await refreshChs();await loadTrash()}
+  else if(k==="xb"){const a=prompt('ลบถาวร "'+t+'" ทั้งเรื่อง — กู้คืนไม่ได้อีก\nพิมพ์ชื่อเรื่องให้ตรงเพื่อยืนยัน:');if(a===null)return;if(a.trim()!==t.trim()){alert("ชื่อไม่ตรง — ไม่ได้ลบ");return}await api("trash/book/"+i,{method:"DELETE"});await loadTrash()}
+  else if(k==="xc"){if(!confirm('ลบถาวรตอน "'+t+'" — กู้คืนไม่ได้อีก ดำเนินการ?'))return;await api(`trash/chapter/${book}/${i}`,{method:"DELETE"});await loadTrash()}}
+  catch(e){alert("ไม่สำเร็จ: "+e.message)}})}
+$("#nb").onclick=async()=>{const t=prompt("ชื่อเรื่อง");if(!t)return;const r=await(await api("books",js("POST",{title:t}))).json();await loadBooks(r.id)};
+$("#book").onchange=()=>{book=$("#book").value;loadBook()};
+$("#dls").onclick=async()=>{const ids=chs.filter(c=>window._exsel[c.id]).map(c=>c.id);if(!ids.length){toast("ติ๊กเลือกตอนที่ต้องการก่อน");return}
+ for(const id of ids){try{clearTimeout(saveTm[id]);if(CT[id]!==undefined)await saveChapter(id,true)}catch(e){}}
+ location.href=`api/books/${book}/export.pdf?size=${$("#sz").value}&ch=${ids.join(",")}`};
+$("#dla").onclick=()=>{chs.forEach(c=>window._exsel[c.id]=true);drawExl()};$("#dlc").onclick=()=>{window._exsel={};drawExl()};
+$("#dl").onclick=()=>{location.href=`api/books/${book}/export.pdf?size=${$("#sz").value}`};
+$("#csel").onchange=()=>{cur=$("#csel").value};
+function render(){const el=$("#msgs");el.innerHTML=chat.map((m,i)=>`<div class="m ${m.role}">${m.role=="user"?esc(m.content):fmt(m.content,{sc:"overview",mi:i,arr:chat})+(m.trunc?truncBar(i):"")}</div>`).join("");
+ bindActs(el,"overview",chat,saveChat);el.scrollTop=el.scrollHeight}
+async function saveChat(){if(book)await api(`books/${book}/chat`,js("PUT",{messages:chat}))}
+$("#clr").onclick=async()=>{if(!confirm("ล้างแชทของเรื่องนี้? (ต้นฉบับไม่ถูกลบ)"))return;chat=[];await saveChat();render()};
+$("#send").onclick=async()=>{const t=$("#inp").value.trim();if(!t||!book)return;$("#inp").value="";chat.push({role:"user",content:t});chat.push({role:"assistant",content:""});render();
+ $("#send").style.display="none";$("#stop").style.display="";ctrl=new AbortController();
+ try{const r=await fetch("api/chat",{...js("POST",{book,chapter:$("#csel").value,thinking:$("#think").checked,messages:chat.slice(0,-1)}),signal:ctrl.signal});
+  if(!r.ok)throw new Error((await r.json()).error);await readSSE(r,c=>{chat[chat.length-1].content+=c;render()},f=>{if(f==="length")chat[chat.length-1].trunc=true});
+ }catch(e){if(e.name!=="AbortError")chat[chat.length-1].content+="\n[ผิดพลาด: "+e.message+"]"}
+ $("#send").style.display="";$("#stop").style.display="none";render();saveChat()};
+$("#stop").onclick=()=>ctrl&&ctrl.abort();
+$("#inp").onkeydown=e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();$("#send").click()}};
+$("#setb").onclick=()=>{const s=window._set||{};$("#sys").value=s.system||"";$("#mx").value=s.max_tokens||3000;$("#tp").value=s.temperature||0.8;$("#dlg").showModal()};
+$("#cset").onclick=()=>$("#dlg").close();
+$("#sset").onclick=async()=>{await api("settings",js("PUT",{system:$("#sys").value,max_tokens:+$("#mx").value,temperature:+$("#tp").value}));await status();$("#dlg").close()};
+status();setInterval(status,15000);loadBooks();
+</script><script>(function(){var b=document.getElementById('thb'),O=['dark','light','auto'],I={dark:'🌙',light:'☀️',auto:'🌓'},N={dark:'โหมดมืด',light:'โหมดสว่าง',auto:'ตามเครื่อง'};function cur(){try{return localStorage.getItem('theme')||'dark'}catch(e){return'dark'}}function show(){var m=cur();b.textContent=I[m];b.title=N[m]+' (กดเพื่อสลับ)'}b.onclick=function(){var m=O[(O.indexOf(cur())+1)%3];try{localStorage.setItem('theme',m)}catch(e){}window.__applyTheme(m);show()};matchMedia('(prefers-color-scheme:dark)').addEventListener('change',function(){if(cur()==='auto')window.__applyTheme('auto')});show()})()</script>
+</body></html>
