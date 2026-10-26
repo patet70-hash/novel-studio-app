@@ -347,8 +347,8 @@ def build_messages(body):
 
 
 CSS = {
-    "novel": ("A4", "25mm 22mm 25mm 22mm", "12pt", "1.5"),
-    "mobile": ("90mm 160mm", "8mm 7mm 11mm 7mm", "10.5pt", "1.42"),
+    "novel": ("A4", "25mm 22mm 25mm 22mm", "12pt", "1.6"),
+    "mobile": ("90mm 160mm", "8mm 7mm 11mm 7mm", "12pt", "1.6"),
 }
 
 
@@ -370,7 +370,7 @@ def make_pdf(b, size, only=None):
     html = f"""<html><head><meta charset='utf-8'><style>
 @page {{ size:{pg}; margin:{mg}; @bottom-center {{ content: counter(page); font-size:8.5pt; color:#555 }} }}
 @page :first {{ @bottom-center {{ content: '' }} }}
-body {{ font-family:'EB Garamond','Garamond','Noto Serif','DejaVu Serif','Sarabun','Noto Sans Thai','Loma',serif; font-size:{fs}; line-height:{lh}; text-align:justify; hyphens:auto; }}
+body {{ font-family:'Noto Sans Thai','Noto Sans','Sarabun','Loma','DejaVu Sans',sans-serif; font-size:{fs}; line-height:{lh}; text-align:left; hyphens:none; overflow-wrap:break-word; }}
 .title {{ page-break-after:always; text-align:center; padding-top:30%; }}
 .title h1 {{ font-size:2.2em; margin:0 0 .4em; letter-spacing:.04em }} .title p {{ font-size:1.1em; color:#444 }}
 section.ch {{ page-break-before:always; }}

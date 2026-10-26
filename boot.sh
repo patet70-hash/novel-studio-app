@@ -33,7 +33,7 @@ fi
 # 3) python deps (PDF export) - non-fatal for the app itself
 ( pip install -q --break-system-packages markdown weasyprint >/dev/null 2>&1; \
   apt-get update -qq >/dev/null 2>&1; \
-  apt-get install -y -qq libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b fonts-ebgaramond fonts-thai-tlwg >> $B/apt.log 2>&1 ) &
+  apt-get install -y -qq libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b fonts-noto-core fonts-thai-tlwg >> $B/apt.log 2>&1 ) &
 
 # 4) start the web app first (port 8080); llama-server follows on 127.0.0.1:8079
 pkill -f "$B/app/app.py" 2>/dev/null
