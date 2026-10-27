@@ -110,7 +110,7 @@ details.sec>summary::after{content:"▾";color:var(--mu)}details.sec[open]>summa
 <section class="tab" id="t-setup"><div class="pad" id="su"></div></section>
 <section class="tab" id="t-tr"><div class="pad" id="trw"></div></section>
 <section class="tab" id="t-ex"><div class="pad"><h3>ส่งออก PDF</h3>
- <p><select id="sz"><option value="novel">ขนาดนิยาย 5.5×8.5 นิ้ว</option><option value="mobile">ขนาดมือถือ 90×160 มม.</option></select>
+ <p><select id="sz"><option value="iphone">iPhone (หน้า 90×160 มม.)</option><option value="ipad">iPad (หน้า A5 148×210 มม.)</option><option value="a4">A4 (พิมพ์ / อ่านบนคอม)</option></select> <select id="fs"><option value="s">ตัวเล็ก</option><option value="m">ตัวกลาง</option><option value="l">ตัวใหญ่</option><option value="xl">ตัวใหญ่มาก</option></select> <select id="lh"><option value="n">บรรทัดปกติ</option><option value="w">บรรทัดห่าง</option></select>
  <button class="p" id="dl">ดาวน์โหลด PDF ทั้งเล่ม</button></p><p class="small" id="exs"></p>
  <h3 style="margin-top:14px">เลือกเป็นรายตอน</h3><div id="exl"></div><p><button id="dls">ดาวน์โหลดตอนที่เลือก</button> <button id="dla">เลือกทั้งหมด</button> <button id="dlc">ล้างที่เลือก</button></p></div></section>
 </main>
@@ -380,6 +380,7 @@ function saveDraft(){clearTimeout(dsT);dsT=setTimeout(()=>api(`books/${book}/out
 const parseJ=s=>{try{return JSON.parse(s)}catch(e){try{return JSON.parse(String(s).replace(/,\s*([}\]])/g,"$1"))}catch(e2){return null}}};
 const blockInfo=(t,k)=>{const m=new RegExp("```"+k+"[^\\n]*\\n([\\s\\S]*?)(```|$)").exec(t);return m?{body:m[1],closed:m[2]==="```"}:null};
 const blockOf=(t,k)=>{const m=new RegExp("```"+k+"[^\\n]*\\n([\\s\\S]*?)(```|$)").exec(t);return m?m[1]:""};
+(function(){try{for(const k of["sz","fs","lh"]){const e=document.getElementById(k),v=localStorage.getItem("pdf_"+k);if(e&&v&&[...e.options].some(o=>o.value===v))e.value=v;if(e)e.onchange=()=>{try{localStorage.setItem("pdf_"+k,e.value)}catch(x){}}}}catch(e){}})();
 function dlPdf(url){toast("กำลังสร้าง PDF…");return fetch(url).then(async r=>{if(!r.ok){let m="";try{m=(await r.json()).error}catch(e){}throw new Error(m||("HTTP "+r.status))}
  const fm=/filename="?([^";]+)"?/.exec(r.headers.get("content-disposition")||"");const name=fm?fm[1]:"novel.pdf";const blob=await r.blob();const file=new File([blob],name,{type:"application/pdf"});const u=URL.createObjectURL(blob);
  const old=document.getElementById("pdfdlg");if(old)old.remove();const d=document.createElement("div");d.id="pdfdlg";d.style.cssText="position:fixed;left:8px;right:8px;bottom:12px;z-index:9999;background:#262421;color:#f2ede4;border:1px solid #8a7f6d;border-radius:12px;padding:12px;box-shadow:0 6px 24px #0008;font-size:15px";
@@ -510,7 +511,7 @@ function outlineCard(){const d=document.createElement("div");d.className="card2 
 function chapterCard(c,n){const id=c.id,lk=!!c.locked,fo=isFolded(id);const d=document.createElement("div");d.className="card2 chc"+(lk?" lockd":"");d.dataset.id=id;
  d.innerHTML=`<div class="hd"><button class="i" data-a="fold" title="พับ/ขยาย">${fo?"▸":"▾"}</button><span class="small">ตอน ${n}</span><input class="ttl" value="${esc(c.title)}" ${lk?"disabled":""}><span class="small cnt">${cntText(c)}</span><button class="i ${lk?"on":""}" data-a="lock" title="${lk?"ปลดล็อก":"ล็อกตอนที่เสร็จแล้ว"}">${lk?"🔒":"🔓"}</button><button class="i" data-a="pdf" title="ดาวน์โหลด PDF ตอนนี้">⬇ PDF</button><button class="i" data-a="del" title="ย้ายลงถังขยะ" ${lk?"disabled":""}>🗑</button>${fo?`<span class="sum">${esc(c.summary||"(ยังไม่มีสรุป)")}</span>`:""}</div>`;
  const A=a=>d.querySelector(`[data-a=${a}]`);
- A("pdf").onclick=async()=>{try{clearTimeout(saveTm[id]);if(CT[id]!==undefined)await saveChapter(id,true)}catch(e){}dlPdf(`api/books/${book}/export.pdf?size=${$("#sz").value}&ch=${id}`)};
+ A("pdf").onclick=async()=>{try{clearTimeout(saveTm[id]);if(CT[id]!==undefined)await saveChapter(id,true)}catch(e){}dlPdf(`api/books/${book}/export.pdf?size=${$("#sz").value}&fs=${$("#fs").value}&lh=${$("#lh").value}&ch=${id}`)};
  A("fold").onclick=()=>{FOLDS[id]=!fo;saveFolds();renderMS()};
  A("lock").onclick=async()=>{try{await api(`books/${book}/outline/${id}`,js("PUT",{locked:!lk}));c.locked=!lk;if(c.locked){FOLDS[id]=true;saveFolds()}renderMS()}catch(e){toast("ไม่สำเร็จ: "+e.message)}};
  A("del").onclick=async()=>{if(!confirm(`ย้ายตอน "${c.title}" ลงถังขยะ? (กู้คืนได้ที่แท็บถังขยะ)`))return;try{await api(`books/${book}/chapters/${id}`,{method:"DELETE"});delete CT[id];delete CH[id];await refreshChs()}catch(e){toast("ไม่สำเร็จ: "+e.message)}};
@@ -550,9 +551,9 @@ $("#nb").onclick=async()=>{const t=prompt("ชื่อเรื่อง");if(!
 $("#book").onchange=()=>{book=$("#book").value;loadBook()};
 $("#dls").onclick=async()=>{const ids=chs.filter(c=>window._exsel[c.id]).map(c=>c.id);if(!ids.length){toast("ติ๊กเลือกตอนที่ต้องการก่อน");return}
  for(const id of ids){try{clearTimeout(saveTm[id]);if(CT[id]!==undefined)await saveChapter(id,true)}catch(e){}}
- dlPdf(`api/books/${book}/export.pdf?size=${$("#sz").value}&ch=${ids.join(",")}`)};
+ dlPdf(`api/books/${book}/export.pdf?size=${$("#sz").value}&fs=${$("#fs").value}&lh=${$("#lh").value}&ch=${ids.join(",")}`)};
 $("#dla").onclick=()=>{chs.forEach(c=>window._exsel[c.id]=true);drawExl()};$("#dlc").onclick=()=>{window._exsel={};drawExl()};
-$("#dl").onclick=()=>{dlPdf(`api/books/${book}/export.pdf?size=${$("#sz").value}`)};
+$("#dl").onclick=()=>{dlPdf(`api/books/${book}/export.pdf?size=${$("#sz").value}&fs=${$("#fs").value}&lh=${$("#lh").value}`)};
 $("#csel").onchange=()=>{cur=$("#csel").value};
 function render(){const el=$("#msgs");el.innerHTML=chat.map((m,i)=>`<div class="m ${m.role}">${m.role=="user"?esc(m.content):fmt(m.content,{sc:"overview",mi:i,arr:chat})+(m.trunc?truncBar(i):"")}</div>`).join("");
  bindActs(el,"overview",chat,saveChat);el.scrollTop=el.scrollHeight}

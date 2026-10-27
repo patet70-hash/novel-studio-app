@@ -346,17 +346,34 @@ def build_messages(body):
     return [{"role": "system", "content": system + extra}] + keep
 
 
+# device presets: (page size, margins, base font pt, line-height)
 CSS = {
-    "novel": ("A4", "25mm 22mm 25mm 22mm", "12pt", "1.6"),
-    "mobile": ("90mm 160mm", "8mm 7mm 11mm 7mm", "12pt", "1.6"),
+    "iphone": ("90mm 160mm", "8mm 7mm 11mm 7mm", 14.0, 1.8),
+    "ipad": ("148mm 210mm", "12mm 11mm 14mm 11mm", 13.0, 1.8),
+    "a4": ("A4", "25mm 22mm 25mm 22mm", 13.0, 1.75),
 }
+ALIAS = {"mobile": "iphone", "novel": "a4"}      # old links keep working
+FS_STEP = {"s": -1.5, "m": 0.0, "l": 1.5, "xl": 3.0}   # font size steps
+LH_ADD = {"n": 0.0, "w": 0.2}                         # normal / wide line spacing
 
 
-def make_pdf(b, size, only=None):
+THAI_RUN = re.compile(r'[\u0E00-\u0E7F]+(?:[ \u00A0"\u201c\u201d\u2018\u2019\'.,!?\u2026()\-]*[\u0E00-\u0E7F]+)*')
+
+
+def wrap_thai(html):
+    """Thai glyphs look ~12% smaller than Latin at the same pt: wrap Thai runs (outside tags) so CSS can enlarge them."""
+    parts = re.split(r"(<[^>]+>)", html)
+    return "".join(p if p.startswith("<") else THAI_RUN.sub(lambda m: "<span class='th'>" + m.group(0) + "</span>", p) for p in parts)
+
+
+def make_pdf(b, size, only=None, fs="m", lh="n"):
     only = [x for x in (only or []) if re.match(r"^ch\d+$", x)] or None
     import markdown as md
     from weasyprint import HTML
-    pg, mg, fs, lh = CSS.get(size, CSS["novel"])
+    size = ALIAS.get(size, size)
+    pg, mg, base_fs, base_lh = CSS.get(size, CSS["a4"])
+    fs_pt = base_fs + FS_STEP.get(fs, 0.0)
+    lh_v = round(base_lh + LH_ADD.get(lh, 0.0), 2)
     m = meta(b)
     parts = []
     for c in chapters(b):
@@ -364,20 +381,21 @@ def make_pdf(b, size, only=None):
             continue
         t = read(os.path.join(bdir(b), "chapters", c["id"] + ".md"))
         t = re.sub(r"^\s*(\*\s*\*\s*\*|---+|\*\*\*+)\s*$", "\n<div class='sb'>&#10059;</div>\n", t, flags=re.M)
-        parts.append("<section class='ch'>" + md.markdown(t, extensions=["extra"]) + "</section>")
+        parts.append("<section class='ch'>" + wrap_thai(md.markdown(t, extensions=["extra"])) + "</section>")
     title = (m.get("title") or b).replace("<", "&lt;")
     author = (m.get("author") or "").replace("<", "&lt;")
     html = f"""<html><head><meta charset='utf-8'><style>
 @page {{ size:{pg}; margin:{mg}; @bottom-center {{ content: counter(page); font-size:8.5pt; color:#555 }} }}
 @page :first {{ @bottom-center {{ content: '' }} }}
-body {{ font-family:'Noto Sans Thai','Noto Sans','Sarabun','Loma','DejaVu Sans',sans-serif; font-size:{fs}; line-height:{lh}; text-align:left; hyphens:none; overflow-wrap:break-word; }}
+body {{ font-family:'Noto Sans Thai','Noto Sans','Sarabun','Loma','DejaVu Sans',sans-serif; font-size:{fs_pt}pt; line-height:{lh_v}; text-align:left; hyphens:none; overflow-wrap:break-word; }}
 .title {{ page-break-after:always; text-align:center; padding-top:30%; }}
 .title h1 {{ font-size:2.2em; margin:0 0 .4em; letter-spacing:.04em }} .title p {{ font-size:1.1em; color:#444 }}
 section.ch {{ page-break-before:always; }}
 section.ch h1 {{ text-align:center; font-size:1.5em; margin:18% 0 1.4em; page-break-after:avoid; }}
-p {{ margin:0; text-indent:1.3em; }} h1 + p, .sb + p {{ text-indent:0 }}
+p {{ margin:0 0 .35em; text-indent:1.3em; }} h1 + p, .sb + p {{ text-indent:0 }}
 .sb {{ text-align:center; margin:.9em 0; color:#666; text-indent:0 }}
 blockquote {{ margin:.6em 1.2em; font-style:italic }}
+.th {{ font-size:1.12em }}
 </style></head><body>
 {'' if only and len(only) == 1 else f"<div class='title'><h1>{title}</h1><p>{author}</p></div>"}{''.join(parts)}</body></html>"""
     return HTML(string=html).write_pdf()
@@ -463,9 +481,14 @@ class H(BaseHTTPRequestHandler):
                 if p[3] == "export.pdf":
                     q = parse_qs(u.query)
                     only = q.get("ch", [""])[0].split(",") if q.get("ch", [""])[0] else None
-                    pdf = make_pdf(b, q.get("size", ["novel"])[0], only)
+                    size = ALIAS.get(q.get("size", ["a4"])[0], q.get("size", ["a4"])[0])
+                    size = size if size in CSS else "a4"
+                    fsq, lhq = q.get("fs", ["m"])[0], q.get("lh", ["n"])[0]
+                    fsq = fsq if fsq in FS_STEP else "m"
+                    lhq = lhq if lhq in LH_ADD else "n"
+                    pdf = make_pdf(b, size, only, fsq, lhq)
                     suffix = ("-" + "-".join(only)) if only and all(re.match(r"^ch\d+$", x) for x in only) else ""
-                    return self._send(200, pdf, "application/pdf", {"Content-Disposition": f'attachment; filename="{b}{suffix}-{q.get("size", ["novel"])[0]}.pdf"'})
+                    return self._send(200, pdf, "application/pdf", {"Content-Disposition": f'attachment; filename="{b}{suffix}-{size}.pdf"'})
             return self._send(404, {"error": "not found"})
         except Exception as e:
             return self._send(500, {"error": str(e)})
