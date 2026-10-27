@@ -56,6 +56,11 @@ def outline_text(b, draft=None):
     return "\n".join(lines)
 
 
+# Anti-repetition (llama.cpp DRY sampler). Tested 27 Oct 2026 on a new chapter after a written one:
+# no sampler = 4/12 runs looped (dup 13-55%); DRY = 0/12 (dup <=1.4%, stray CJK <=3). repeat/presence penalty was worse.
+ANTI_REPEAT = {"dry_multiplier": 0.8, "dry_base": 1.75, "dry_allowed_length": 2, "dry_penalty_last_n": 1024}
+
+
 def settings():
     p = os.path.join(ROOT, "_settings.json")
     d = {"system": DEFAULT_SYSTEM, "thinking": False, "max_tokens": 6000, "temperature": 0.8}
@@ -757,6 +762,7 @@ class H(BaseHTTPRequestHandler):
             mt = max(mt, 6000)
         payload = {"messages": build_messages(d), "stream": True, "max_tokens": mt, "temperature": st["temperature"],
                    "chat_template_kwargs": {"enable_thinking": bool(d.get("thinking", st["thinking"]))}}
+        payload.update(ANTI_REPEAT)
         req = urllib.request.Request(LLM + "/v1/chat/completions", json.dumps(payload).encode(), {"Content-Type": "application/json"})
         try:
             r = urllib.request.urlopen(req, timeout=600)
