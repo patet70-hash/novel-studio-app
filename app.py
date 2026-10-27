@@ -743,21 +743,32 @@ class H(BaseHTTPRequestHandler):
                   "3) Use only the field keys listed below. Values are short ENGLISH phrases (comma separated for several). Include only fields you want to set or change.\n"
                   "4) NEVER include anything listed as LOCKED. Work around locked items consistently.\n"
                   "5) All characters are adults (18+). Never involve minors.\n6) Keep consistent with CURRENT SETUP; do not contradict chosen items unless the author asks.\n"
+                  "7) Keep every proposal SMALL so it fits in the reply: at most 3 characters and 2 locations per turn, at most 1 outfit per character, short phrases. Propose the rest in later turns, and always close the JSON and the fence.\n"
                   "\nFIELD KEYS:\n" + str(d.get("spec", ""))[:4000] +
                   "\n\nLOCKED: " + str(d.get("locked", ""))[:1500] +
                   "\n\nCURRENT SETUP:\n" + str(d.get("state", ""))[:9000])
         msgs = [{"role": "system", "content": sysmsg}]
         for m in (d.get("messages") or [])[-16:]:
             if m.get("role") in ("user", "assistant") and str(m.get("content", "")).strip():
-                msgs.append({"role": m["role"], "content": str(m["content"])[:6000]})
-        payload = {"messages": msgs, "stream": False, "max_tokens": 2200, "temperature": 0.8, "chat_template_kwargs": {"enable_thinking": False}}
+                c = str(m["content"])[:6000]
+                if m["role"] == "assistant":
+                    # Old proposals (esp. truncated ones) in history make the model copy "stop mid-JSON"; the CURRENT SETUP already holds applied items.
+                    c = re.sub(r"```proposal[\s\S]*?(```|$)", "[earlier proposal omitted]", c)
+                msgs.append({"role": m["role"], "content": c})
+        # 3500 tokens ~ 80 s: stays under the ~100 s proxy limit for non-streaming calls (2200 cut real proposals; tested 28 Oct 2026)
+        payload = {"messages": msgs, "stream": False, "max_tokens": 3500, "temperature": 0.8, "chat_template_kwargs": {"enable_thinking": False}}
         req = urllib.request.Request(LLM + "/v1/chat/completions", json.dumps(payload).encode(), {"Content-Type": "application/json"})
         try:
             r = json.loads(urllib.request.urlopen(req, timeout=300).read().decode("utf-8"))
             txt = r["choices"][0]["message"]["content"]
         except Exception as e:
             return self._send(502, {"error": "LLM unavailable: %s" % e})
-        return self._send(200, {"reply": txt.strip()})
+        txt = txt.strip()
+        m = re.search(r"```proposal\s*\n", txt)
+        if m and "```" not in txt[m.end():]:
+            # unclosed proposal = cut off; the UI would show "invalid proposal", so replace it with a clear instruction
+            txt = (txt[:m.start()].strip() + "\n\n⚠ ข้อเสนอยาวเกินจนถูกตัด ลองสั่งให้เสนอทีละส่วน เช่น 'เสนอเฉพาะตัวละครหลัก 2 คนก่อน' แล้วค่อยขอส่วนที่เหลือ").strip()
+        return self._send(200, {"reply": txt})
 
     def chat(self, d):
         st = settings()
