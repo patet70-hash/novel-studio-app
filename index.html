@@ -356,7 +356,7 @@ async function loadBook(){const d=await(await api("books/"+book)).json();chat=d.
 let OUT={draft:null},CT={},CH={},FOLDS={},saveTm={},chatTm={},metaTm={},dsT=null;
 const bodyOf=t=>t.replace(/^\s*#\s+.*\n?/,"");
 const titleOf=(t,id)=>{const m=/^\s*#\s+(.+)/.exec(t);return m?m[1].trim():id};
-const wcount=t=>bodyOf(t).trim().split(/\s+/).filter(Boolean).length;
+const wcount=t=>{const b=bodyOf(t);return Math.floor((b.match(/[฀-๿]/g)||[]).length/3.3)+b.replace(/[฀-๿]/g," ").trim().split(/\s+/).filter(Boolean).length};
 const setHead=(t,ti)=>/^\s*#\s+/.test(t)?t.replace(/^\s*#\s+.*/,"# "+ti):"# "+ti+"\n\n"+t;
 function loadFolds(){try{FOLDS=JSON.parse(localStorage.getItem("fold:"+book)||"{}")}catch(e){FOLDS={}}}
 function saveFolds(){try{localStorage.setItem("fold:"+book,JSON.stringify(FOLDS))}catch(e){}}

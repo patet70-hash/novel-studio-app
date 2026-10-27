@@ -104,7 +104,11 @@ def meta(b):
 
 
 def body_words(t):
-    return len(re.sub(r"^\s*#\s+.*\n?", "", t, count=1).split())
+    # Thai has no spaces between words: count Thai characters / 3.3 (~chars per word), other text by whitespace.
+    b = re.sub(r"^\s*#\s+.*\n?", "", t, count=1)
+    thai = len(re.findall(r"[฀-๿]", b))
+    rest = len(re.sub(r"[฀-๿]", " ", b).split())
+    return int(thai / 3.3) + rest
 
 
 def is_locked(b, cid):
