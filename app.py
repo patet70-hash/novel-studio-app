@@ -4,7 +4,7 @@ keep manuscript as per-chapter Markdown files, export PDF with WeasyPrint.
 Env: NOVEL_ROOT, LLM_URL, PORT, NOVEL_PASSWORD (optional basic auth), NOVEL_CTX."""
 import base64, json, os, re, shutil, sys, time, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, quote
 
 ROOT = os.environ.get("NOVEL_ROOT", "/workspace/novel_llm/novel")
 LLM = os.environ.get("LLM_URL", "http://127.0.0.1:8079").rstrip("/")
@@ -1134,6 +1134,21 @@ blockquote {{ margin:.6em 1.2em; font-style:italic }}
     return HTML(string=html).write_pdf()
 
 
+def pdf_filename(b, only=None):
+    """Download name: the book title, then the chapter number(s): 'ครอบครัวหรรษา ตอนที่ 1.pdf' / '... ตอนที่ 1-3.pdf' / whole book 'ครอบครัวหรรษา.pdf'."""
+    title = re.sub(r'[\\/:*?"<>|\x00-\x1f]+', " ", str(meta(b).get("title") or b)).strip(" .") or b
+    title = re.sub(r"\s+", " ", title)
+    ids = [c["id"] for c in chapters(b)]
+    nums = sorted({ids.index(x) + 1 for x in (only or []) if x in ids})
+    if not nums:
+        return title + ".pdf"
+    if len(nums) == 1:
+        return "%s ตอนที่ %d.pdf" % (title, nums[0])
+    if nums == list(range(nums[0], nums[-1] + 1)):
+        return "%s ตอนที่ %d-%d.pdf" % (title, nums[0], nums[-1])
+    return "%s ตอนที่ %s.pdf" % (title, ", ".join(str(n) for n in nums))
+
+
 def llm_get(path, timeout=5):
     with urllib.request.urlopen(LLM + path, timeout=timeout) as r:
         return r.status
@@ -1257,7 +1272,8 @@ class H(BaseHTTPRequestHandler):
                     lhq = lhq if lhq in LH_ADD else "n"
                     pdf = make_pdf(b, size, only, fsq, lhq)
                     suffix = ("-" + "-".join(only)) if only and all(re.match(r"^ch\d+$", x) for x in only) else ""
-                    return self._send(200, pdf, "application/pdf", {"Content-Disposition": f'attachment; filename="{b}{suffix}-{size}.pdf"'})
+                    nm = pdf_filename(b, only)
+                    return self._send(200, pdf, "application/pdf", {"Content-Disposition": f"attachment; filename=\"{b}{suffix}.pdf\"; filename*=UTF-8''{quote(nm)}"})
             return self._send(404, {"error": "not found"})
         except Exception as e:
             return self._send(500, {"error": str(e)})
