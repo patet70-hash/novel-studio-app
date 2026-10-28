@@ -301,7 +301,7 @@ CUSTOM_RULES_MARK = "## Custom speech and relationship rules"
 DEFAULT_CONDUCT = (
     "\n\nDEFAULT CHARACTER CONDUCT (applies unless the story bible has a section '## Custom speech and relationship rules', which then replaces this block): "
     "(1) Speech particles match the speaker's gender: women end sentences with ค่ะ/คะ/นะคะ, men with ครับ/นะครับ, never mixed; use the gender given in the cast or bible. "
-    "(1b) Men refer to themselves as ผม in dialogue (never ฉัน, which is for women); พี่ stays for an older sibling talking to a younger one. "
+    "(1b) Language register follows the emotional heat of the moment. CALM: men say ผม (never ฉัน), women refer to themselves by their own name and call the man sweetly by name; พี่ stays for an older sibling talking to a younger one. HEATED (middle of a sex scene, or anger): men begin slipping into กู/มึง and mild swearing. PEAK (rough sex, build-up to climax, rage): men speak fully rough: กู for themselves, มึง or อี+name for any woman (even an older relative), crude exclamations such as “สัสเอ้ย…ดูดควยเก่งชิบหาย”, “สัสเอ้ย…หีฟิตเหี้ยๆ”, “อีเหี้ย…ขมิบหีมากกว่านี้”, “อีกะหรี่…โดนควยกูซะ”, “อีเหี้ย…กลืนให้หมด ของชอบมึงไง น้ำควย”; rough lines do not end with ครับ/ค่ะ (use ว่ะ, โว้ย, เว้ย, สิ); when the heat drops they go back to ผม. Women stay with their own name and coy, teasing address, except for a brief blurt at extreme heat such as “ยัดควยเข้ามา เย็ดกูให้หีแหก แรงกว่านี้!!”, then they return to their name. "
     "(2) Family address: siblings call each other by nickname with พี่ (older) or น้อง (younger) by actual age, e.g. พี่นัฐยา, น้องพลอย; nobody calls a younger sibling พี่. Parents call their children by plain name without พี่/น้อง (e.g. “พลอย มาหาพ่อหน่อย”), and children call parents พ่อ/แม่ (or the role word in the bible). "
     "(3) Orientation: every character is heterosexual; attraction, romance and relationships always match their sex, and there are no LGBT characters in this story world. The one exception is in sex scenes: women may kiss, touch, and have sex with each other as part of the scene (for example in group scenes), while the story still treats them as straight women; men do not have sexual contact with other men. All characters are adults."
 )
@@ -440,6 +440,31 @@ def plan_scenes(summary, target):
     return parts
 
 
+ANGER_WORDS = ("โกรธ", "ทะเลาะ", "ตะคอก", "โมโห", "ด่า", "เดือดดาล", "โมโหร้าย")
+
+
+def heat_hint(p):
+    """Register instruction for one part, from the scene plan and the beat's position in the scene (sex scenes heat up beat by beat)."""
+    txt = p.get("text") or ""
+    sexual = sum(1 for w in SEX_WORDS if w in txt) >= 2
+    angry = any(w in txt for w in ANGER_WORDS)
+    if not sexual and not angry:
+        return ""
+    if sexual:
+        n, k = p.get("beats", 1), p.get("beat", 1)
+        f = (k - 1.0) / (n - 1) if n > 1 else 0.5
+        if f < 0.34:
+            lvl = "WARM-UP: calm register (men say ผม, women use their own name and sweet names for him), flirting and rising tension; no rough language yet"
+        elif f < 0.67:
+            lvl = "HEATED: the men start slipping into กู/มึง and mild swearing between tender moments; women stay sweet and call him by name"
+        else:
+            lvl = "PEAK: the men speak fully rough (กู for self, มึง or อี+name for the woman, crude exclamations, no ครับ/ค่ะ endings); the women keep their names but at the very peak may blurt ONE extreme rough line (กู… แรงกว่านี้!!) and then return to their name"
+        if n == 1:
+            lvl = "HEATED rising to PEAK over this part: start with ผม and sweet talk, then the men turn rough (กู / มึง / อี+name, crude exclamations) as it builds; the women stay with their names except one rough blurt at the very peak"
+        return "REGISTER FOR THIS PART (" + lvl + ")."
+    return "REGISTER FOR THIS PART (ANGER: the men's language is raw and rough, กู/มึง and swearing, women's anger sharp but still in their usual self-reference)."
+
+
 def part_message(b, parts, i, first_empty, names, avoid=None):
     p = parts[i]
     low = p["text"]
@@ -460,6 +485,9 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     lines.append("LENGTH: about %d Thai words (never more than %d)." % (p["words"], int(p["words"] * 1.25)))
     if cast:
         lines.append("CAST OF THIS PART (only these characters may appear or speak, no one else enters; gender and age are given: speech must match them): " + ", ".join(dict.fromkeys(cast)))
+    hh = heat_hint(p)
+    if hh:
+        lines.append(hh)
     if avoid:
         lines.append("OVERUSED SO FAR - do not use these phrases again in this part, find fresh wording: " + ", ".join("“%s”" % a for a in avoid))
     lines.append("Begin the chapter's prose now (no title line)." if (i == 0 and first_empty) else "Continue directly after the last paragraph of the manuscript so far; do not repeat it.")
