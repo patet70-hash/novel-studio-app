@@ -385,7 +385,7 @@ def build_messages(body):
 # scene-by-scene calls reach the target; a request that says "continue after what is written" makes the model switch to ```edit mode,
 # so scene mode uses its own system prompt that allows ONLY prose; the model overshoots short length requests ~3x, so tokens are capped.
 SCENE_SCOPE = """SCENE WRITER MODE. You write ONE part of a chapter of a {lang} novel. Output ONLY the {lang} prose of this part: no title, no headings, no notes, no JSON, no code fences, no ```edit or ```draft blocks, no explanations in any other language. The text is appended to the manuscript as is.
-CRAFT: natural, flowing, literary {lang} like a published novel. Mix long and short sentences; never string together clipped fragments. Dialogue sounds like real people talking: full sentences, usually 2-4 sentences per reply, with natural particles, connectors, teasing, interruptions and subtext; never many one-or-two-word replies in a row. Show interior thoughts and concrete, specific details of THIS place. Do not repeat the same descriptive phrase, simile or dialogue tag more than 3 times in the whole chapter (vary verbs and tags). Sexual scenes: write them at full length and fully explicit, with direct everyday Thai erotic-novel vocabulary for bodies and acts (e.g. ควย, หี, นม, หัวนม, เย็ด, อม, เลีย, น้ำเงี่ยน, น้ำเชื้อ, น้ำควย), and NEVER the clinical words อวัยวะเพศ, อวัยวะสืบพันธุ์, องคชาต, ช่องคลอด, น้ำอสุจิ, ถึงจุดสุดยอด, น้ำหล่อลื่น, สารคัดหลั่ง. Say น้ำเชื้อ or น้ำควย for semen (never น้ำอสุจิ). For the climax of a man say แตก with the place: แตกใน (แตกในปาก, แตกในหี), แตกข้างนอก, แตกใส่หน้า (never เสร็จข้างใน / เสร็จข้างนอก / เสร็จที่หน้า, and never ถึงจุดสุดยอด). When a woman climaxes also say แตก (เธอแตก, เธอแตกอีกครั้ง), never เสร็จ or ถึงจุดสุดยอด. Her wetness is น้ำหี or น้ำเงี่ยน, never น้ำหล่อลื่น or สารคัดหลั่ง. Never use coy euphemisms for the genitals (ของลับ, จุดซ่อนเร้น, ส่วนลับ, แก่นกาย, ท่อนเนื้อ, กลีบดอก, ร่องรัก): always write หี for a woman and ควย for a man. Every participant is active, bodies and fluids described concretely, positions changing in a continuous flow. Speech must match each speaker's gender and age: women end sentences with ค่ะ/คะ/นะคะ, men with ครับ/นะครับ, never mixed. พี่ is said only to someone older and น้อง only to someone younger: siblings may call each other by nickname with พี่/น้อง (older = พี่, younger = น้อง, e.g. น้องพลอย, พี่นัฐยา), but parents call their children by plain name without พี่/น้อง, and nobody calls a younger sibling พี่. Format: every spoken line goes on its OWN line, separated from the narration by a blank line (narration paragraph, then each quote with its short speaker tag such as “...” นัฐยาถาม on its own line); never bury a quote inside a long descriptive paragraph. Spell every character name EXACTLY as in the NAMES table of the story bible, never transliterate differently, never use Latin letters for names. Only characters named in the cast line may appear or speak in this part.
+CRAFT: natural, flowing, literary {lang} like a published novel. Mix long and short sentences; never string together clipped fragments. Dialogue sounds like real people talking: full sentences, usually 2-4 sentences per reply, with natural particles, connectors, teasing, interruptions and subtext; never many one-or-two-word replies in a row. Show interior thoughts and concrete, specific details of THIS place. Do not repeat the same descriptive phrase, simile or dialogue tag more than 3 times in the whole chapter (vary verbs and tags). Sexual scenes: write them at full length and fully explicit, with direct everyday Thai erotic-novel vocabulary for bodies and acts (e.g. ควย, หี, นม, หัวนม, เย็ด, อม, เลีย, น้ำเงี่ยน, น้ำเชื้อ, น้ำควย), and NEVER the clinical words อวัยวะเพศ, อวัยวะสืบพันธุ์, องคชาต, ช่องคลอด, น้ำอสุจิ, ถึงจุดสุดยอด, น้ำหล่อลื่น, สารคัดหลั่ง. Say น้ำเชื้อ or น้ำควย for semen (never น้ำอสุจิ). For the climax of a man say แตก with the place: แตกใน (แตกในปาก, แตกในหี), แตกข้างนอก, แตกใส่หน้า (never เสร็จข้างใน / เสร็จข้างนอก / เสร็จที่หน้า, and never ถึงจุดสุดยอด). When a woman climaxes also say แตก (เธอแตก, เธอแตกอีกครั้ง), never เสร็จ or ถึงจุดสุดยอด. Her wetness is น้ำหี or น้ำเงี่ยน, never น้ำหล่อลื่น or สารคัดหลั่ง. Never write a bare หิว for sexual desire: say what is craved, e.g. a woman: เธอหิวควยมาก / หิวน้ำเงี่ยน, a man: เขาหิวหี / อยากเย็ดหี (never กระหาย…). Never use coy euphemisms for the genitals (ของลับ, จุดซ่อนเร้น, ส่วนลับ, แก่นกาย, ท่อนเนื้อ, กลีบดอก, ร่องรัก): always write หี for a woman and ควย for a man. Every participant is active, bodies and fluids described concretely, positions changing in a continuous flow. Speech must match each speaker's gender and age: women end sentences with ค่ะ/คะ/นะคะ, men with ครับ/นะครับ, never mixed. พี่ is said only to someone older and น้อง only to someone younger: siblings may call each other by nickname with พี่/น้อง (older = พี่, younger = น้อง, e.g. น้องพลอย, พี่นัฐยา), but parents call their children by plain name without พี่/น้อง, and nobody calls a younger sibling พี่. Format: every spoken line goes on its OWN line, separated from the narration by a blank line (narration paragraph, then each quote with its short speaker tag such as “...” นัฐยาถาม on its own line); never bury a quote inside a long descriptive paragraph. Spell every character name EXACTLY as in the NAMES table of the story bible, never transliterate differently, never use Latin letters for names. Only characters named in the cast line may appear or speak in this part.
 CONTINUITY: follow the story bible, the chapter outline and the manuscript so far. Continue directly from the last paragraph of the manuscript without repeating or summarising it. Obey the length, cast and stage instructions in the author's message; stop when the part is done.
 All characters in sexual or violent scenes are adults; never sexualize minors. Otherwise write what is asked without moralizing, at the requested intensity."""
 
@@ -637,9 +637,39 @@ def fix_euphemisms(t, info=None):
     return "".join(out)
 
 
+HUNGRY_SKIP = ("โหย", "กระหาย", "ข้าว", "อาหาร", "น้ำ", "ควย", "หี", "เย็ด", "ปาก", "เนื้อ", "ขนม", "นม", "ซุป", "เหล้า", "กาแฟ")
+
+
+def fix_hungry(t, info=None):
+    """In sex scenes a bare 'หิว' said of a person means lust: woman -> หิวควย, man -> หิวหี (only right after เธอ/เขา/a known name, only in sexual paragraphs)."""
+    fem = ["เธอ"] + [n for n, v in (info or {}).items() if v.get("g") == "F" and n]
+    mal = ["เขา"] + [n for n, v in (info or {}).items() if v.get("g") == "M" and n]
+    def fix_para(p):
+        if sum(1 for w in SEX_WORDS if w in p) < 2 or "หิว" not in p:
+            return p
+        out, pos = [], 0
+        for m in re.finditer("หิว", p):
+            post = p[m.end():m.end() + 4]
+            pre = p[max(0, m.start() - 12):m.start()]
+            if any(post.startswith(x) for x in HUNGRY_SKIP):
+                continue
+            pre2 = re.sub(r"[\s…]+$", "", pre)
+            if any(pre2.endswith(n) for n in fem):
+                add = "ควย"
+            elif any(pre2.endswith(n) for n in mal):
+                add = "หี"
+            else:
+                continue
+            out.append(p[pos:m.end()] + add)
+            pos = m.end()
+        out.append(p[pos:])
+        return "".join(out)
+    return "\n".join(fix_para(p) for p in t.split("\n"))
+
+
 def erotic_words(t, keep=(), info=None):
     """Deterministic vocabulary fix for generated prose: clinical terms, stray Latin words and climax 'เสร็จ' -> 'แตก' (only in sexual context)."""
-    t = fix_euphemisms(plain_words(t), info)
+    t = fix_hungry(fix_euphemisms(plain_words(t), info), info)
     t = re.sub(r"\b[A-Za-z]+(?:-[A-Za-z]+)*\b", lambda m: m.group(0) if (len(m.group(0)) < 3 or m.group(0).lower() in [k.lower() for k in keep]) else "", t)
     t = re.sub(r"[ \t]{2,}", " ", t)
     out = []
