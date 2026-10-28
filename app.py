@@ -629,7 +629,7 @@ def fix_particles(text, info, rough=False):
                     sp = "F"
                 elif re.search(r"ครับ|กู|มึง", q):
                     sp = "M"
-                elif re.search(r"(?<![ก-ฮ])ฉัน(?![ทใ])", q):
+                elif re.search(r"(?<!ดิ)ฉัน(?![ทใ])", q):
                     sp = "F"   # an untagged ฉัน is treated as a woman (หนู to elders/family, else ชั้น below)
             if sp == "M" and rough:   # peak of a sex scene / anger: the men are fully rough
                 q = re.sub(r"(?<!ดิ)ฉัน(?![ทใ])", "กู", q).replace("ผม", "กู")
@@ -637,9 +637,9 @@ def fix_particles(text, info, rough=False):
                 if "กู" in q:
                     q = re.sub(r"เธอ|คุณ", "มึง", q)
             if sp == "F":   # women do not say ฉัน: หนู to elders/family, ชั้น otherwise
-                if re.search(r"(?<![ก-ฮ])ฉัน(?![ทใ])", q) and "ดิฉัน" not in q:
+                if re.search(r"(?<!ดิ)ฉัน(?![ทใ])", q):
                     pl = "หนู" if re.search(r"พ่อ|แม่|พี่|ป้า|ลุง|น้า|(?<![ก-ฮ])อา(?![ก-ฮ])", q) else "ชั้น"
-                    q = re.sub(r"(?<![ก-ฮ])ฉัน(?![ทใ])", pl, q)
+                    q = re.sub(r"(?<!ดิ)ฉัน(?![ทใ])", pl, q)
             if sp == "M":
                 q = re.sub(r"(?<!ดิ)ฉัน(?![ทใ])", "ผม" if "กู" not in q else "กู", q)   # a man says ผม, not ฉัน (กู when rough)
                 if "กู" in q:   # rough register: ผม->กู, and he addresses her มึง, not เธอ/คุณ
