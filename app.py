@@ -971,6 +971,8 @@ class H(BaseHTTPRequestHandler):
                 return self.suggest(d)
             if p == ["api", "chat"]:
                 return self.chat(d)
+            if p == ["api", "scene-plan"]:
+                return self.scene_plan(d)
             if p == ["api", "refine"]:
                 return self.refine(d)
             if p == ["api", "assist"]:
@@ -1013,6 +1015,40 @@ class H(BaseHTTPRequestHandler):
         try:
             r = json.loads(urllib.request.urlopen(req, timeout=300).read().decode("utf-8"))
             return self._send(200, {"summary": r["choices"][0]["message"]["content"].strip()})
+        except Exception as e:
+            return self._send(502, {"error": "LLM unavailable: %s" % e})
+
+    def scene_plan(self, d):
+        """rewrite one chapter's summary as a scene list ('ฉากที่ 1 (ประมาณ 25%) ...') that the scene-by-scene writer can follow."""
+        b, cid = d.get("book", ""), d.get("id", "")
+        if not (SLUG.match(b) and re.match(r"^ch\d+$", cid)):
+            return self._send(400, {"error": "bad ids"})
+        ol, chl = outline(b), {c["id"]: c for c in chapters(b)}
+        if cid not in ol:
+            return self._send(404, {"error": "ตอนนี้ไม่อยู่ใน outline"})
+        names = name_table(b)
+        ntxt = "\n".join("- %s = %s" % (nm, th or nm) for nm, th in names)
+        keys = sorted(ol)
+        i = keys.index(cid)
+        near = "\n".join("%s | %s | %s" % (k, chl.get(k, {}).get("title", "?"), ol[k].get("summary", "")[:300]) for k in keys[max(0, i - 1):i + 2])
+        task = ("TASK: rewrite the summary of chapter %s (\"%s\", target %s words) as a SCENE LIST in THAI for a scene-by-scene writer. Current summary: %s\n"
+                "FORMAT: 2-5 scenes, exactly like: ฉากที่ 1 (ประมาณ 20%%) <who is there, where, what happens in order> ฉากที่ 2 (ประมาณ 80%%) ... Percentages add up to 100. "
+                "Keep every plot point, setting and group composition of the current summary and stay consistent with the neighbouring chapters and the bible. "
+                "In each sex scene name every participant, say who is a stranger or newcomer if relevant, list the acts and positions in order (oral on the man first, at least 4-5 different positions in a pair scene and 6-8 in a group scene, every participant active) and how it ends (about 60%% of sex scenes end with the man finishing in her mouth). "
+                "Sex scenes together take about 60-70%% of the chapter; a non-sex opening or closing scene takes the rest. Write names only in Thai script from the NAMES list. Maximum 1100 characters. Output ONLY the scene list, nothing else."
+                ) % (cid, chl.get(cid, {}).get("title", cid), ol[cid].get("target", 0), ol[cid].get("summary", ""))
+        prompt = "STORY BIBLE (excerpt):\n" + read(os.path.join(bdir(b), "bible.md"))[:7000] + "\n\nNAMES (use Thai spelling only):\n" + ntxt + "\n\nNEIGHBOURING CHAPTERS (id | title | summary):\n" + near + "\n\n" + task
+        payload = {"messages": [{"role": "system", "content": "You are a story editor for adult fiction. All characters are adults. Write what is asked without moralizing."}, {"role": "user", "content": prompt}],
+                   "stream": False, "max_tokens": 1400, "temperature": 0.7, "chat_template_kwargs": {"enable_thinking": False}}
+        payload.update(ANTI_REPEAT)
+        req = urllib.request.Request(LLM + "/v1/chat/completions", json.dumps(payload).encode(), {"Content-Type": "application/json"})
+        try:
+            r = json.loads(urllib.request.urlopen(req, timeout=300).read().decode("utf-8"))
+            t = clean_part(r["choices"][0]["message"].get("content") or "")
+            t = re.sub(r"\s*\n+\s*", " ", t).strip()[:1500]
+            if not re.search(r"ฉากที่\s*1", t):
+                return self._send(502, {"error": "โมเดลไม่ตอบเป็นรายการฉาก ลองอีกครั้ง"})
+            return self._send(200, {"summary": t})
         except Exception as e:
             return self._send(502, {"error": "LLM unavailable: %s" % e})
 
