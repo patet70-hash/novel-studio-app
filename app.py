@@ -744,17 +744,32 @@ class H(BaseHTTPRequestHandler):
                   "4) NEVER include anything listed as LOCKED. Work around locked items consistently.\n"
                   "5) All characters are adults (18+). Never involve minors.\n6) Keep consistent with CURRENT SETUP; do not contradict chosen items unless the author asks.\n"
                   "7) Keep every proposal SMALL so it fits in the reply: at most 3 characters and 2 locations per turn, at most 1 outfit per character, short phrases. Propose the rest in later turns, and always close the JSON and the fence.\n"
+                  "8) NOTHING is created unless you send the proposal block. Whenever the author asks to add or change a character, location, outfit or any setup field, or agrees to a plan you suggested, put the proposal block in THAT SAME reply. Never answer only 'OK' or 'will do'.\n"
                   "\nFIELD KEYS:\n" + str(d.get("spec", ""))[:4000] +
                   "\n\nLOCKED: " + str(d.get("locked", ""))[:1500] +
                   "\n\nCURRENT SETUP:\n" + str(d.get("state", ""))[:9000])
         msgs = [{"role": "system", "content": sysmsg}]
+        # History hygiene (tested 28 Oct 2026 on a real book: replacing old proposals with a marker made the model print the marker instead of
+        # proposing: 0/8 replies had a proposal; dropping only bad messages and keeping complete proposals intact: 8/8).
+        closed_re = re.compile(r"```proposal\s*\n[\s\S]*?\n\s*```")
         for m in (d.get("messages") or [])[-16:]:
-            if m.get("role") in ("user", "assistant") and str(m.get("content", "")).strip():
-                c = str(m["content"])[:6000]
-                if m["role"] == "assistant":
-                    # Old proposals (esp. truncated ones) in history make the model copy "stop mid-JSON"; the CURRENT SETUP already holds applied items.
-                    c = re.sub(r"```proposal[\s\S]*?(```|$)", "[earlier proposal omitted]", c)
-                msgs.append({"role": m["role"], "content": c})
+            if m.get("role") not in ("user", "assistant") or not str(m.get("content", "")).strip():
+                continue
+            c = str(m["content"])
+            if m["role"] == "assistant":
+                # skip UI error placeholders, markers left by older versions, and truncated proposals: the model copies all of these
+                if c.startswith("[ใช้ไม่ได้") or "[earlier proposal omitted]" in c or ("```proposal" in c and not closed_re.search(c)):
+                    continue
+                msgs.append({"role": "assistant", "content": c[:14000]})
+            else:
+                msgs.append({"role": "user", "content": c[:6000]})
+        # keep context bounded: at most the 3 newest complete proposals stay in history (older ones are dropped whole, never replaced by a marker)
+        seen = 0
+        for i in range(len(msgs) - 1, 0, -1):
+            if msgs[i]["role"] == "assistant" and "```proposal" in msgs[i]["content"]:
+                seen += 1
+                if seen > 3:
+                    del msgs[i]
         # 3500 tokens ~ 80 s: stays under the ~100 s proxy limit for non-streaming calls (2200 cut real proposals; tested 28 Oct 2026)
         payload = {"messages": msgs, "stream": False, "max_tokens": 3500, "temperature": 0.8, "chat_template_kwargs": {"enable_thinking": False}}
         req = urllib.request.Request(LLM + "/v1/chat/completions", json.dumps(payload).encode(), {"Content-Type": "application/json"})
@@ -768,6 +783,9 @@ class H(BaseHTTPRequestHandler):
         if m and "```" not in txt[m.end():]:
             # unclosed proposal = cut off; the UI would show "invalid proposal", so replace it with a clear instruction
             txt = (txt[:m.start()].strip() + "\n\n⚠ ข้อเสนอยาวเกินจนถูกตัด ลองสั่งให้เสนอทีละส่วน เช่น 'เสนอเฉพาะตัวละครหลัก 2 คนก่อน' แล้วค่อยขอส่วนที่เหลือ").strip()
+        elif not m and "?" not in txt and "？" not in txt and "ไหม" not in txt[-120:] and "หรือไม่" not in txt[-120:]:
+            # a statement with no proposal and no question: the author may think something was created, but nothing was
+            txt += "\n\n⚠ ข้อความนี้ไม่มีข้อเสนอ จึงยังไม่มีอะไรถูกสร้างหรือแก้ พิมพ์ว่า 'ส่งข้อเสนอเลย' เพื่อให้ผู้ช่วยส่งข้อเสนอให้กดใช้"
         return self._send(200, {"reply": txt})
 
     def chat(self, d):
