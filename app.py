@@ -1136,6 +1136,9 @@ def fix_name_typos(text, names, count_only=False):
             nonlocal n
             if m.group(2) == th or m.group(2) in known:
                 return m.group(0)
+            rest = m.string[m.start(2):]
+            if any(k and len(k) >= 3 and rest.startswith(k) for k in known):
+                return m.group(0)   # the text continues as another character's name (คุณอนันต์ must not become คุณนนันต์)
             n += 1
             return m.group(1) + th
         text = rx.sub(sub, text)
