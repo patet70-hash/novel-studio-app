@@ -566,6 +566,28 @@ def check_text(b, text, target=0):
     return {"words": w, "issues": issues}
 
 
+REPEAT_LIMITS = [("เบาๆ", 4, [""]), ("เบา ๆ", 4, [""]), ("ปากของเธอ", 5, ["ปากเธอ", "ริมฝีปากนั้น", "ปาก"]), ("ริมฝีปากของเธอ", 4, ["ริมฝีปากเธอ", "ปาก"])]
+
+
+def thin_repeats(part, existing):
+    """Keep stock phrases under a per-chapter limit by dropping or varying later occurrences."""
+    for phrase, limit, alts in REPEAT_LIMITS:
+        seen = existing.count(phrase)
+        out, pos, k = [], 0, 0
+        for m in re.finditer(re.escape(phrase), part):
+            out.append(part[pos:m.start()])
+            if seen >= limit:
+                out.append(alts[k % len(alts)])
+                k += 1
+            else:
+                out.append(phrase)
+            seen += 1
+            pos = m.end()
+        out.append(part[pos:])
+        part = "".join(out)
+    return part
+
+
 def aw_run(b, cid, key):
     job = AW_JOBS[key]
     try:
@@ -614,6 +636,7 @@ def aw_run(b, cid, key):
                 job.update({"state": "error", "error": "ส่วนที่ %d โมเดลไม่ตอบเป็นเนื้อเรื่อง" % (i + 1)})
                 return
             cur = read(fp)
+            part = thin_repeats(part, cur)
             tail = cur.rstrip()[-60:]
             if tail and part.startswith(tail[-40:]):
                 part = part[len(tail[-40:]):].lstrip()
