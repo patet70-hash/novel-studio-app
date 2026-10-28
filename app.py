@@ -32,11 +32,11 @@ OUTLINE MODE: when the author and you have agreed on a chapter plan, or the auth
 
 CHAPTER_SCOPE = """CHAPTER MODE. You are the writing assistant for ONE chapter only: {cid}. The current manuscript of this chapter is shown to you under THIS CHAPTER. You can change it in two ways, always with a fenced block, and the app applies the block to the manuscript automatically:
 (A) TARGETED EDIT (use this whenever the author asks to change, fix, reword or adjust something that already exists, e.g. a line of dialogue, a word, a sentence, a paragraph): reply with one or two short Thai sentences saying what you changed, then ONE fenced block ```edit containing ONLY valid JSON: {"edits":[{"find":"EXACT text copied character-for-character from the manuscript, short but unique in the chapter","replace":"the new text"}]}. Use several edits for several places. NEVER rewrite or re-output the whole chapter for a small change, and never put the unchanged text in the block.
-(B) NEW TEXT TO ADD AT THE END (when the author asks you to write or continue a scene): one or two short Thai sentences, then ONE fenced block ```draft with the {lang} prose; the app appends it to the end of the manuscript. SCENE QUALITY (applies to every ```draft, especially love, sex and action scenes): write the FULL scene at the length the author asked for - never end early, summarise, fade to black or jump-cut; if no length is given, aim for at least 900 words. Plan the scene as 5-6 beats of roughly equal length (charged talk, first touch, escalation, the peak written slowly and explicitly if the scene is sexual, release, quiet aftermath) and do not stop before the last beat is written. Every beat needs short, broken, in-character dialogue (several lines) and interior thoughts that reveal what each character is afraid to say; let the story's real tension bleed into the scene. Ban cliches (e.g. electric, sweet spot, heart hammered, heart pounded, melted into, a moan escaped, shiver down, breath hitched, time stood still, ozone); use odd, specific details from THIS place (objects, smells, light, texture). Vary sentence length, use fragments at the peak, and end on a quiet specific image with an unresolved emotional hook rather than a summary. LENGTH: write between 100% and 125% of the requested length and never under 90% of it; if you are running short, expand the beats with dialogue, interior thought and concrete detail - do not summarise to finish early. OPENERS: never start more than two consecutive sentences with the same word (especially He, She, The, His); start some sentences with an object, a sound, a line of dialogue, a time or place, or a fragment. Only rewrite the whole chapter if the author explicitly says to rewrite all of it (then use ```draft and say in Thai that it is a full rewrite).
+(B) NEW TEXT TO ADD AT THE END (when the author asks you to write or continue a scene): one or two short Thai sentences, then ONE fenced block ```draft with the {lang} prose; the app appends it to the end of the manuscript. SCENE QUALITY (applies to every ```draft, especially love, sex and action scenes): write the FULL scene at the length the author asked for - never end early, summarise, fade to black or jump-cut; if no length is given, aim for at least 900 words. Plan the scene as 5-6 beats of roughly equal length (charged talk, first touch, escalation, the peak written slowly and explicitly if the scene is sexual, release, quiet aftermath) and do not stop before the last beat is written. Every beat needs natural, in-character dialogue (real people talking: full sentences, usually 2-4 sentences per reply, with natural particles and subtext; never long runs of one-or-two-word replies) and interior thoughts that reveal what each character is afraid to say; let the story's real tension bleed into the scene. Ban cliches (e.g. electric, sweet spot, heart hammered, heart pounded, melted into, a moan escaped, shiver down, breath hitched, time stood still, ozone); use odd, specific details from THIS place (objects, smells, light, texture). Vary sentence length (long flowing sentences mixed with short ones), use direct everyday erotic-novel vocabulary for bodies and acts rather than clinical or medical terms, never repeat the same phrase or dialogue tag more than 3 times in the chapter, and end on a quiet specific image with an unresolved emotional hook rather than a summary. LENGTH: write between 100% and 125% of the requested length and never under 90% of it; if you are running short, expand the beats with dialogue, interior thought and concrete detail - do not summarise to finish early. OPENERS: never start more than two consecutive sentences with the same word (especially He, She, The, His); start some sentences with an object, a sound, a line of dialogue, a time or place, or a fragment. Only rewrite the whole chapter if the author explicitly says to rewrite all of it (then use ```draft and say in Thai that it is a full rewrite).
 Language: Thai outside blocks, {lang} only inside blocks; never put prose outside blocks. If you are only discussing, answering a question or asking something, use no block.
-Stay inside this chapter: follow its summary and target length, continue naturally from the end of the previous chapter, and do not write events that belong to other chapters (see the outline). If the author asks to change other chapters, the overall plot or outline, the characters' setup or the global style, do NOT do it: answer in Thai that this belongs in the overview chat (first tab) or the Outline card. If THIS chapter's title, summary or target length should change, propose it with ONE fenced block ```chapter containing only valid JSON like {"title":"...","summary":"Thai, 1-3 sentences","words":2500} (include only keys that change). Follow the story bible for names, facts, voice and tense. All characters in sexual or violent scenes are adults; never sexualize minors. Otherwise write what is asked without moralizing, at the requested intensity."""
+Stay inside this chapter: follow its summary and target length, continue naturally from the end of the previous chapter, and do not write events that belong to other chapters (see the outline). If the author asks to change other chapters, the overall plot or outline, the characters' setup or the global style, do NOT do it: answer in Thai that this belongs in the overview chat (first tab) or the Outline card. If THIS chapter's title, summary or target length should change, propose it with ONE fenced block ```chapter containing only valid JSON like {"title":"...","summary":"Thai, 1-3 sentences, or for a chapter with several scenes a scene list like ฉากที่ 1 (ประมาณ 25%) ... ฉากที่ 2 (ประมาณ 75%) ...","words":2500} (include only keys that change). Follow the story bible for names, facts, voice and tense. All characters in sexual or violent scenes are adults; never sexualize minors. Otherwise write what is asked without moralizing, at the requested intensity."""
 
-OUTLINE_SCOPE = """OUTLINE MODE (the Outline card). You only discuss and revise the chapter outline of this novel: number of chapters, order, titles, summaries and target lengths. Do not write manuscript prose. Reply with one or two short Thai sentences. Whenever you propose or change the plan, include ONE fenced block ```outline containing ONLY valid JSON: {"chapters":[{"title":"Chapter title in {lang}","summary":"Thai, 1-3 sentences","words":2500}]} with the COMPLETE ordered list of chapters (not only the changes). Chapters marked LOCKED or already written must keep their position and meaning; do not change them unless the author explicitly asks. Follow the story bible. If the author asks about style, characters or setup, answer briefly and say that belongs in the overview chat (first tab)."""
+OUTLINE_SCOPE = """OUTLINE MODE (the Outline card). You only discuss and revise the chapter outline of this novel: number of chapters, order, titles, summaries and target lengths. Do not write manuscript prose. Reply with one or two short Thai sentences. Whenever you propose or change the plan, include ONE fenced block ```outline containing ONLY valid JSON: {"chapters":[{"title":"Chapter title in {lang}","summary":"Thai, 1-3 sentences","words":2500}]} with the COMPLETE ordered list of chapters (not only the changes). Chapters marked LOCKED or already written must keep their position and meaning; do not change them unless the author explicitly asks. For a chapter with several scenes write its summary as a scene list in Thai like: ฉากที่ 1 (ประมาณ 25%) ... ฉากที่ 2 (ประมาณ 75%) ... naming who is in each scene and what happens, so the app can write the chapter scene by scene. Follow the story bible. If the author asks about style, characters or setup, answer briefly and say that belongs in the overview chat (first tab)."""
 
 
 def outline_text(b, draft=None):
@@ -307,7 +307,7 @@ def build_messages(body):
     if scope == "outline":
         system = OUTLINE_SCOPE.replace("{lang}", lang)
     elif is_ch:
-        system = CHAPTER_SCOPE.replace("{lang}", lang).replace("{cid}", scope)
+        system = (SCENE_SCOPE if body.get("mode") == "scene" else CHAPTER_SCOPE).replace("{lang}", lang).replace("{cid}", scope)
     else:
         scope = "overview"
         system = st["system"].replace("{lang}", lang) + OUTLINE_RULES.replace("{lang}", lang)
@@ -359,6 +359,214 @@ def build_messages(body):
         keep.append(x)
     keep.reverse()
     return [{"role": "system", "content": system + extra}] + keep
+
+
+# ---------- automatic chapter writing, scene by scene (added 28 Oct 2026) ----------
+# Lab results (7 rounds on "ครอบครัวหรรษา" ch01): one call for a whole chapter stops at ~2,700 words and drifts in names/cast;
+# scene-by-scene calls reach the target; a request that says "continue after what is written" makes the model switch to ```edit mode,
+# so scene mode uses its own system prompt that allows ONLY prose; the model overshoots short length requests ~3x, so tokens are capped.
+SCENE_SCOPE = """SCENE WRITER MODE. You write ONE part of a chapter of a {lang} novel. Output ONLY the {lang} prose of this part: no title, no headings, no notes, no JSON, no code fences, no ```edit or ```draft blocks, no explanations in any other language. The text is appended to the manuscript as is.
+CRAFT: natural, flowing, literary {lang} like a published novel. Mix long and short sentences; never string together clipped fragments. Dialogue sounds like real people talking: full sentences, usually 2-4 sentences per reply, with natural particles, connectors, teasing, interruptions and subtext; never many one-or-two-word replies in a row. Show interior thoughts and concrete, specific details of THIS place. Do not repeat the same descriptive phrase, simile or dialogue tag more than 3 times in the whole chapter (vary verbs and tags). Sexual scenes: write them at full length and fully explicit, with direct everyday erotic-novel vocabulary for bodies and acts, never clinical or medical terms, every participant active, bodies and fluids described concretely, positions changing in a continuous flow. Spell every character name EXACTLY as in the NAMES table of the story bible, never transliterate differently, never use Latin letters for names. Only characters named in the cast line may appear or speak in this part.
+CONTINUITY: follow the story bible, the chapter outline and the manuscript so far. Continue directly from the last paragraph of the manuscript without repeating or summarising it. Obey the length, cast and stage instructions in the author's message; stop when the part is done.
+All characters in sexual or violent scenes are adults; never sexualize minors. Otherwise write what is asked without moralizing, at the requested intensity."""
+
+MEDICAL_TERMS = ["อวัยวะเพศ", "อวัยวะสืบพันธุ์", "องคชาต", "ช่องคลอด", "น้ำอสุจิ"]
+AW_JOBS = {}
+
+
+def name_table(b):
+    try:
+        s = json.loads(read(os.path.join(bdir(b), "setup.json"), "{}") or "{}")
+    except Exception:
+        return []
+    out = []
+    for c in s.get("chars", []) if isinstance(s, dict) else []:
+        nm = str(c.get("name") or "").strip()
+        th = str(c.get("th") or "").strip()
+        if nm:
+            out.append((nm, th))
+    return out
+
+
+def plan_scenes(summary, target):
+    """split a chapter summary written as 'ฉากที่ 1 (ประมาณ 25%) ...' into scenes; otherwise cut by target length."""
+    target = int(target or 0) or 3000
+    summary = (summary or "").strip()
+    pieces = [p.strip() for p in re.split(r"(?=ฉากที่\s*\d+)", summary) if re.match(r"\s*ฉากที่\s*\d+", p)]
+    scenes = []
+    if len(pieces) >= 2:
+        pcts = []
+        for s in pieces:
+            m = re.search(r"(\d{1,3})\s*%", s)
+            pcts.append(int(m.group(1)) if m else 0)
+        unk = [i for i, x in enumerate(pcts) if not x]
+        if unk:
+            rest = max(100 - sum(pcts), 0) or 100 * len(unk) // len(pieces)
+            for i in unk:
+                pcts[i] = max(5, rest // len(unk))
+        tot = sum(pcts) or 1
+        scenes = [{"text": s, "words": max(300, int(target * p / tot))} for s, p in zip(pieces, pcts)]
+    else:
+        n = max(1, int(round(target / 1500.0)))
+        scenes = [{"text": summary, "words": int(target / n), "slice": (i + 1, n)} for i in range(n)]
+    parts = []
+    for si, sc in enumerate(scenes):
+        m = max(1, -(-sc["words"] // 1300))
+        for k in range(m):
+            parts.append({"text": sc["text"], "words": int(sc["words"] / m), "scene": si + 1, "scenes": len(scenes),
+                          "beat": k + 1, "beats": m, "slice": sc.get("slice")})
+    for i, p in enumerate(parts):
+        p["last"] = i == len(parts) - 1
+    return parts
+
+
+def part_message(b, parts, i, first_empty, names):
+    p = parts[i]
+    low = p["text"]
+    cast = []
+    for nm, th in names:
+        if (nm and nm in low) or (th and th in low):
+            cast.append(th or nm)
+    lines = []
+    if p.get("slice"):
+        lines.append("WRITE: part %d of %d of this chapter (follow the chapter summary in order; this part covers roughly the %s of it)." % (p["slice"][0], p["slice"][1], ["opening", "middle", "latter half", "end"][min(3, int(4.0 * (p["slice"][0] - 1) / p["slice"][1]))]))
+    else:
+        lines.append("WRITE: scene %d of %d%s." % (p["scene"], p["scenes"], (", beat %d of %d of this scene" % (p["beat"], p["beats"])) if p["beats"] > 1 else ""))
+        lines.append("PLAN OF THIS SCENE (Thai): " + p["text"])
+    lines.append("LENGTH: about %d Thai words (never more than %d)." % (p["words"], int(p["words"] * 1.25)))
+    if cast:
+        lines.append("CAST OF THIS PART (only these characters may appear or speak, no one else enters): " + ", ".join(dict.fromkeys(cast)))
+    lines.append("Begin the chapter's prose now (no title line)." if (i == 0 and first_empty) else "Continue directly after the last paragraph of the manuscript so far; do not repeat it.")
+    if p["beats"] > 1 and p["beat"] < p["beats"]:
+        lines.append("This is NOT the end of the scene: move the action on to the next stage and stop mid-flow; do not climax, conclude or wrap up the scene yet.")
+    elif not p["last"]:
+        lines.append("Do not end or conclude the chapter; this scene ends at a natural point and the next part continues.")
+    else:
+        lines.append("This is the FINAL part of the chapter: bring the scene to its ending and close the chapter on a specific image with an unresolved hook.")
+    return "\n".join(lines)
+
+
+def clean_part(t):
+    t = t.strip()
+    m = re.search(r"```(?:draft|text|markdown)?\s*\n([\s\S]*?)(```|$)", t)
+    if m and not re.search(r"```edit", t):
+        t = m.group(1).strip()
+    return t
+
+
+def trim_to_paragraph(t):
+    cut = max(t.rfind("\n\n"), t.rfind("\n"))
+    if cut > len(t) * 0.5:
+        return t[:cut].strip()
+    m = list(re.finditer(r"[.!?”\"]\s|ๆ\s|\s", t))
+    return t[:m[-1].start()].strip() if m else t
+
+
+def check_text(b, text, target=0):
+    """quality report for a chapter text (Thai messages)."""
+    issues = []
+    body = re.sub(r"^\s*#\s+.*\n?", "", text, count=1)
+    w = body_words(text)
+    if target and w < target * 0.85:
+        issues.append("ความยาว %d คำ สั้นกว่าเป้า %d คำ (%d%%)" % (w, target, w * 100 // target))
+    names = name_table(b)
+    for nm, th in names:
+        if re.search(r"[A-Za-z]", nm):
+            c = len(re.findall(re.escape(nm), body))
+            if c:
+                issues.append("พบชื่อ %s เป็นตัวอักษรอังกฤษ %d ครั้ง%s" % (nm, c, " (ควรเป็น " + th + ")" if th else " (ตั้งค่า “ชื่อไทย” ของตัวละครนี้)"))
+    med = [(t, body.count(t)) for t in MEDICAL_TERMS if body.count(t) >= 3]
+    if med:
+        issues.append("ศัพท์แบบแพทย์ซ้ำ: " + ", ".join("%s ×%d" % x for x in med))
+    skip = set()
+    for nm, th in names:
+        skip.update([nm, th])
+    cnt = {}
+    for para in re.split(r"\n+", body):
+        th_runs = re.findall(r"[฀-๿]{9,}", para)
+        for run in th_runs:
+            for k in range(0, len(run) - 8):
+                g = run[k:k + 9]
+                cnt[g] = cnt.get(g, 0) + 1
+    rep = []
+    for g, c in sorted(cnt.items(), key=lambda x: -x[1]):
+        if c < 8 or len(rep) >= 4:
+            break
+        if any(s and s in g for s in skip) or any(g in r or r in g for r, _ in rep):
+            continue
+        rep.append((g, c))
+    if rep:
+        issues.append("วลีซ้ำบ่อย: " + ", ".join("“%s” ×%d" % x for x in rep))
+    return {"words": w, "issues": issues}
+
+
+def aw_run(b, cid, key):
+    job = AW_JOBS[key]
+    try:
+        fp = os.path.join(bdir(b), "chapters", cid + ".md")
+        o = outline(b).get(cid, {})
+        text0 = read(fp)
+        first_empty = body_words(text0) < 60
+        parts = plan_scenes(o.get("summary", ""), o.get("target", 0))
+        names = name_table(b)
+        job.update({"n": len(parts), "i": 0, "state": "running"})
+        snapshot_chapter(b, cid)
+        for i in range(len(parts)):
+            if job.get("cancel"):
+                job["state"] = "cancelled"
+                break
+            job["i"] = i + 1
+            msg = part_message(b, parts, i, first_empty, names)
+            part = ""
+            for attempt in range(2):
+                m = msg if attempt == 0 else msg + "\nREMINDER: reply with the story prose ONLY. No code fences, no JSON, no edits."
+                body = {"book": b, "scope": cid, "mode": "scene", "messages": [{"role": "user", "content": m}]}
+                msgs = build_messages(body)
+                st = settings()
+                payload = {"messages": msgs, "stream": False, "max_tokens": int(parts[i]["words"] * 2.8) + 250,
+                           "temperature": st["temperature"], "chat_template_kwargs": {"enable_thinking": False}}
+                payload.update(ANTI_REPEAT)
+                req = urllib.request.Request(LLM + "/v1/chat/completions", json.dumps(payload).encode(), {"Content-Type": "application/json"})
+                r = json.loads(urllib.request.urlopen(req, timeout=900).read().decode("utf-8"))
+                ch0 = r["choices"][0]
+                t = clean_part(ch0["message"].get("content") or "")
+                if ch0.get("finish_reason") == "length":
+                    t = trim_to_paragraph(t)
+                if t and not t.lstrip().startswith("{") and "```" not in t and len(t) > 200:
+                    part = t
+                    break
+            if not part:
+                job.update({"state": "error", "error": "ส่วนที่ %d โมเดลไม่ตอบเป็นเนื้อเรื่อง" % (i + 1)})
+                return
+            cur = read(fp)
+            tail = cur.rstrip()[-60:]
+            if tail and part.startswith(tail[-40:]):
+                part = part[len(tail[-40:]):].lstrip()
+            new, _ = apply_chapter_edits(cur, [], part)
+            write(fp, new)
+            job["words"] = body_words(new)
+        if job.get("state") == "running":
+            job["state"] = "done"
+        rep = check_text(b, read(fp), o.get("target", 0))
+        job["issues"] = rep["issues"]
+        job["words"] = rep["words"]
+    except Exception as e:
+        job.update({"state": "error", "error": str(e)})
+
+
+def aw_start(b, cid):
+    key = b + "/" + cid
+    j = AW_JOBS.get(key)
+    if j and j.get("state") == "running":
+        return {"error": "กำลังเขียนตอนนี้อยู่แล้ว"}
+    if is_locked(b, cid):
+        return {"error": "ตอนนี้ล็อกอยู่ — ปลดล็อกก่อน"}
+    if not os.path.exists(os.path.join(bdir(b), "chapters", cid + ".md")):
+        return {"error": "ไม่มีตอนนี้"}
+    AW_JOBS[key] = {"state": "starting", "i": 0, "n": 0, "words": 0, "issues": [], "t0": time.time()}
+    import threading
+    threading.Thread(target=aw_run, args=(b, cid, key), daemon=True).start()
+    return {"ok": True}
 
 
 # device presets: (page size, margins, base font pt, line-height)
@@ -523,6 +731,12 @@ class H(BaseHTTPRequestHandler):
                     return self._send(200, {"id": p[4], "text": read(os.path.join(bdir(b), "chapters", p[4] + ".md"))} if SLUG.match(p[4]) else {})
                 if p[3] == "chat" and len(p) == 5 and SLUG.match(p[4]):
                     return self._send(200, json.loads(read(os.path.join(bdir(b), "chats", p[4] + ".json"), "[]") or "[]"))
+                if p[3] == "autowrite" and len(p) == 5 and re.match(r"^ch\d+$", p[4]):
+                    j = dict(AW_JOBS.get(b + "/" + p[4]) or {"state": "none"})
+                    j.pop("cancel", None)
+                    return self._send(200, j)
+                if p[3] == "check" and len(p) == 5 and re.match(r"^ch\d+$", p[4]):
+                    return self._send(200, check_text(b, read(os.path.join(bdir(b), "chapters", p[4] + ".md")), outline(b).get(p[4], {}).get("target", 0)))
                 if p[3] == "export.pdf":
                     q = parse_qs(u.query)
                     only = q.get("ch", [""])[0].split(",") if q.get("ch", [""])[0] else None
@@ -700,6 +914,14 @@ class H(BaseHTTPRequestHandler):
                 sid = snapshot_chapter(b, cid)
                 write(fp, new)
                 return self._send(200, {"text": new, "snap": sid, "changed": True})
+            if len(p) == 5 and p[:2] == ["api", "books"] and p[3] == "autowrite" and re.match(r"^ch\d+$", p[4]) and SLUG.match(p[2]):
+                if d.get("action") == "cancel":
+                    j = AW_JOBS.get(p[2] + "/" + p[4])
+                    if j:
+                        j["cancel"] = True
+                    return self._send(200, {"ok": True})
+                r = aw_start(p[2], p[4])
+                return self._send(409 if r.get("error") else 200, r)
             if p == ["api", "trash", "restore"]:
                 if d.get("kind") == "book" and SLUG.match(str(d.get("tid", ""))):
                     src = os.path.join(trash_root(), d["tid"])
