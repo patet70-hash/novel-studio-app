@@ -573,6 +573,9 @@ def anatomy_line(cast_info):
     return s
 
 
+LEN_SCALE = 0.9   # chapters came out at ~110% of target (ch03-08: 5,191 / 5,286 / 6,011 / 5,980 / 5,872 / 5,858 words for 5,000): ask for 10% less
+
+
 def part_message(b, parts, i, first_empty, names, avoid=None):
     p = parts[i]
     low = p["text"]
@@ -590,7 +593,7 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     else:
         lines.append("WRITE: scene %d of %d%s." % (p["scene"], p["scenes"], (", beat %d of %d of this scene" % (p["beat"], p["beats"])) if p["beats"] > 1 else ""))
         lines.append("PLAN OF THIS SCENE (Thai): " + p["text"])
-    lines.append("LENGTH: about %d Thai words (never more than %d)." % (p["words"], int(p["words"] * 1.25)))
+    lines.append("LENGTH: about %d Thai words (never more than %d)." % (int(p["words"] * LEN_SCALE), int(p["words"] * LEN_SCALE * 1.2)))
     ci_list = [(n.split(" (")[0], info.get(n.split(" (")[0]) or {}) for n in dict.fromkeys(cast)]
     al = anatomy_line(ci_list) if is_sexual_text(p.get("text")) else ""
     if cast:
@@ -619,10 +622,17 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
 PLAIN_WORDS = [("อวัยวะเพศ", "ของลับ"), ("อวัยวะสืบพันธุ์", "ของลับ"), ("องคชาต", "ควย"), ("ช่องคลอด", "หี"), ("น้ำอสุจิ", "น้ำเชื้อ"), ("เสร็จข้างใน", "แตกใน"), ("เสร็จข้างนอก", "แตกข้างนอก"), ("เสร็จที่หน้า", "แตกใส่หน้า"), ("เสร็จในปาก", "แตกในปาก"), ("เสร็จในหี", "แตกในหี"), ("ถึงจุดสุดยอด", "แตก"), ("น้ำหล่อลื่น", "น้ำหี"), ("สารคัดหลั่ง", "น้ำหี")]
 
 
+TYPO_FIX = [("พึมพ่า", "พึมพำ"), ("พึมพ้ำ", "พึมพำ"), ("พึมพร", "พึมพำ"), ("หนุกมาก", "สนุกมาก"), ("เปียกชับ", "เปียกชื้น"), ("กระแทควย", "กระแทกควย"), ("เยียดให้", "เย็ดให้"), ("ริมฝีริมฝีปาก", "ริมฝีปาก")]
+TYPO_RE = re.compile(r"แน่วแน่วนิยม|ซเฟีย|โนหัว|ขมับไว้รอบ|เข\s*ของ|[\u0E48-\u0E4B]{2}|\u0E31{2}")   # garbles seen in ch01-08 that no fixed replacement can repair: reported by the check
+
+
 def plain_words(t):
     for a, b in PLAIN_WORDS:
         t = t.replace(a, b)
     t = re.sub(r"หัวหี(?!บ)|คลิตอริส|คลิทอริส|ปุ่มกระสัน", "เม็ดแตด", t)   # the clitoris is เม็ดแตด
+    t = re.sub(r"([\u0E48-\u0E4B])\1+", r"\1", t)   # doubled tone marks (น้้ำ)
+    for a, b in TYPO_FIX:
+        t = t.replace(a, b)
     t = re.sub(r"\b[Mm]issionary\b", "ท่ามิชชันนารี", t)
     t = re.sub(r"\b[Oo]ral\b", "อม", t)
     return t
@@ -1071,6 +1081,16 @@ def check_text(b, text, target=0):
     pi = particle_issues(body, char_info(b))
     if pi:
         issues.append("คำลงท้าย ครับ/ค่ะ ไม่ตรงเพศผู้พูด %d จุด" % pi)
+    ty = TYPO_RE.findall(body)
+    if ty:
+        issues.append("พบคำเพี้ยน/พิมพ์ผิด %d จุด เช่น %s" % (len(ty), " / ".join(dict.fromkeys(ty[:4]))))
+    ud = {}
+    for g in ("ชุดชั้นใน", "กางเกงใน", "บรา", "ถุงน่อง", "เสื้อเชิ้ต", "เสื้อสูท", "ชุดนอน", "ผ้าคลุม"):
+        c = len(re.findall(r"(?:ถอด|ปลด|แกะ)[^\n\u201c\u201d]{0,12}" + g, body))
+        if c >= 4:
+            ud[g] = c
+    if ud:
+        issues.append("ถอดเสื้อผ้าชิ้นเดียวกันซ้ำหลายรอบ (ตรวจเองว่าซ้ำคนเดิมหรือไม่): " + ", ".join("%s ×%d" % x for x in ud.items()))
     fr_n = female_rough_issues(body, char_info(b))
     if fr_n:
         issues.append("ผู้หญิงพูด กู/มึง %d บรรทัด (ห้ามตามกฎใหม่)" % fr_n)
