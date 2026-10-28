@@ -465,17 +465,17 @@ def dialogue_hint(p):
     f = (k - 1.0) / (n - 1) if n > 1 else 0.5
     extra = ""
     if sexual and f >= 0.67:
-        share, rate = "50-60%", 30
-        extra = " This is the PEAK: more than half of the text is dialogue. Write it as an exchange: two or three spoken lines in a row, then at most ONE short narration sentence, then more spoken lines. Most spoken lines are 1-3 sentences (moans, dirty talk naming the body parts, orders, praise, begging, teasing, answering back), not single words."
+        share, rate = "50-60%", 45
+        extra = " This is the PEAK: more than half of the text is dialogue, and every narration paragraph here is ONE short sentence at most (a gesture or a sound), never a long description. Write it as an exchange: two or three spoken lines in a row, then at most ONE short narration sentence, then more spoken lines. Most spoken lines are 1-3 sentences (moans, dirty talk naming the body parts, orders, praise, begging, teasing, answering back), not single words."
     elif sexual and f >= 0.34:
-        share, rate = "30-40%", 18
+        share, rate = "30-40%", 26
         extra = " This part is heated: the characters talk to each other often (moans, dirty talk, praise, teasing) instead of long narration of feelings."
     elif sexual and n == 1:
         share, rate = "30-50%, rising toward the end", 18
     else:
         share, rate = "15-20%", 10
     lines = max(6, int(words * rate / 1000))
-    return ("DIALOGUE SHARE: about %s of this part's text must be spoken lines (quoted): at least %d spoken lines, alternating with narration. Every narration paragraph is at most 3-4 sentences, then somebody speaks. Polite situations (talking to an elder, a boss, a stranger) use full polite sentences ending with ครับ/ค่ะ/คะ.%s" % (share, lines, extra))
+    return ("DIALOGUE SHARE: about %s of this part's text must be spoken lines (quoted): at least %d spoken lines, alternating with narration. Every narration paragraph is at most 3-4 sentences, then somebody speaks. Polite situations (talking to an elder, a boss, a client, a stranger, or in a formal work setting) use full polite sentences ending with ครับ/ค่ะ/คะ; in ordinary calm conversation at least every second line carries a natural ending particle (นะ, สิ, นะครับ, นะคะ, ค่ะ, ครับ, เหรอ, ล่ะ) instead of bare clipped sentences.%s" % (share, lines, extra))
 
 
 def heat_hint(p):
