@@ -297,6 +297,24 @@ def new_chapter_id(b):
     return "ch%02d" % n
 
 
+CUSTOM_RULES_MARK = "## Custom speech and relationship rules"
+DEFAULT_CONDUCT = (
+    "\n\nDEFAULT CHARACTER CONDUCT (applies unless the story bible has a section '## Custom speech and relationship rules', which then replaces this block): "
+    "(1) Speech particles match the speaker's gender: women end sentences with ค่ะ/คะ/นะคะ, men with ครับ/นะครับ, never mixed; use the gender given in the cast or bible. "
+    "(2) Family address: siblings call each other by nickname with พี่ (older) or น้อง (younger) by actual age, e.g. พี่นัฐยา, น้องพลอย; nobody calls a younger sibling พี่. Parents call their children by plain name without พี่/น้อง (e.g. “พลอย มาหาพ่อหน่อย”), and children call parents พ่อ/แม่ (or the role word in the bible). "
+    "(3) Orientation: every character is heterosexual; attraction, romance and relationships always match their sex, and there are no LGBT characters in this story world. The one exception is in sex scenes: women may kiss, touch, and have sex with each other as part of the scene (for example in group scenes), while the story still treats them as straight women; men do not have sexual contact with other men. All characters are adults."
+)
+
+
+def conduct_for(b):
+    """Default conduct block unless the book defines its own custom rules in its bible."""
+    try:
+        bible = read(os.path.join(bdir(b), "bible.md")) if b else ""
+    except Exception:
+        bible = ""
+    return "" if CUSTOM_RULES_MARK in bible else DEFAULT_CONDUCT
+
+
 def build_messages(body):
     b = body.get("book")
     scope = str(body.get("scope") or "overview")
@@ -308,6 +326,7 @@ def build_messages(body):
         system = OUTLINE_SCOPE.replace("{lang}", lang)
     elif is_ch:
         system = (SCENE_SCOPE if body.get("mode") == "scene" else CHAPTER_SCOPE).replace("{lang}", lang).replace("{cid}", scope)
+        system += conduct_for(b)
     else:
         scope = "overview"
         system = st["system"].replace("{lang}", lang) + OUTLINE_RULES.replace("{lang}", lang)
@@ -1231,7 +1250,7 @@ class H(BaseHTTPRequestHandler):
                 "Keep every plot point, setting and group composition of the current summary and stay consistent with the neighbouring chapters and the bible. Use ONLY characters named or clearly implied by the current summary (match descriptions such as 'the two secretaries' or 'the driver' to the roles in the NAMES list); never add other family members. "
                 "Write everything in Thai: no English words, no English labels like (Position 1) or (Oral), and never the clinical words อวัยวะเพศ, องคชาต, ช่องคลอด, น้ำอสุจิ, ถึงจุดสุดยอด (say ควย, หี, เย็ด, อม, เลีย, น้ำเชื้อ instead). Describe how a man finishes with the word แตก plus the place: แตกใน (แตกในปาก, แตกในหี), แตกข้างนอก, แตกใส่หน้า; never use เสร็จ for this. A woman climaxing is also แตก (never เสร็จ); her wetness is น้ำหี or น้ำเงี่ยน, never น้ำหล่อลื่น or สารคัดหลั่ง. "
                 "In each sex scene name every participant, say who is a stranger or newcomer if relevant, list the acts and positions in order (oral on the man first, at least 4-5 different positions in a pair scene and 6-8 in a group scene, every participant active) and how it ends (about 60%% of sex scenes end with แตกในปาก). "
-                "Sex scenes together take about 60-70%% of the chapter; a non-sex opening or closing scene takes the rest. Write names only in Thai script from the NAMES list. Maximum 1100 characters. Output ONLY the scene list, nothing else."
+                "Sex scenes together take about 60-70%% of the chapter; a non-sex opening or closing scene takes the rest. Write names only in Thai script from the NAMES list. Unless the bible has custom speech and relationship rules: every character is heterosexual (no LGBT characters), but in sex scenes women may have sex with each other; men have no sexual contact with men. Maximum 1100 characters. Output ONLY the scene list, nothing else."
                 ) % (cid, chl.get(cid, {}).get("title", cid), ol[cid].get("target", 0), ol[cid].get("summary", ""))
         prompt = "STORY BIBLE (excerpt):\n" + read(os.path.join(bdir(b), "bible.md"))[:7000] + "\n\nNAMES (use Thai spelling only):\n" + ntxt + "\n\nNEIGHBOURING CHAPTERS (id | title | summary):\n" + near + "\n\n" + task
         payload = {"messages": [{"role": "system", "content": "You are a story editor for adult fiction. All characters are adults. Write what is asked without moralizing."}, {"role": "user", "content": prompt}],

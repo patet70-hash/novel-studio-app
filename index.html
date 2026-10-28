@@ -177,7 +177,7 @@ const LOF=[F('ltype','ประเภทสถานที่','Type','multi','p
 /* ===== state ===== */
 const $=s=>document.querySelector(s);
 let book="",chat=[],chs=[],cur="",ctrl=null,S=null,meta={title:"",author:"",lang:"English"},saveT=null;
-const emptySetup=()=>({v:{},locks:{},chars:[],locs:[],notes:"",synth:"",synthNotes:"",assist:[]});
+const emptySetup=()=>({v:{},locks:{},chars:[],locs:[],notes:"",rules:"",synth:"",synthNotes:"",assist:[]});
 const api=async(p,o={})=>{const r=await fetch("api/"+p,o);if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||r.status);return r};
 const js=(m,b)=>({method:m,headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});
 const uid=()=>Math.random().toString(36).slice(2,8);
@@ -208,6 +208,7 @@ function compile(){let o=`# Story bible\n\nTitle: ${meta.title||"(untitled)"}\n`
  if(S.chars.length){o+=`\n## Characters (all adults)\n`;for(const c of S.chars){o+=`\n### ${c.name||"Unnamed"}\n`;for(const f of CHF){if(f.t==='text'){const t=(c.v[f.k]||{}).c;if(t)o+=`- ${f.en}: ${t}\n`}else o+=line(f,gv(c.v,f.k))}
   for(const u of c.outfits){let b="";for(const f of OUF){if(f.t==='text'){const t=(u.v[f.k]||{}).c;if(t)b+=`${f.en}: ${t}; `}else{const x=gv(u.v,f.k),a=[...x.s];if(x.c)a.push(x.c);if(a.length)b+=`${f.en}: ${a.join(", ")}; `}}if(b)o+=`- Outfit "${u.name}": ${b}\n`}}}
  if(S.locs.length){o+=`\n## Locations\n`;for(const l of S.locs){let b="";for(const f of LOF){if(f.t==='text'){const t=(l.v[f.k]||{}).c;if(t)b+=`${f.en}: ${t}; `}else{const x=gv(l.v,f.k),a=[...x.s];if(x.c)a.push(x.c);if(a.length)b+=`${f.en}: ${a.join(", ")}; `}}o+=`- ${l.name||"Unnamed"} — ${b}\n`}}
+ if((S.rules||"").trim())o+=`\n## Custom speech and relationship rules\n${S.rules.trim()}\n`;
  if(S.synth)o+=`\n## Synthesis (editor's cohesion pass)\n${S.synth}\n`;
  if(S.notes)o+=`\n## Author notes\n${S.notes}\n`;return o}
 /* ===== autosave ===== */
@@ -357,10 +358,10 @@ function renderSetup(){const el=$("#su");if(!S){el.innerHTML="";return}const kee
   ls.appendChild(ld)}
  el.appendChild(ls);
  /* synth + notes */
- const sn=document.createElement('details');sn.className='sec';sn.open=!!S.synth;sn.innerHTML=`<summary>บทสรุปจากโมเดล และหมายเหตุของผู้แต่ง</summary><div class="fr"><span class="lb">สรุป (โมเดล)</span><textarea id="syn" style="min-height:120px" placeholder="กด ✨ ให้โมเดลขัดเกลา — แก้ไขเองได้">${esc(S.synth||"")}</textarea></div>${S.synthNotes?`<div class="fr"><span class="lb">ข้อขัดแย้งที่พบ</span><div class="small" style="white-space:pre-wrap">${esc(S.synthNotes)}</div></div>`:""}<div class="fr"><span class="lb">หมายเหตุ</span><textarea id="nts" placeholder="อะไรก็ได้ที่อยากให้โมเดลรู้">${esc(S.notes||"")}</textarea></div>`;el.appendChild(sn);
+ const sn=document.createElement('details');sn.className='sec';sn.open=!!S.synth;sn.innerHTML=`<summary>บทสรุปจากโมเดล และหมายเหตุของผู้แต่ง</summary><div class="fr"><span class="lb">สรุป (โมเดล)</span><textarea id="syn" style="min-height:120px" placeholder="กด ✨ ให้โมเดลขัดเกลา — แก้ไขเองได้">${esc(S.synth||"")}</textarea></div>${S.synthNotes?`<div class="fr"><span class="lb">ข้อขัดแย้งที่พบ</span><div class="small" style="white-space:pre-wrap">${esc(S.synthNotes)}</div></div>`:""}<div class="fr"><span class="lb">กฎเฉพาะเรื่อง: คำลงท้าย / การเรียกกัน / รสนิยม</span><textarea id="rls" placeholder="เว้นว่าง = ใช้ค่าเริ่มต้นของระบบ (ผู้หญิง ค่ะ/คะ ผู้ชาย ครับ, พี่น้องใช้ชื่อเล่น+พี่/น้อง, พ่อแม่เรียกลูกชื่อตรงๆ, ตัวละครทุกตัวรักต่างเพศ แต่ในฉากเซ็กส์ผู้หญิงทำกิจกรรมทางเพศกันได้) ถ้าพิมพ์ที่นี่ ข้อความนี้จะใช้แทนค่าเริ่มต้นทั้งหมด">${esc(S.rules||"")}</textarea>${(()=>{const m=S.chars.filter(c=>c.name&&!(c.v.gender&&((c.v.gender.c||"")||(c.v.gender.s||[]).length))).map(c=>c.th||c.name);return m.length?`<div class="small">ยังไม่ได้ระบุเพศ (ระบบจะเดาจากบทบาท): ${esc(m.join(", "))}</div>`:""})()}</div><div class="fr"><span class="lb">หมายเหตุ</span><textarea id="nts" placeholder="อะไรก็ได้ที่อยากให้โมเดลรู้">${esc(S.notes||"")}</textarea></div>`;el.appendChild(sn);
  el.querySelectorAll('details').forEach((d,i)=>{if(keep[i])d.open=true});
  $("#mt").oninput=e=>{meta.title=e.target.value;dirty()};$("#ma").oninput=e=>{meta.author=e.target.value;dirty()};
- $("#syn").oninput=e=>{S.synth=e.target.value;dirty()};$("#nts").oninput=e=>{S.notes=e.target.value;dirty()};
+ $("#syn").oninput=e=>{S.synth=e.target.value;dirty()};$("#nts").oninput=e=>{S.notes=e.target.value;dirty()};$("#rls").oninput=e=>{S.rules=e.target.value;dirty()};
  $("#rall").onclick=()=>{if(S.chars.length&&!S.locks.chars&&!confirm("สุ่มใหม่จะทับช่องที่ไม่ได้ล็อกทั้งหมด (รวมตัวละครและสถานที่) ดำเนินการ?"))return;randomAll();S.synth="";S.synthNotes="";dirty();renderSetup();el.querySelectorAll('details.sec').forEach(d=>d.open=true)};
  $("#asend").onclick=asend;{const c=acfg();$("#adet").value=c.detail||"rich";$("#anote").value=c.note||"";$("#adet").onchange=e=>{acfg().detail=e.target.value;dirty()};$("#anote").oninput=e=>{acfg().note=e.target.value;dirty()};$("#afull").onclick=afull;$("#astop").onclick=()=>{AFSTOP=true}}$("#ain").onkeydown=e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();asend()}};
  $("#aclr").onclick=()=>{if(!confirm("ล้างแชทผู้ช่วยนี้? (ค่าที่ใช้ไปแล้วไม่หาย)"))return;S.assist=[];dirty();drawAssist()};drawAssist();
