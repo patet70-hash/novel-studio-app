@@ -1053,6 +1053,24 @@ def quote_share(t):
     return sum(len(x) for x in re.findall(r"[\u201c\"][^\u201d\"]*[\u201d\"]", t)) / float(len(t))
 
 
+SEX_DENS_MIN = 5.0   # explicit sex words per 1000 characters a part of a sex scene must reach
+_SEX_DENS_RE = re.compile(r"ควย|หี|เย็ด|แตด|เงี่ยน|กระแทก|สอดใส่|ซอย|เลีย|ดูด|หัวนม|น้ำแตก|เปลือย|ขย่ม|นม")
+
+
+def sex_density(t):
+    t = t or ""
+    if not t.strip():
+        return 0.0
+    return len(_SEX_DENS_RE.findall(t)) * 1000.0 / len(t)
+
+
+def part_score(t, need_dlg, need_sex):
+    """1.0 each for a satisfied check, proportional when short; the sum is used to pick the better of two versions."""
+    a = min(quote_share(t) / DLG_MIN, 1.0) if need_dlg else 1.0
+    b = min(sex_density(t) / SEX_DENS_MIN, 1.0) if need_sex else 1.0
+    return a + b
+
+
 def aw_run(b, cid, key):
     job = AW_JOBS[key]
     try:
@@ -1075,11 +1093,17 @@ def aw_run(b, cid, key):
             part = ""
             cand = None
             need_dlg = heat_level(parts[i]) == "peak" and is_sexual_text(parts[i].get("text"))
+            need_sex = is_sexual_text(parts[i].get("text"))
             for attempt in range(3):
                 if attempt == 2 and cand is None:
                     break   # the third call exists only for the spoken-line rewrite
                 if cand is not None:
-                    m = msg + "\nREWRITE: your previous version of this part had only %d%% spoken lines, but this PEAK part needs at least 50%%. Write the part again with far more dialogue: at least %d quoted lines (moans, dirty talk, orders, answers), and every narration paragraph ONE short sentence at most. Keep the same events." % (int(cand[0] * 100), max(12, int(parts[i]["words"] * 45 / 1000)))
+                    why = []
+                    if need_dlg and quote_share(cand[1]) < DLG_MIN:
+                        why.append("it had only %d%% spoken lines but this PEAK part needs at least 50%%: write at least %d quoted lines (moans, dirty talk, orders, answers) and keep every narration paragraph to ONE short sentence" % (int(quote_share(cand[1]) * 100), max(12, int(parts[i]["words"] * 45 / 1000))))
+                    if need_sex and sex_density(cand[1]) < SEX_DENS_MIN:
+                        why.append("it did not stay on the sex: this part must be the sexual act itself from the first sentence to the last, with the body parts named (ควย, หี, นม, หัวนม, น้ำเงี่ยน) in nearly every paragraph and no drifting into work, family, memories or chat")
+                    m = msg + "\nREWRITE: your previous version was not acceptable: " + "; and ".join(why or ["write it more vividly"]) + ". Write the part again, keeping the same events."
                 elif attempt == 0:
                     m = msg
                 else:
@@ -1104,17 +1128,18 @@ def aw_run(b, cid, key):
                 if ch0.get("finish_reason") == "length":
                     t = trim_to_paragraph(t)
                 if t and not t.lstrip().startswith("{") and "```" not in t and len(t) > 200:
-                    sh = quote_share(t)
+                    sc_t = part_score(t, need_dlg, need_sex)
+                    ok_t = (not need_dlg or quote_share(t) >= DLG_MIN) and (not need_sex or sex_density(t) >= SEX_DENS_MIN)
                     if cand is not None:
                         job["retries"] = job.get("retries", 0) + 1
-                        if sh >= cand[0]:
-                            cand = (sh, t)
-                        if cand[0] >= DLG_MIN or attempt >= 2:
+                        if sc_t >= cand[0]:
+                            cand = (sc_t, t)
+                        if ok_t or attempt >= 2:
                             part = cand[1]
                             break
                         continue
-                    if need_dlg and sh < DLG_MIN:
-                        cand = (sh, t)
+                    if not ok_t:
+                        cand = (sc_t, t)
                         continue
                     part = t
                     break
