@@ -408,6 +408,31 @@ def name_table(b):
     return out
 
 
+SEX_SHARE = 0.68   # system default: sexual content is 60-70% of a chapter that has both sexual and ordinary scenes
+
+
+def is_sexual_text(txt):
+    return sum(1 for w in SEX_WORDS if w in (txt or "")) >= 2
+
+
+def rebalance_sex_share(scenes, target):
+    """give sexual scenes about SEX_SHARE of the chapter's words and the ordinary scenes the rest (total length unchanged)."""
+    sx = [sc for sc in scenes if is_sexual_text(sc["text"])]
+    nx = [sc for sc in scenes if not is_sexual_text(sc["text"])]
+    if not sx or not nx:
+        return scenes
+    total = sum(sc["words"] for sc in scenes)
+    want_sx, want_nx = total * SEX_SHARE, total * (1 - SEX_SHARE)
+    cur_sx, cur_nx = float(sum(sc["words"] for sc in sx)), float(sum(sc["words"] for sc in nx))
+    if cur_sx >= want_sx:
+        return scenes
+    for sc in sx:
+        sc["words"] = int(sc["words"] * want_sx / cur_sx)
+    for sc in nx:
+        sc["words"] = max(250, int(sc["words"] * want_nx / cur_nx))
+    return scenes
+
+
 def plan_scenes(summary, target):
     """split a chapter summary written as 'ฉากที่ 1 (ประมาณ 25%) ...' into scenes; otherwise cut by target length."""
     target = int(target or 0) or 3000
@@ -426,6 +451,7 @@ def plan_scenes(summary, target):
                 pcts[i] = max(5, rest // len(unk))
         tot = sum(pcts) or 1
         scenes = [{"text": s, "words": max(300, int(target * p / tot))} for s, p in zip(pieces, pcts)]
+        scenes = rebalance_sex_share(scenes, target)
     else:
         n = max(1, int(round(target / 1500.0)))
         scenes = [{"text": summary, "words": int(target / n), "slice": (i + 1, n)} for i in range(n)]
@@ -454,6 +480,16 @@ def heat_level(p):
 
 
 HEAT_BANK = " Spoken lines in the hot part name the body part, never a bare “มึงแน่น”: e.g. “แน่นจัง… หีมึงแน่นชิบหายเลย”, “เสียวควยชิบหาย”, “สัสเอ้ยย… เสียวควยเหี้ยๆ”, “หีตอดควยชิบหาย”, “ดูดควยเก่งชิบหาย”, with grunts (หึ, อึก, ซี๊ด) between phrases; vary them, do not copy these word for word every time."
+
+
+def sex_focus_hint(p):
+    """sexual parts are mostly the sexual act itself (chapter target: 60-70% sexual content)."""
+    if not is_sexual_text(p.get("text") or ""):
+        return ""
+    n, k = p.get("beats", 1), p.get("beat", 1)
+    opening = "Skip long scene-setting: at most two short sentences of setting or inner thought, then the bodies are already touching, kissing, undressing or fucking. " if k == 1 else "Continue the act at once, no recap and no scene-setting. "
+    return ("SEX CONTENT: at least 70% of this part (by length) is the sexual act itself: touching, kissing, undressing, sucking, licking, fucking, positions changing, what each body does and feels, dirty talk and moans. " + opening +
+            "Do not spend paragraphs on work, family background, memories or worries here; a single passing line is enough, and it must come from a body or a gesture in the act.")
 
 
 def dialogue_hint(p):
@@ -524,6 +560,9 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     if hh:
         lines.append(hh)
     lines.append(dialogue_hint(p))
+    sf = sex_focus_hint(p)
+    if sf:
+        lines.append(sf)
     if avoid:
         lines.append("OVERUSED SO FAR - do not use these phrases again in this part, find fresh wording: " + ", ".join("“%s”" % a for a in avoid))
     lines.append("Begin the chapter's prose now (no title line)." if (i == 0 and first_empty) else "Continue directly after the last paragraph of the manuscript so far; do not repeat it.")
