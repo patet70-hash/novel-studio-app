@@ -548,9 +548,13 @@ def anatomy_issues(text, info):
     n = 0
     if F:
         fr = "|".join(re.escape(x) for x in sorted(F, key=len, reverse=True))
-        n += len(re.findall(r"(?:%s)(?:สอด|ยัด|ถอน|ดึง|กระแทก|ขย่ม|ซอย)[\u0E01-\u0E4E]{0,2}(?:ควย|หัวควย)" % fr, text))
+        n += len(re.findall(r"(?:%s)(?:สอด|ยัด|กระแทก|ขย่ม|ซอย)[\u0E01-\u0E4E]{0,2}(?:ควย|หัวควย)" % fr, text))
         n += len(re.findall(r"(?:ควย|หัวควย)(?:ของ)?(?:%s)" % fr, text))
         n += len(re.findall(r"(?:%s)(?:ของ)?เธอ?(?:ควย)" % fr, text))
+    present_f = [x for x in F if x in text]
+    present_m = [x for x in M if x in text]
+    if present_f and not present_m:   # a scene with only women in it: every ควย / น้ำควย is wrong (no strap-on in this story)
+        n += len(re.findall(r"ควย|น้ำเชื้อ", text))
     if M:
         mr = "|".join(re.escape(x) for x in sorted(M, key=len, reverse=True))
         n += len(re.findall(r"(?:หี|เม็ดแตด|น้ำหี)(?:ของ)?(?:%s)" % mr, text))
@@ -988,7 +992,7 @@ def climax_leftovers(t):
 
 def clean_part(t):
     t = re.sub(r"[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]+", "", t.strip())   # stray Chinese characters the model sometimes emits inside Thai text
-    t = re.sub(r"[\u0400-\u052F\u0590-\u06FF\u0900-\u0DFF\u0E80-\u0EFF\u1000-\u109F\u3040-\u30FF\uAC00-\uD7AF]+", "", t)   # stray Cyrillic / Hebrew / Arabic / Indic / Lao / Burmese / Kana / Hangul
+    t = re.sub(r"[\u0400-\u052F\u0590-\u06FF\u0900-\u0DFF\u0E80-\u0EFF\u1000-\u109F\uFB1D-\uFDFF\uFE70-\uFEFF\u3040-\u30FF\uAC00-\uD7AF]+", "", t)   # stray Cyrillic / Hebrew / Arabic / Indic / Lao / Burmese / Kana / Hangul
     m = re.search(r"```(?:draft|text|markdown)?\s*\n([\s\S]*?)(```|$)", t)
     if m and not re.search(r"```edit", t):
         t = m.group(1).strip()
