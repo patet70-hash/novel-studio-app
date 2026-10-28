@@ -1013,6 +1013,14 @@ def check_text(b, text, target=0):
     longn = sum(1 for ln in body.split("\n") if ln.strip() and not QUOTE_RE.match(ln.strip()) and len(ln.strip()) > 400)
     if longn >= 5:
         issues.append("ย่อหน้าบรรยายยาวเกิน 400 ตัวอักษร %d ย่อหน้า" % longn)
+    dp = dup_paragraphs(body)
+    if dp >= 3:
+        issues.append("ย่อหน้าซ้ำคำต่อคำ %d ย่อหน้า (%d%% ของย่อหน้ายาว)" % (dp, 100 * dp // _para_total(body)))
+    nt = fix_name_typos(body, names, count_only=True)
+    if nt:
+        issues.append("ชื่อตัวละครสะกดผิดจากตาราง %d จุด (เช่น กฤษฎ์ แทน กฤษณ์)" % nt)
+    if target and w > target * 1.2:
+        issues.append("ความยาว %d คำ เกินเป้า %d คำ (%d%%)" % (w, target, w * 100 // target))
     rep = overused(body, names)
     if rep:
         issues.append("วลีซ้ำบ่อย: " + ", ".join("“%s” ×%d" % x for x in rep))
@@ -1043,6 +1051,99 @@ def thin_repeats(part, existing):
     return part
 
 
+def _para_key(p):
+    return re.sub(r"[\s\.\!\?\u2026,\u201c\u201d\"\u0e46]+", "", p)
+
+
+DUP_MIN_LEN = 20   # paragraphs shorter than this (moans, one-word lines) are left to dedupe_quotes
+
+
+def _shingles(k, n=8):
+    return {k[i:i + n] for i in range(0, max(1, len(k) - n + 1))}
+
+
+def _is_dup(k, keys, shs, near=0.7):
+    """True when the paragraph key repeats an earlier one exactly or shares at least `near` of its 8-character shingles with one (a copy with a few words changed)."""
+    if k in keys:
+        return True
+    sh = _shingles(k)
+    for o in shs:
+        inter = len(sh & o)
+        if inter and inter / float(min(len(sh), len(o))) >= near:
+            return True
+    return False
+
+
+def _scan_dups(part, existing=""):
+    """yield (paragraph, is_duplicate) for the paragraphs of `part`, comparing with `existing` and earlier paragraphs of `part`."""
+    keys, shs = set(), []
+    for p in re.split(r"\n+", existing or ""):
+        k = _para_key(p)
+        if len(k) >= DUP_MIN_LEN:
+            keys.add(k)
+            shs.append(_shingles(k))
+    res = []
+    for p in part.split("\n"):
+        k = _para_key(p)
+        if len(k) >= DUP_MIN_LEN and not p.lstrip().startswith("#"):
+            d = _is_dup(k, keys, shs)
+            keys.add(k)
+            shs.append(_shingles(k))
+            res.append((p, d))
+        else:
+            res.append((p, False))
+    return res
+
+
+def dup_paragraphs(text):
+    """number of paragraphs that repeat an earlier paragraph of the same text (word for word, or with only a few words changed)."""
+    return sum(1 for _, d in _scan_dups(text) if d)
+
+
+def drop_dup_paragraphs(part, existing=""):
+    """remove paragraphs of `part` that already appear (or nearly) in `existing` or earlier in `part`."""
+    out = [p for p, d in _scan_dups(part, existing) if not d]
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(out)).strip()
+
+
+def _para_total(t):
+    return max(1, sum(1 for p in re.split(r"\n+", t or "") if len(_para_key(p)) >= DUP_MIN_LEN))
+
+
+NAME_CTX = r"(^|[^\u0E00-\u0E7F]|\u0e04\u0e38\u0e13|\u0e1e\u0e35\u0e48|\u0e19\u0e49\u0e2d\u0e07|\u0e17\u0e48\u0e32\u0e19|\u0e1e\u0e48\u0e2d|\u0e41\u0e21\u0e48|\u0e25\u0e39\u0e01)"
+
+
+def _name_variant_res(names):
+    """for every Thai name of 5+ characters: a regex matching the name with exactly one consonant replaced (a typo such as กฤษฎ์ for กฤษณ์)."""
+    known = {th for _, th in names if th} | {nm for nm, _ in names if nm}
+    res = []
+    for nm, th in names:
+        if not th or len(th) < 5 or re.search(r"[A-Za-z\s]", th):
+            continue
+        alts = []
+        for i, ch in enumerate(th):
+            if re.match(r"[\u0E01-\u0E2E]", ch):
+                alts.append(re.escape(th[:i]) + "[\u0E01-\u0E2E]" + re.escape(th[i + 1:]))
+        if alts:
+            res.append((th, re.compile(NAME_CTX + "(" + "|".join(alts) + ")"), known))
+    return res
+
+
+def fix_name_typos(text, names, count_only=False):
+    n = 0
+    for th, rx, known in _name_variant_res(names):
+        def sub(m, th=th, known=known):
+            nonlocal n
+            if m.group(2) == th or m.group(2) in known:
+                return m.group(0)
+            n += 1
+            return m.group(1) + th
+        text = rx.sub(sub, text)
+    return n if count_only else text
+
+
+
+
 DLG_MIN = 0.50   # a PEAK part with less spoken text than this is written again (at most twice), the version with the most dialogue is kept
 
 
@@ -1064,11 +1165,22 @@ def sex_density(t):
     return len(_SEX_DENS_RE.findall(t)) * 1000.0 / len(t)
 
 
-def part_score(t, need_dlg, need_sex):
+CALM_DENS_MAX = 3.5   # an ordinary (non-sexual) scene may not exceed this many explicit sex words per 1000 characters
+DUP_PART_MAX = 0.05   # at most this share of a part's long paragraphs may repeat word for word
+
+
+def part_score(t, need_dlg, need_sex, need_calm=False, existing=""):
     """1.0 each for a satisfied check, proportional when short; the sum is used to pick the better of two versions."""
     a = min(quote_share(t) / DLG_MIN, 1.0) if need_dlg else 1.0
     b = min(sex_density(t) / SEX_DENS_MIN, 1.0) if need_sex else 1.0
-    return a + b
+    c = min(CALM_DENS_MAX / max(sex_density(t), 0.01), 1.0) if need_calm else 1.0
+    d = 1.0 - min(1.0, dup_ratio(t, existing) / 0.5)
+    return a + b + c + d
+
+
+def dup_ratio(t, existing=""):
+    sc = [d for p, d in _scan_dups(t, existing) if len(_para_key(p)) >= DUP_MIN_LEN]
+    return sum(sc) / float(len(sc)) if sc else 0.0
 
 
 def aw_run(b, cid, key):
@@ -1094,6 +1206,8 @@ def aw_run(b, cid, key):
             cand = None
             need_dlg = heat_level(parts[i]) == "peak" and is_sexual_text(parts[i].get("text"))
             need_sex = is_sexual_text(parts[i].get("text"))
+            need_calm = not need_sex
+            cur0 = read(fp)
             for attempt in range(3):
                 if attempt == 2 and cand is None:
                     break   # the third call exists only for the spoken-line rewrite
@@ -1103,6 +1217,10 @@ def aw_run(b, cid, key):
                         why.append("it had only %d%% spoken lines but this PEAK part needs at least 50%%: write at least %d quoted lines (moans, dirty talk, orders, answers) and keep every narration paragraph to ONE short sentence" % (int(quote_share(cand[1]) * 100), max(12, int(parts[i]["words"] * 45 / 1000))))
                     if need_sex and sex_density(cand[1]) < SEX_DENS_MIN:
                         why.append("it did not stay on the sex: this part must be the sexual act itself from the first sentence to the last, with the body parts named (ควย, หี, นม, หัวนม, น้ำเงี่ยน) in nearly every paragraph and no drifting into work, family, memories or chat")
+                    if need_calm and sex_density(cand[1]) > CALM_DENS_MAX:
+                        why.append("this is an ORDINARY scene (no sex yet): remove the explicit sex words and acts, keep it to talk, atmosphere, glances and light touches")
+                    if dup_ratio(cand[1], cur0) > DUP_PART_MAX:
+                        why.append("it repeated whole paragraphs and lines that were already written: every paragraph must be new, with new body movements, new words and new events")
                     m = msg + "\nREWRITE: your previous version was not acceptable: " + "; and ".join(why or ["write it more vividly"]) + ". Write the part again, keeping the same events."
                 elif attempt == 0:
                     m = msg
@@ -1128,8 +1246,9 @@ def aw_run(b, cid, key):
                 if ch0.get("finish_reason") == "length":
                     t = trim_to_paragraph(t)
                 if t and not t.lstrip().startswith("{") and "```" not in t and len(t) > 200:
-                    sc_t = part_score(t, need_dlg, need_sex)
-                    ok_t = (not need_dlg or quote_share(t) >= DLG_MIN) and (not need_sex or sex_density(t) >= SEX_DENS_MIN)
+                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0)
+                    ok_t = ((not need_dlg or quote_share(t) >= DLG_MIN) and (not need_sex or sex_density(t) >= SEX_DENS_MIN)
+                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and dup_ratio(t, cur0) <= DUP_PART_MAX)
                     if cand is not None:
                         job["retries"] = job.get("retries", 0) + 1
                         if sc_t >= cand[0]:
@@ -1149,6 +1268,7 @@ def aw_run(b, cid, key):
                 job.update({"state": "error", "error": "ส่วนที่ %d โมเดลไม่ตอบเป็นเนื้อเรื่อง" % (i + 1)})
                 return
             cur = read(fp)
+            part = drop_dup_paragraphs(fix_name_typos(part, names), cur)
             part = fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak"))
             tail = cur.rstrip()[-60:]
             if tail and part.startswith(tail[-40:]):
