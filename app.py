@@ -301,7 +301,7 @@ CUSTOM_RULES_MARK = "## Custom speech and relationship rules"
 DEFAULT_CONDUCT = (
     "\n\nDEFAULT CHARACTER CONDUCT (applies unless the story bible has a section '## Custom speech and relationship rules', which then replaces this block): "
     "(1) Speech particles match the speaker's gender: women end sentences with ค่ะ/คะ/นะคะ, men with ครับ/นะครับ, never mixed; use the gender given in the cast or bible. "
-    "(1b) Language register follows the emotional heat of the moment. CALM: men say ผม (never ฉัน), women refer to themselves by their own name and call the man sweetly by name; พี่ stays for an older sibling talking to a younger one. HEATED (middle of a sex scene, or anger): men begin slipping into กู/มึง and mild swearing. PEAK (rough sex, build-up to climax, rage): men speak fully rough: กู for themselves, มึง or อี+name for any woman (even an older relative), crude exclamations such as “สัสเอ้ย…ดูดควยเก่งชิบหาย”, “สัสเอ้ย…หีฟิตเหี้ยๆ”, “อีเหี้ย…ขมิบหีมากกว่านี้”, “อีกะหรี่…โดนควยกูซะ”, “อีเหี้ย…กลืนให้หมด ของชอบมึงไง น้ำควย”; rough lines do not end with ครับ/ค่ะ (use ว่ะ, โว้ย, เว้ย, สิ); when the heat drops they go back to ผม. Whenever a man says กู he must call the woman มึง or อี+name (never เธอ/คุณ/พี่ in the same breath), and when he is rough he never says ผม. Women keep their usual self-reference (their own name, or ฉัน/หนู as fits her) and coy, teasing address, never rough, except for a brief blurt at extreme heat such as “ยัดควยเข้ามา เย็ดกูให้หีแหก แรงกว่านี้!!”, then they return to their name. "
+    "(1b) Language register follows the emotional heat of the moment. CALM: men say ผม (never ฉัน), women refer to themselves by their own name and call the man sweetly by name; พี่ stays for an older sibling talking to a younger one. HEATED (middle of a sex scene, or anger): men begin slipping into กู/มึง and mild swearing. PEAK (rough sex, build-up to climax, rage): men speak fully rough: กู for themselves, มึง or อี+name for any woman (even an older relative), crude exclamations such as “สัสเอ้ย…ดูดควยเก่งชิบหาย”, “สัสเอ้ย…หีฟิตเหี้ยๆ”, “อีเหี้ย…ขมิบหีมากกว่านี้”, “อีกะหรี่…โดนควยกูซะ”, “อีเหี้ย…กลืนให้หมด ของชอบมึงไง น้ำควย”; rough lines do not end with ครับ/ค่ะ (use ว่ะ, โว้ย, เว้ย, สิ); when the heat drops they go back to ผม. Whenever a man says กู he must call the woman มึง or อี+name (never เธอ/คุณ/พี่ in the same breath), and when he is rough he never says ผม. Women never say ฉัน about themselves: they use their own name, ชั้น, ดิฉัน (formal) or หนู (to elders or family, or sweetly) as the context fits, with coy, teasing address, never rough, except for a brief blurt at extreme heat such as “ยัดควยเข้ามา เย็ดกูให้หีแหก แรงกว่านี้!!”, then they return to their name. "
     "(2) Family address: siblings call each other by nickname with พี่ (older) or น้อง (younger) by actual age, e.g. พี่นัฐยา, น้องพลอย; nobody calls a younger sibling พี่. Parents call their children by plain name without พี่/น้อง (e.g. “พลอย มาหาพ่อหน่อย”), and children call parents พ่อ/แม่ (or the role word in the bible). "
     "(3) Orientation: every character is heterosexual; attraction, romance and relationships always match their sex, and there are no LGBT characters in this story world. The one exception is in sex scenes: women may kiss, touch, and have sex with each other as part of the scene (for example in group scenes), while the story still treats them as straight women; men do not have sexual contact with other men. All characters are adults."
 )
@@ -443,6 +443,16 @@ def plan_scenes(summary, target):
 ANGER_WORDS = ("โกรธ", "ทะเลาะ", "ตะคอก", "โมโห", "ด่า", "เดือดดาล", "โมโหร้าย")
 
 
+def heat_level(p):
+    """'peak' (rough men) for the late beats of a sexual scene or an angry scene, else ''."""
+    txt = p.get("text") or ""
+    sexual = sum(1 for w in SEX_WORDS if w in txt) >= 2
+    if sexual:
+        n, k = p.get("beats", 1), p.get("beat", 1)
+        return "peak" if n > 1 and (k - 1.0) / (n - 1) >= 0.67 else ""
+    return "peak" if any(w in txt for w in ANGER_WORDS) else ""
+
+
 def heat_hint(p):
     """Register instruction for one part, from the scene plan and the beat's position in the scene (sex scenes heat up beat by beat)."""
     txt = p.get("text") or ""
@@ -458,9 +468,9 @@ def heat_hint(p):
         elif f < 0.67:
             lvl = "HEATED: the men start slipping into กู/มึง and mild swearing between tender moments; women stay sweet and call him by name"
         else:
-            lvl = "PEAK: the men speak fully rough (กู for self, มึง or อี+name for the woman, crude exclamations, no ครับ/ค่ะ endings); the women keep their usual sweet self-reference but at the very peak may blurt ONE extreme rough line (กู… แรงกว่านี้!!) and then return to it; a man who says กู calls her มึง or อี+name, never เธอ/คุณ"
+            lvl = "PEAK: the men speak fully rough (กู for self, มึง or อี+name for the woman, crude exclamations, no ครับ/ค่ะ endings); the women keep sweet self-reference (own name / ชั้น / ดิฉัน / หนู, never ฉัน) but at the very peak may blurt ONE extreme rough line (กู… แรงกว่านี้!!) and then return to it; a man who says กู calls her มึง or อี+name, never เธอ/คุณ"
         if n == 1:
-            lvl = "HEATED rising to PEAK over this part: start with ผม and sweet talk, then the men turn rough (กู / มึง / อี+name, crude exclamations) as it builds; the women stay in their usual sweet self-reference except one rough blurt at the very peak; whenever a man says กู he calls her มึง or อี+name, never เธอ/คุณ"
+            lvl = "HEATED rising to PEAK over this part: start with ผม and sweet talk, then the men turn rough (กู / มึง / อี+name, crude exclamations) as it builds; the women stay sweet (own name / ชั้น / ดิฉัน / หนู, never ฉัน) except one rough blurt at the very peak; whenever a man says กู he calls her มึง or อี+name, never เธอ/คุณ"
         return "REGISTER FOR THIS PART (" + lvl + ")."
     return "REGISTER FOR THIS PART (ANGER: the men's language is raw and rough, กู/มึง and swearing, women's anger sharp but still in their usual self-reference)."
 
@@ -583,7 +593,7 @@ def split_dialogue(text):
     return "\n\n".join(out)
 
 
-def fix_particles(text, info):
+def fix_particles(text, info, rough=False):
     """Make ครับ / ค่ะ agree with the gender of the speaker named in the tag after the quote."""
     lines = []
     for ln in text.split("\n"):
@@ -599,6 +609,15 @@ def fix_particles(text, info):
                 tg = tag.lstrip()
                 sp = "M" if tg.startswith("เขา") else "F" if tg.startswith("เธอ") else None
             q = m.group(0)
+            if sp == "M" and rough:   # peak of a sex scene / anger: the men are fully rough
+                q = re.sub(r"(?<!ดิ)ฉัน(?![ทใ])", "กู", q).replace("ผม", "กู")
+                q = re.sub(r"นะครับ", "นะ", q).replace("ครับ", "")
+                if "กู" in q:
+                    q = re.sub(r"เธอ|คุณ", "มึง", q)
+            if sp == "F":   # women do not say ฉัน: หนู to elders/family, ชั้น otherwise
+                if re.search(r"(?<![ก-ฮ])ฉัน(?![ทใ])", q) and "ดิฉัน" not in q:
+                    pl = "หนู" if re.search(r"พ่อ|แม่|พี่|ป้า|ลุง|น้า|(?<![ก-ฮ])อา(?![ก-ฮ])", q) else "ชั้น"
+                    q = re.sub(r"(?<![ก-ฮ])ฉัน(?![ทใ])", pl, q)
             if sp == "M":
                 q = re.sub(r"(?<!ดิ)ฉัน(?![ทใ])", "ผม" if "กู" not in q else "กู", q)   # a man says ผม, not ฉัน (กู when rough)
                 if "กู" in q:   # rough register: ผม->กู, and he addresses her มึง, not เธอ/คุณ
@@ -907,7 +926,7 @@ def aw_run(b, cid, key):
                 job.update({"state": "error", "error": "ส่วนที่ %d โมเดลไม่ตอบเป็นเนื้อเรื่อง" % (i + 1)})
                 return
             cur = read(fp)
-            part = fix_particles(split_dialogue(thin_repeats(part, cur)), char_info(b))
+            part = fix_particles(split_dialogue(thin_repeats(part, cur)), char_info(b), rough=(heat_level(parts[i]) == "peak"))
             tail = cur.rstrip()[-60:]
             if tail and part.startswith(tail[-40:]):
                 part = part[len(tail[-40:]):].lstrip()
