@@ -408,7 +408,7 @@ def name_table(b):
     return out
 
 
-SEX_SHARE = 0.68   # system default: sexual content is 60-70% of a chapter that has both sexual and ordinary scenes
+SEX_SHARE = 0.75   # sexual scenes get this share of the words so that, with the warm-up of each sex scene counted as sexual, the chapter reaches 60-70% sexual content
 
 
 def is_sexual_text(txt):
@@ -525,7 +525,7 @@ def heat_hint(p):
         n, k = p.get("beats", 1), p.get("beat", 1)
         f = (k - 1.0) / (n - 1) if n > 1 else 0.5
         if f < 0.34:
-            lvl = "WARM-UP: calm register (men say ผม, women use their own name and sweet names for him), flirting and rising tension; no rough language yet"
+            lvl = "WARM-UP: calm register (men say ผม, women use their own name and sweet names for him) but already fully sexual: kissing, undressing, stroking, sucking and licking, naming the body parts (นม, หัวนม, ควย, หี) in narration and in the whispers; no long flirting talk and no rough language yet"
         elif f < 0.67:
             lvl = "HEATED: the men start slipping into กู/มึง and mild swearing between tender moments; women stay sweet and call him by name"
         else:
