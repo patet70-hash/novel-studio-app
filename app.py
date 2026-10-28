@@ -1027,13 +1027,19 @@ class H(BaseHTTPRequestHandler):
         if cid not in ol:
             return self._send(404, {"error": "ตอนนี้ไม่อยู่ใน outline"})
         names = name_table(b)
-        ntxt = "\n".join("- %s = %s" % (nm, th or nm) for nm, th in names)
+        try:
+            cs = json.loads(read(os.path.join(bdir(b), "setup.json"), "{}") or "{}").get("chars", [])
+        except Exception:
+            cs = []
+        roles = {str(c.get("name") or ""): ((c.get("v") or {}).get("role") or {}).get("c", "") for c in cs}
+        ntxt = "\n".join("- %s (%s)%s" % (th or nm, nm, (": " + roles.get(nm, "")) if roles.get(nm) else "") for nm, th in names)
         keys = sorted(ol)
         i = keys.index(cid)
         near = "\n".join("%s | %s | %s" % (k, chl.get(k, {}).get("title", "?"), ol[k].get("summary", "")[:300]) for k in keys[max(0, i - 1):i + 2])
         task = ("TASK: rewrite the summary of chapter %s (\"%s\", target %s words) as a SCENE LIST in THAI for a scene-by-scene writer. Current summary: %s\n"
                 "FORMAT: 2-5 scenes, exactly like: ฉากที่ 1 (ประมาณ 20%%) <who is there, where, what happens in order> ฉากที่ 2 (ประมาณ 80%%) ... Percentages add up to 100. "
-                "Keep every plot point, setting and group composition of the current summary and stay consistent with the neighbouring chapters and the bible. "
+                "Keep every plot point, setting and group composition of the current summary and stay consistent with the neighbouring chapters and the bible. Use ONLY characters named or clearly implied by the current summary (match descriptions such as 'the two secretaries' or 'the driver' to the roles in the NAMES list); never add other family members. "
+                "Write everything in Thai: no English words, no English labels like (Position 1) or (Oral), and never the clinical words อวัยวะเพศ, องคชาต, ช่องคลอด (say ควย, หี, เย็ด, อม, เลีย instead). "
                 "In each sex scene name every participant, say who is a stranger or newcomer if relevant, list the acts and positions in order (oral on the man first, at least 4-5 different positions in a pair scene and 6-8 in a group scene, every participant active) and how it ends (about 60%% of sex scenes end with the man finishing in her mouth). "
                 "Sex scenes together take about 60-70%% of the chapter; a non-sex opening or closing scene takes the rest. Write names only in Thai script from the NAMES list. Maximum 1100 characters. Output ONLY the scene list, nothing else."
                 ) % (cid, chl.get(cid, {}).get("title", cid), ol[cid].get("target", 0), ol[cid].get("summary", ""))
@@ -1045,7 +1051,8 @@ class H(BaseHTTPRequestHandler):
         try:
             r = json.loads(urllib.request.urlopen(req, timeout=300).read().decode("utf-8"))
             t = clean_part(r["choices"][0]["message"].get("content") or "")
-            t = re.sub(r"\s*\n+\s*", " ", t).strip()[:1500]
+            t = re.sub(r"\s*\n+\s*", " ", t)
+            t = re.sub(r"\s*\((?:[A-Za-z][^)]{0,60})\)", "", t).strip()[:1500]
             if not re.search(r"ฉากที่\s*1", t):
                 return self._send(502, {"error": "โมเดลไม่ตอบเป็นรายการฉาก ลองอีกครั้ง"})
             return self._send(200, {"summary": t})
