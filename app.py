@@ -456,6 +456,20 @@ def heat_level(p):
 HEAT_BANK = " Spoken lines in the hot part name the body part, never a bare “มึงแน่น”: e.g. “แน่นจัง… หีมึงแน่นชิบหายเลย”, “เสียวควยชิบหาย”, “สัสเอ้ยย… เสียวควยเหี้ยๆ”, “หีตอดควยชิบหาย”, “ดูดควยเก่งชิบหาย”, with grunts (หึ, อึก, ซี๊ด) between phrases; vary them, do not copy these word for word every time."
 
 
+def dialogue_hint(p):
+    """Share of spoken lines for this part: normal 15-20%, hot/peak parts of a sex scene 35-45%."""
+    txt = p.get("text") or ""
+    n, k = p.get("beats", 1), p.get("beat", 1)
+    hot = sum(1 for w in SEX_WORDS if w in txt) >= 2 and ((n > 1 and (k - 1.0) / (n - 1) >= 0.34) or n == 1)
+    if hot:
+        share = "35-45%"
+        extra = " In this hot part the characters TALK to each other all the time (moans, dirty talk, orders, praise, teasing) instead of long narration of feelings."
+    else:
+        share = "15-20%"
+        extra = ""
+    return ("DIALOGUE SHARE: about %s of this part's text must be spoken lines (quoted), alternating with narration. Every narration paragraph is at most 3-4 sentences, then somebody speaks.%s" % (share, extra))
+
+
 def heat_hint(p):
     """Register instruction for one part, from the scene plan and the beat's position in the scene (sex scenes heat up beat by beat)."""
     txt = p.get("text") or ""
@@ -501,6 +515,7 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     hh = heat_hint(p)
     if hh:
         lines.append(hh)
+    lines.append(dialogue_hint(p))
     if avoid:
         lines.append("OVERUSED SO FAR - do not use these phrases again in this part, find fresh wording: " + ", ".join("“%s”" % a for a in avoid))
     lines.append("Begin the chapter's prose now (no title line)." if (i == 0 and first_empty) else "Continue directly after the last paragraph of the manuscript so far; do not repeat it.")
@@ -897,6 +912,13 @@ def check_text(b, text, target=0):
     left = climax_leftovers(body)
     if left:
         issues.append("พบคำว่า “เสร็จ” ในย่อหน้าฉากเซ็กซ์ %d จุดที่ระบบไม่ได้แทน (ตรวจเองว่าควรเป็น “แตก” หรือไม่)" % left)
+    qchars = sum(len(m.group(0)) for m in QUOTE_RE.finditer(body))
+    pct = 100 * qchars // max(1, len(body))
+    if len(body) > 3000 and pct < 15:
+        issues.append("บทพูดมีสัดส่วนแค่ %d%% ของเนื้อหา (เป้า ≥15%%, ช่วงเซ็กซ์ร้อนแรง 35–45%%)" % pct)
+    longn = sum(1 for ln in body.split("\n") if ln.strip() and not QUOTE_RE.match(ln.strip()) and len(ln.strip()) > 400)
+    if longn >= 5:
+        issues.append("ย่อหน้าบรรยายยาวเกิน 400 ตัวอักษร %d ย่อหน้า" % longn)
     rep = overused(body, names)
     if rep:
         issues.append("วลีซ้ำบ่อย: " + ", ".join("“%s” ×%d" % x for x in rep))
