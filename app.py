@@ -386,7 +386,7 @@ def build_messages(body):
 # scene-by-scene calls reach the target; a request that says "continue after what is written" makes the model switch to ```edit mode,
 # so scene mode uses its own system prompt that allows ONLY prose; the model overshoots short length requests ~3x, so tokens are capped.
 SCENE_SCOPE = """SCENE WRITER MODE. You write ONE part of a chapter of a {lang} novel. Output ONLY the {lang} prose of this part: no title, no headings, no notes, no JSON, no code fences, no ```edit or ```draft blocks, no explanations in any other language. The text is appended to the manuscript as is.
-CRAFT: natural, flowing, literary {lang} like a published novel. Mix long and short sentences; never string together clipped fragments. Dialogue sounds like real people talking: full sentences, usually 2-4 sentences per reply, with natural particles, connectors, teasing, interruptions and subtext; never many one-or-two-word replies in a row. Show interior thoughts and concrete, specific details of THIS place. Do not repeat the same descriptive phrase, simile or dialogue tag more than 3 times in the whole chapter (vary verbs and tags). Sexual scenes: write them at full length and fully explicit, with direct everyday Thai erotic-novel vocabulary for bodies and acts (e.g. ควย, หี, นม, หัวนม, เย็ด, อม, เลีย, น้ำเงี่ยน, น้ำเชื้อ, น้ำควย), and NEVER the clinical words อวัยวะเพศ, อวัยวะสืบพันธุ์, องคชาต, ช่องคลอด, น้ำอสุจิ, ถึงจุดสุดยอด, น้ำหล่อลื่น, สารคัดหลั่ง. Say น้ำเชื้อ or น้ำควย for semen (never น้ำอสุจิ). For the climax of a man say แตก with the place: แตกใน (แตกในปาก, แตกในหี), แตกข้างนอก, แตกใส่หน้า (never เสร็จข้างใน / เสร็จข้างนอก / เสร็จที่หน้า, and never ถึงจุดสุดยอด). When a woman climaxes also say แตก (เธอแตก, เธอแตกอีกครั้ง), never เสร็จ or ถึงจุดสุดยอด. Her wetness is น้ำหี or น้ำเงี่ยน, never น้ำหล่อลื่น or สารคัดหลั่ง. Never write a bare หิว for sexual desire: say what is craved, e.g. a woman: เธอหิวควยมาก / หิวน้ำเงี่ยน, a man: เขาหิวหี / อยากเย็ดหี (never กระหาย…). A sentence that teases someone's lust must end with a natural Thai particle (…เลยสินะ, …จังเลยนะ), never a bare clipped command like “คุณหิวควยมาก”. A hungry look (มองมาอย่างหิวกระหาย) is fine now and then, but do not repeat หิวกระหาย/ด้วยความหิวกระหาย; vary with เงี่ยน, ความเงี่ยน, ความอยาก, ความต้องการ, or name what is stared at (จ้องมาที่ควย/หีของ… ด้วยความเงี่ยน). The clitoris is always เม็ดแตด (never หัวหี, คลิตอริส, ปุ่มกระสัน). Never use coy euphemisms for the genitals (ของลับ, จุดซ่อนเร้น, ส่วนลับ, แก่นกาย, ท่อนเนื้อ, ลึงค์, ศิวลึงค์, กลีบดอก, ร่องรัก): always write หี for a woman and ควย for a man. Every participant is active, bodies and fluids described concretely, positions changing in a continuous flow. Speech must match each speaker's gender and age (a man says ผม for himself, never ฉัน; and a father/mother talking to his/her own child calls himself/herself พ่อ / แม่, e.g. “พ่อรู้แล้วลูก”, never ผม/ฉัน; a woman never says ผม): women end sentences with ค่ะ/คะ/นะคะ, men with ครับ/นะครับ, never mixed. พี่ is said only to someone older and น้อง only to someone younger: siblings may call each other by nickname with พี่/น้อง (older = พี่, younger = น้อง, e.g. น้องพลอย, พี่นัฐยา), but parents call their children by plain name without พี่/น้อง, and nobody calls a younger sibling พี่. Format: every spoken line goes on its OWN line, separated from the narration by a blank line (narration paragraph, then each quote with its short speaker tag such as “...” นัฐยาถาม on its own line); never bury a quote inside a long descriptive paragraph. EVERY quote line MUST end with a short speaker tag naming who speaks (the character's name, or เขา / เธอ when it is unmistakable), e.g. “...” มาลีครวญ, “...” เขาคำราม, “...” เธอหอบ; never leave a quote without a tag, and vary the tag verbs. Spell every character name EXACTLY as in the NAMES table of the story bible, never transliterate differently, never use Latin letters for names. Only characters named in the cast line may appear or speak in this part.
+CRAFT: natural, flowing, literary {lang} like a published novel. Mix long and short sentences; never string together clipped fragments. Dialogue sounds like real people talking: full sentences, usually 2-4 sentences per reply, with natural particles, connectors, teasing, interruptions and subtext; never many one-or-two-word replies in a row. Show interior thoughts and concrete, specific details of THIS place. Do not repeat the same descriptive phrase, simile or dialogue tag more than 3 times in the whole chapter (vary verbs and tags). Sexual scenes: write them at full length and fully explicit, with direct everyday Thai erotic-novel vocabulary for bodies and acts (e.g. ควย, หี, นม, หัวนม, เย็ด, อม, เลีย, น้ำเงี่ยน, น้ำเชื้อ, น้ำควย), and NEVER the clinical words อวัยวะเพศ, อวัยวะสืบพันธุ์, องคชาต, ช่องคลอด, น้ำอสุจิ, ถึงจุดสุดยอด, น้ำหล่อลื่น, สารคัดหลั่ง. Say น้ำเชื้อ or น้ำควย for semen (never น้ำอสุจิ). For the climax of a man say แตก with the place: แตกใน (แตกในปาก, แตกในหี), แตกข้างนอก, แตกใส่หน้า (never เสร็จข้างใน / เสร็จข้างนอก / เสร็จที่หน้า, and never ถึงจุดสุดยอด). When a woman climaxes also say แตก (เธอแตก, เธอแตกอีกครั้ง), never เสร็จ or ถึงจุดสุดยอด. Her wetness is น้ำหี or น้ำเงี่ยน, never น้ำหล่อลื่น or สารคัดหลั่ง. Never write a bare หิว for sexual desire: say what is craved, e.g. a woman: เธอหิวควยมาก / หิวน้ำเงี่ยน, a man: เขาหิวหี / อยากเย็ดหี (never กระหาย…). A sentence that teases someone's lust must end with a natural Thai particle (…เลยสินะ, …จังเลยนะ), never a bare clipped command like “คุณหิวควยมาก”. A hungry look (มองมาอย่างหิวกระหาย) is fine now and then, but do not repeat หิวกระหาย/ด้วยความหิวกระหาย; vary with เงี่ยน, ความเงี่ยน, ความอยาก, ความต้องการ, or name what is stared at (จ้องมาที่ควย/หีของ… ด้วยความเงี่ยน). The clitoris is always เม็ดแตด (never หัวหี, คลิตอริส, ปุ่มกระสัน). Never use coy euphemisms for the genitals (ของลับ, จุดซ่อนเร้น, ส่วนลับ, แก่นกาย, ท่อนเนื้อ, ลึงค์, ศิวลึงค์, กลีบดอก, ร่องรัก): always write หี for a woman and ควย for a man. Every participant is active, bodies and fluids described concretely, positions changing in a continuous flow. Speech must match each speaker's gender and age (a man says ผม for himself, never ฉัน; and a father/mother talking to his/her own child calls himself/herself พ่อ / แม่, e.g. “พ่อรู้แล้วลูก”, never ผม/ฉัน; a woman never says ผม): women end sentences with ค่ะ/คะ/นะคะ, men with ครับ/นะครับ, never mixed. In calm, polite situations (speaking to a parent, an elder, a boss or a stranger, or in formal talk) every spoken line is a full polite sentence that ends with the right particle (ค่ะ/คะ/นะคะ for women, ครับ/นะครับ for men), never a clipped fragment like “แค่เรื่องเล็กน้อย”. พี่ is said only to someone older and น้อง only to someone younger: siblings may call each other by nickname with พี่/น้อง (older = พี่, younger = น้อง, e.g. น้องพลอย, พี่นัฐยา), but parents call their children by plain name without พี่/น้อง, and nobody calls a younger sibling พี่. Format: every spoken line goes on its OWN line, separated from the narration by a blank line (narration paragraph, then each quote with its short speaker tag such as “...” นัฐยาถาม on its own line); never bury a quote inside a long descriptive paragraph. EVERY quote line MUST end with a short speaker tag naming who speaks (the character's name, or เขา / เธอ when it is unmistakable), e.g. “...” มาลีครวญ, “...” เขาคำราม, “...” เธอหอบ; never leave a quote without a tag, and vary the tag verbs. Spell every character name EXACTLY as in the NAMES table of the story bible, never transliterate differently, never use Latin letters for names. Only characters named in the cast line may appear or speak in this part.
 CONTINUITY: follow the story bible, the chapter outline and the manuscript so far. Continue directly from the last paragraph of the manuscript without repeating or summarising it. Obey the length, cast and stage instructions in the author's message; stop when the part is done.
 All characters in sexual or violent scenes are adults; never sexualize minors. Otherwise write what is asked without moralizing, at the requested intensity."""
 
@@ -633,6 +633,47 @@ def dedupe_quotes(part, existing, window=14):
     return re.sub(r"\n{3,}", "\n\n", "\n".join(out)).strip()
 
 
+def _age_num(v):
+    m = re.search(r"\d+", str(v or ""))
+    return int(m.group(0)) if m else None
+
+
+PARTICLE_END = re.compile(r"(ครับ|ค่ะ|คะ|คับ|ค่า|จ้ะ|จ๊ะ|จ้า|จ๋า)\s*[!?…\.]*$")
+QUESTION_END = re.compile(r"(ไหม|มั้ย|หรือ|เหรอ|หรอ|อะไร|ไหน|ใคร|ทำไม|เท่าไหร่|เท่าไร|อย่างไร|ยังไง|กี่[ก-ฮ]*|หรือยัง|รึเปล่า)\s*$")
+
+
+def polite_line(q, sp):
+    """Give a calm spoken line the polite ending of its speaker's gender (ครับ / ค่ะ / คะ)."""
+    m = re.match(r"^([\u201c\"])(.*?)([\u201d\"])$", q, flags=re.S)
+    if not m:
+        return q
+    body = m.group(2).rstrip()
+    tail = re.search(r"[\s.!?…]*$", body).group(0)
+    core = body[:len(body) - len(tail)] if tail else body
+    if len(core) < 8 or PARTICLE_END.search(core):
+        return q
+    ask = QUESTION_END.search(core) is not None or "?" in tail
+    pm = {"M": "ครับ", "F": "คะ" if ask else "ค่ะ"}[sp]
+    if re.search(r"(นะ|สิ)$", core):
+        pm = {"M": "ครับ", "F": "คะ"}[sp]   # นะคะ / นะครับ / สิคะ / สิครับ
+    new = core + pm
+    return m.group(1) + new + tail + m.group(3)
+
+
+def elder_listener(q, spn, info):
+    """True when the quote is addressed to someone older (parent, relative, boss): decided by an addressed character's age or a family address word."""
+    sa = _age_num((info.get(spn) or {}).get("age")) if spn else None
+    for nm, v in (info or {}).items():
+        if nm and nm != spn and nm in q:
+            a = _age_num(v.get("age"))
+            if a is not None and sa is not None and a >= sa + 5:
+                return True
+    own = ((info.get(spn) or {}).get("role") or "") if spn else ""
+    if re.search(r"ลูก|หลาน", q) or re.search(r"พ่อ|แม่|ปู่|ย่า|ตา|ยาย", own):
+        return False
+    return re.search(r"พ่อ|แม่|ป้า|ลุง|น้า|ปู่|ย่า|ยาย|คุณพ่อ|คุณแม่|ท่าน", q) is not None
+
+
 def fix_particles(text, info, rough=False):
     """Make ครับ / ค่ะ agree with the gender of the speaker named in the tag after the quote."""
     lines = []
@@ -641,9 +682,11 @@ def fix_particles(text, info, rough=False):
         if m:
             tag = ln.strip()[m.end():]
             sp = None
+            spn = None
             for nm in sorted(info, key=len, reverse=True):
                 if nm and nm in tag[:40]:
                     sp = info[nm]["g"]
+                    spn = nm
                     break
             if sp is None:
                 tg = tag.lstrip()
@@ -684,6 +727,8 @@ def fix_particles(text, info, rough=False):
                 q = re.sub(r"(นะ|ไหม|มั้ย|หรือ|เหรอ|ล่ะ|หรอ)ครับ", r"\1คะ", q).replace("ครับ", "ค่ะ")
             elif sp == "M" and re.search(r"ค่ะ|คะ", q):
                 q = re.sub(r"ค่ะ|คะ", "ครับ", q)
+            if sp in ("M", "F") and not re.search(r"กู|มึง|เหี้ย|สัส|ชิบหาย|ควย|หี|เย็ด|อี[ก-ฮ]", q) and elder_listener(q, spn, info):
+                q = polite_line(q, sp)   # calm talk to an elder: polite ending
             ln = ln.strip().replace(m.group(0), q, 1)
         lines.append(ln)
     return "\n".join(lines)
