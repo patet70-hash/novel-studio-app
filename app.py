@@ -459,6 +459,43 @@ def plain_words(t):
     return t
 
 
+SEX_WORDS = ("ควย", "หี", "อม", "เย็ด", "นม", "หัวนม", "น้ำเงี่ยน", "น้ำเชื้อ", "น้ำควย", "น้ำหี", "ครวญคราง", "ครางลั่น", "กระแทก", "เลีย", "ดูด", "ถอดเสื้อ", "เปลือย", "ขย่ม", "สอดใส่")
+NOT_CLIMAX_BEFORE = ("ทำ", "กิน", "ตัดต่อ", "อ่าน", "เขียน", "ถ่าย", "แต่งตัว", "อาบน้ำ", "ล้าง", "เก็บ", "จัด", "ส่ง", "งาน", "ประชุม", "ข้าว", "มื้อ", "วิดีโอ", "คอนเทนต์", "เรียน", "สอน", "ซ่อม", "ปรุง", "ทำอาหาร", "ซื้อ", "เตรียม", "เช็ค", "ตรวจ")
+NOT_CLIMAX_AFTER = ("สิ้น", "งาน", "กิจ", "เรียบร้อย", "เมื่อ", "ภารกิจ", "ธุระ", "แล้วค่อย", "แล้วเรา", "ไปแล้ว")
+CLIMAX_PLACE = ("ใน", "ข้างใน", "ข้างนอก", "ที่หน้า", "บนหน้า", "ลงใน", "ภายใน", "บนหลัง", "บนนม", "ที่นม")
+
+
+def erotic_words(t, keep=()):
+    """Deterministic vocabulary fix for generated prose: clinical terms, stray Latin words and climax 'เสร็จ' -> 'แตก' (only in sexual context)."""
+    t = plain_words(t)
+    t = re.sub(r"\b[A-Za-z]+(?:-[A-Za-z]+)*\b", lambda m: m.group(0) if (len(m.group(0)) < 3 or m.group(0).lower() in [k.lower() for k in keep]) else "", t)
+    t = re.sub(r"[ \t]{2,}", " ", t)
+    out = []
+    for para in t.split("\n"):
+        sexual = sum(1 for w in SEX_WORDS if w in para) >= 2
+        def fix(m):
+            pre = para[max(0, m.start() - 8):m.start()]
+            post = para[m.end():m.end() + 8]
+            if any(post.startswith(a) for a in NOT_CLIMAX_AFTER):
+                return m.group(0)
+            if any(pre.endswith(b) for b in NOT_CLIMAX_BEFORE):
+                return m.group(0)
+            if any(post.startswith(p) for p in CLIMAX_PLACE) or sexual:
+                return "แตก"
+            return m.group(0)
+        out.append(re.sub(r"เสร็จ", fix, para))
+    return "\n".join(out)
+
+
+def climax_leftovers(t):
+    """Paragraphs with sexual words that still contain 'เสร็จ' (ambiguous, for the quality report)."""
+    n = 0
+    for para in t.split("\n"):
+        if "เสร็จ" in para and sum(1 for w in SEX_WORDS if w in para) >= 2:
+            n += para.count("เสร็จ")
+    return n
+
+
 def clean_part(t):
     t = re.sub(r"[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]+", "", t.strip())   # stray Chinese characters the model sometimes emits inside Thai text
     m = re.search(r"```(?:draft|text|markdown)?\s*\n([\s\S]*?)(```|$)", t)
@@ -520,6 +557,9 @@ def check_text(b, text, target=0):
     med = [(t, body.count(t)) for t in MEDICAL_TERMS if body.count(t) >= 3]
     if med:
         issues.append("ศัพท์แบบแพทย์ซ้ำ: " + ", ".join("%s ×%d" % x for x in med))
+    left = climax_leftovers(body)
+    if left:
+        issues.append("พบคำว่า “เสร็จ” ในย่อหน้าฉากเซ็กซ์ %d จุดที่ระบบไม่ได้แทน (ตรวจเองว่าควรเป็น “แตก” หรือไม่)" % left)
     rep = overused(body, names)
     if rep:
         issues.append("วลีซ้ำบ่อย: " + ", ".join("“%s” ×%d" % x for x in rep))
@@ -564,7 +604,7 @@ def aw_run(b, cid, key):
                         tpw = max(0.6, min(3.5, ct / float(wd)))
                 except Exception:
                     pass
-                t = clean_part(ch0["message"].get("content") or "")
+                t = erotic_words(clean_part(ch0["message"].get("content") or ""), keep=[x for nm, th in name_table(b) for x in (nm, th) if x and re.search(r"[A-Za-z]", x)])
                 if ch0.get("finish_reason") == "length":
                     t = trim_to_paragraph(t)
                 if t and not t.lstrip().startswith("{") and "```" not in t and len(t) > 200:
