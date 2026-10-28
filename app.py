@@ -644,8 +644,8 @@ def fix_hungry(t, info=None):
     """In sex scenes a bare 'หิว' said of a person means lust: woman -> หิวควย, man -> หิวหี (only right after เธอ/เขา/a known name, only in sexual paragraphs)."""
     fem = ["เธอ"] + [n for n, v in (info or {}).items() if v.get("g") == "F" and n]
     mal = ["เขา"] + [n for n, v in (info or {}).items() if v.get("g") == "M" and n]
-    def fix_para(p):
-        if sum(1 for w in SEX_WORDS if w in p) < 2 or "หิว" not in p:
+    def fix_para(p, ctx):
+        if "หิว" not in p or sum(1 for w in SEX_WORDS if w in ctx) < 2:
             return p
         out, pos = [], 0
         for m in re.finditer("หิว", p):
@@ -664,7 +664,9 @@ def fix_hungry(t, info=None):
             pos = m.end()
         out.append(p[pos:])
         return "".join(out)
-    return "\n".join(fix_para(p) for p in t.split("\n"))
+    ps = t.split("\n")
+    # dialogue lines sit in their own paragraphs, so judge "sexual scene" by the paragraph plus its neighbours
+    return "\n".join(fix_para(p, "\n".join(ps[max(0, i - 3):i + 4])) for i, p in enumerate(ps))
 
 
 def erotic_words(t, keep=(), info=None):
