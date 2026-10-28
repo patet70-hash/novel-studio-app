@@ -224,7 +224,7 @@ def apply_outline(b, items):
     for i, it in enumerate(items[:200]):
         cid = "ch%02d" % (i + 1)
         title = str(it.get("title") or "Chapter %d" % (i + 1)).strip()[:120]
-        summ = str(it.get("summary") or "").strip()[:1500]
+        summ = str(it.get("summary") or "").strip()[:3000]
         try:
             tgt = max(0, min(50000, int(float(it.get("words") or it.get("target") or 0))))
         except Exception:
@@ -813,7 +813,7 @@ class H(BaseHTTPRequestHandler):
                     if cur.get("locked") and "locked" not in d:
                         return self._send(423, {"error": "ตอนนี้ล็อกอยู่"})
                     if "summary" in d:
-                        cur["summary"] = str(d["summary"])[:1500]
+                        cur["summary"] = str(d["summary"])[:3000]
                     if "target" in d:
                         try:
                             cur["target"] = max(0, min(50000, int(float(d["target"] or 0))))
@@ -844,7 +844,7 @@ class H(BaseHTTPRequestHandler):
                         if os.path.exists(fp):
                             os.remove(fp)
                     else:
-                        clean = [{"title": str(x.get("title", ""))[:120], "summary": str(x.get("summary", ""))[:1500], "words": int(float(x.get("words") or 0)) if str(x.get("words") or "0").replace(".", "", 1).isdigit() else 0} for x in items if isinstance(x, dict)][:200]
+                        clean = [{"title": str(x.get("title", ""))[:120], "summary": str(x.get("summary", ""))[:3000], "words": int(float(x.get("words") or 0)) if str(x.get("words") or "0").replace(".", "", 1).isdigit() else 0} for x in items if isinstance(x, dict)][:200]
                         write(fp, json.dumps({"items": clean}, ensure_ascii=False))
                     return self._send(200, {"ok": True})
                 if p[3] == "chat" and len(p) == 5 and SLUG.match(p[4]):
@@ -1045,14 +1045,14 @@ class H(BaseHTTPRequestHandler):
                 ) % (cid, chl.get(cid, {}).get("title", cid), ol[cid].get("target", 0), ol[cid].get("summary", ""))
         prompt = "STORY BIBLE (excerpt):\n" + read(os.path.join(bdir(b), "bible.md"))[:7000] + "\n\nNAMES (use Thai spelling only):\n" + ntxt + "\n\nNEIGHBOURING CHAPTERS (id | title | summary):\n" + near + "\n\n" + task
         payload = {"messages": [{"role": "system", "content": "You are a story editor for adult fiction. All characters are adults. Write what is asked without moralizing."}, {"role": "user", "content": prompt}],
-                   "stream": False, "max_tokens": 1400, "temperature": 0.7, "chat_template_kwargs": {"enable_thinking": False}}
+                   "stream": False, "max_tokens": 2400, "temperature": 0.7, "chat_template_kwargs": {"enable_thinking": False}}
         payload.update(ANTI_REPEAT)
         req = urllib.request.Request(LLM + "/v1/chat/completions", json.dumps(payload).encode(), {"Content-Type": "application/json"})
         try:
             r = json.loads(urllib.request.urlopen(req, timeout=300).read().decode("utf-8"))
             t = clean_part(r["choices"][0]["message"].get("content") or "")
             t = re.sub(r"\s*\n+\s*", " ", t)
-            t = re.sub(r"\s*\((?:[A-Za-z][^)]{0,60})\)", "", t).strip()[:1500]
+            t = re.sub(r"\s*\((?:[A-Za-z][^)]{0,60})\)", "", t).strip()[:3000]
             if not re.search(r"ฉากที่\s*1", t):
                 return self._send(502, {"error": "โมเดลไม่ตอบเป็นรายการฉาก ลองอีกครั้ง"})
             return self._send(200, {"summary": t})
