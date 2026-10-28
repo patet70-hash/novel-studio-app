@@ -1041,6 +1041,16 @@ def thin_repeats(part, existing):
     return part
 
 
+DLG_MIN = 0.40   # a PEAK part with less spoken text than this is written once more
+
+
+def quote_share(t):
+    t = t or ""
+    if not t.strip():
+        return 0.0
+    return sum(len(x) for x in re.findall(r"[\u201c\"][^\u201d\"]*[\u201d\"]", t)) / float(len(t))
+
+
 def aw_run(b, cid, key):
     job = AW_JOBS[key]
     try:
@@ -1061,8 +1071,17 @@ def aw_run(b, cid, key):
             avoid = [g for g, _ in overused(re.sub(r"^\s*#\s+.*\n?", "", read(fp), count=1), names, 6, 5)] if i else []
             msg = part_message(b, parts, i, first_empty, names, avoid)
             part = ""
-            for attempt in range(2):
-                m = msg if attempt == 0 else msg + "\nREMINDER: reply with the story prose ONLY. No code fences, no JSON, no edits."
+            cand = None
+            need_dlg = heat_level(parts[i]) == "peak" and is_sexual_text(parts[i].get("text"))
+            for attempt in range(3):
+                if attempt == 2 and cand is None:
+                    break   # the third call exists only for the spoken-line rewrite
+                if cand is not None:
+                    m = msg + "\nREWRITE: your previous version of this part had only %d%% spoken lines, but this PEAK part needs at least 50%%. Write the part again with far more dialogue: at least %d quoted lines (moans, dirty talk, orders, answers), and every narration paragraph ONE short sentence at most. Keep the same events." % (int(cand[0] * 100), max(12, int(parts[i]["words"] * 45 / 1000)))
+                elif attempt == 0:
+                    m = msg
+                else:
+                    m = msg + "\nREMINDER: reply with the story prose ONLY. No code fences, no JSON, no edits."
                 body = {"book": b, "scope": cid, "mode": "scene", "messages": [{"role": "user", "content": m}]}
                 msgs = build_messages(body)
                 st = settings()
@@ -1083,8 +1102,18 @@ def aw_run(b, cid, key):
                 if ch0.get("finish_reason") == "length":
                     t = trim_to_paragraph(t)
                 if t and not t.lstrip().startswith("{") and "```" not in t and len(t) > 200:
+                    sh = quote_share(t)
+                    if cand is not None:
+                        part = t if sh >= cand[0] else cand[1]
+                        job["retries"] = job.get("retries", 0) + 1
+                        break
+                    if need_dlg and sh < DLG_MIN:
+                        cand = (sh, t)
+                        continue
                     part = t
                     break
+            if not part and cand is not None:
+                part = cand[1]
             if not part:
                 job.update({"state": "error", "error": "ส่วนที่ %d โมเดลไม่ตอบเป็นเนื้อเรื่อง" % (i + 1)})
                 return
