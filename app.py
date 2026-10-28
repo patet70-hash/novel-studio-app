@@ -508,6 +508,8 @@ def dialogue_hint(p):
         extra = " This part is heated: the characters talk to each other often (moans, dirty talk, praise, teasing) instead of long narration of feelings."
     elif sexual and n == 1:
         share, rate = "30-50%, rising toward the end", 18
+    elif sexual:
+        share, rate = "30-40%", 18   # the explicit warm-up beat of a sex scene is not allowed to turn into long narration
     else:
         share, rate = "15-20%", 10
     lines = max(6, int(words * rate / 1000))
@@ -1041,7 +1043,7 @@ def thin_repeats(part, existing):
     return part
 
 
-DLG_MIN = 0.40   # a PEAK part with less spoken text than this is written once more
+DLG_MIN = 0.50   # a PEAK part with less spoken text than this is written again (at most twice), the version with the most dialogue is kept
 
 
 def quote_share(t):
@@ -1104,9 +1106,13 @@ def aw_run(b, cid, key):
                 if t and not t.lstrip().startswith("{") and "```" not in t and len(t) > 200:
                     sh = quote_share(t)
                     if cand is not None:
-                        part = t if sh >= cand[0] else cand[1]
                         job["retries"] = job.get("retries", 0) + 1
-                        break
+                        if sh >= cand[0]:
+                            cand = (sh, t)
+                        if cand[0] >= DLG_MIN or attempt >= 2:
+                            part = cand[1]
+                            break
+                        continue
                     if need_dlg and sh < DLG_MIN:
                         cand = (sh, t)
                         continue
