@@ -457,16 +457,22 @@ HEAT_BANK = " Spoken lines in the hot part name the body part, never a bare “�
 
 
 def dialogue_hint(p):
-    """Share of spoken lines for this part: normal 15-20%, hot/peak parts of a sex scene 35-45%."""
+    """Share of spoken lines for this part: normal 15-20%, heated 30-40%, peak of a sex scene 50-60%."""
     txt = p.get("text") or ""
     n, k = p.get("beats", 1), p.get("beat", 1)
-    hot = sum(1 for w in SEX_WORDS if w in txt) >= 2 and ((n > 1 and (k - 1.0) / (n - 1) >= 0.34) or n == 1)
-    if hot:
-        share = "35-45%"
-        extra = " In this hot part the characters TALK to each other all the time (moans, dirty talk, orders, praise, teasing) instead of long narration of feelings."
+    sexual = sum(1 for w in SEX_WORDS if w in txt) >= 2
+    f = (k - 1.0) / (n - 1) if n > 1 else 0.5
+    extra = ""
+    if sexual and f >= 0.67:
+        share = "50-60%"
+        extra = " This is the PEAK: more than half of the text is dialogue. The characters keep TALKING and answering each other line after line (moans, dirty talk, orders, praise, begging, teasing), with only one or two short sentences of narration between lines."
+    elif sexual and f >= 0.34:
+        share = "30-40%"
+        extra = " This part is heated: the characters talk to each other often (moans, dirty talk, praise, teasing) instead of long narration of feelings."
+    elif sexual and n == 1:
+        share = "30-50%, rising toward the end"
     else:
         share = "15-20%"
-        extra = ""
     return ("DIALOGUE SHARE: about %s of this part's text must be spoken lines (quoted), alternating with narration. Every narration paragraph is at most 3-4 sentences, then somebody speaks.%s" % (share, extra))
 
 
@@ -915,7 +921,7 @@ def check_text(b, text, target=0):
     qchars = sum(len(m.group(0)) for m in QUOTE_RE.finditer(body))
     pct = 100 * qchars // max(1, len(body))
     if len(body) > 3000 and pct < 15:
-        issues.append("บทพูดมีสัดส่วนแค่ %d%% ของเนื้อหา (เป้า ≥15%%, ช่วงเซ็กซ์ร้อนแรง 35–45%%)" % pct)
+        issues.append("บทพูดมีสัดส่วนแค่ %d%% ของเนื้อหา (เป้า ≥15%%, ช่วงพีค 50–60%%)" % pct)
     longn = sum(1 for ln in body.split("\n") if ln.strip() and not QUOTE_RE.match(ln.strip()) and len(ln.strip()) > 400)
     if longn >= 5:
         issues.append("ย่อหน้าบรรยายยาวเกิน 400 ตัวอักษร %d ย่อหน้า" % longn)
