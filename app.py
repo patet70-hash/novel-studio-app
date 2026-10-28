@@ -366,11 +366,11 @@ def build_messages(body):
 # scene-by-scene calls reach the target; a request that says "continue after what is written" makes the model switch to ```edit mode,
 # so scene mode uses its own system prompt that allows ONLY prose; the model overshoots short length requests ~3x, so tokens are capped.
 SCENE_SCOPE = """SCENE WRITER MODE. You write ONE part of a chapter of a {lang} novel. Output ONLY the {lang} prose of this part: no title, no headings, no notes, no JSON, no code fences, no ```edit or ```draft blocks, no explanations in any other language. The text is appended to the manuscript as is.
-CRAFT: natural, flowing, literary {lang} like a published novel. Mix long and short sentences; never string together clipped fragments. Dialogue sounds like real people talking: full sentences, usually 2-4 sentences per reply, with natural particles, connectors, teasing, interruptions and subtext; never many one-or-two-word replies in a row. Show interior thoughts and concrete, specific details of THIS place. Do not repeat the same descriptive phrase, simile or dialogue tag more than 3 times in the whole chapter (vary verbs and tags). Sexual scenes: write them at full length and fully explicit, with direct everyday Thai erotic-novel vocabulary for bodies and acts (e.g. ควย, หี, นม, หัวนม, เย็ด, อม, เลีย, น้ำเงี่ยน, น้ำแตก), and NEVER the clinical words อวัยวะเพศ, อวัยวะสืบพันธุ์, องคชาต, ช่องคลอด, every participant active, bodies and fluids described concretely, positions changing in a continuous flow. Spell every character name EXACTLY as in the NAMES table of the story bible, never transliterate differently, never use Latin letters for names. Only characters named in the cast line may appear or speak in this part.
+CRAFT: natural, flowing, literary {lang} like a published novel. Mix long and short sentences; never string together clipped fragments. Dialogue sounds like real people talking: full sentences, usually 2-4 sentences per reply, with natural particles, connectors, teasing, interruptions and subtext; never many one-or-two-word replies in a row. Show interior thoughts and concrete, specific details of THIS place. Do not repeat the same descriptive phrase, simile or dialogue tag more than 3 times in the whole chapter (vary verbs and tags). Sexual scenes: write them at full length and fully explicit, with direct everyday Thai erotic-novel vocabulary for bodies and acts (e.g. ควย, หี, นม, หัวนม, เย็ด, อม, เลีย, น้ำเงี่ยน, น้ำแตก), and NEVER the clinical words อวัยวะเพศ, อวัยวะสืบพันธุ์, องคชาต, ช่องคลอด, น้ำอสุจิ, ถึงจุดสุดยอด (say หี, ควย, น้ำเงี่ยน, น้ำแตก, เสร็จ instead), every participant active, bodies and fluids described concretely, positions changing in a continuous flow. Spell every character name EXACTLY as in the NAMES table of the story bible, never transliterate differently, never use Latin letters for names. Only characters named in the cast line may appear or speak in this part.
 CONTINUITY: follow the story bible, the chapter outline and the manuscript so far. Continue directly from the last paragraph of the manuscript without repeating or summarising it. Obey the length, cast and stage instructions in the author's message; stop when the part is done.
 All characters in sexual or violent scenes are adults; never sexualize minors. Otherwise write what is asked without moralizing, at the requested intensity."""
 
-MEDICAL_TERMS = ["อวัยวะเพศ", "อวัยวะสืบพันธุ์", "องคชาต", "ช่องคลอด", "น้ำอสุจิ"]
+MEDICAL_TERMS = ["อวัยวะเพศ", "อวัยวะสืบพันธุ์", "องคชาต", "ช่องคลอด", "น้ำอสุจิ", "จุดสุดยอด"]
 AW_JOBS = {}
 
 
@@ -467,12 +467,12 @@ def trim_to_paragraph(t):
 FILLERS = ["เบาๆ", "ราวกับ", "พึมพำ", "เงียบงัน", "ระยิบระยับ", "อย่างช้าๆ", "สั่นเล็กน้อย", "แผ่วเบา"]
 
 
-def overused(body, names, top=5):
+def overused(body, names, top=5, fill_min=10):
     """phrases repeated too often in a manuscript: known filler words (>=10) and 9-char Thai n-grams (>=8)."""
     skip = set()
     for nm, th in names:
         skip.update([nm, th])
-    out = [(f, body.count(f)) for f in FILLERS if body.count(f) >= 10]
+    out = [(f, body.count(f)) for f in FILLERS if body.count(f) >= fill_min]
     cnt = {}
     for para in re.split(r"\n+", body):
         for run in re.findall(r"[\u0E00-\u0E7F]{9,}", para):
@@ -524,6 +524,7 @@ def aw_run(b, cid, key):
         first_empty = body_words(text0) < 60
         parts = plan_scenes(o.get("summary", ""), o.get("target", 0))
         names = name_table(b)
+        tpw = 1.3   # tokens per Thai "word" (body_words unit); recalibrated from the model's own usage numbers after each part
         job.update({"n": len(parts), "i": 0, "state": "running"})
         snapshot_chapter(b, cid)
         for i in range(len(parts)):
@@ -531,7 +532,7 @@ def aw_run(b, cid, key):
                 job["state"] = "cancelled"
                 break
             job["i"] = i + 1
-            avoid = [g for g, _ in overused(re.sub(r"^\s*#\s+.*\n?", "", read(fp), count=1), names, 6)] if i else []
+            avoid = [g for g, _ in overused(re.sub(r"^\s*#\s+.*\n?", "", read(fp), count=1), names, 6, 5)] if i else []
             msg = part_message(b, parts, i, first_empty, names, avoid)
             part = ""
             for attempt in range(2):
@@ -539,12 +540,19 @@ def aw_run(b, cid, key):
                 body = {"book": b, "scope": cid, "mode": "scene", "messages": [{"role": "user", "content": m}]}
                 msgs = build_messages(body)
                 st = settings()
-                payload = {"messages": msgs, "stream": False, "max_tokens": int(parts[i]["words"] * 1.9) + 120,
+                payload = {"messages": msgs, "stream": False, "max_tokens": int(parts[i]["words"] * tpw * 1.15) + 100,
                            "temperature": st["temperature"], "chat_template_kwargs": {"enable_thinking": False}}
                 payload.update(ANTI_REPEAT)
                 req = urllib.request.Request(LLM + "/v1/chat/completions", json.dumps(payload).encode(), {"Content-Type": "application/json"})
                 r = json.loads(urllib.request.urlopen(req, timeout=900).read().decode("utf-8"))
                 ch0 = r["choices"][0]
+                try:
+                    ct = int(r["usage"]["completion_tokens"])
+                    wd = max(1, body_words("# x\n" + (ch0["message"].get("content") or "")))
+                    if ct > 200 and wd > 100:
+                        tpw = max(0.6, min(3.5, ct / float(wd)))
+                except Exception:
+                    pass
                 t = clean_part(ch0["message"].get("content") or "")
                 if ch0.get("finish_reason") == "length":
                     t = trim_to_paragraph(t)
