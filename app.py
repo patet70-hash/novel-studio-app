@@ -457,23 +457,25 @@ HEAT_BANK = " Spoken lines in the hot part name the body part, never a bare “�
 
 
 def dialogue_hint(p):
-    """Share of spoken lines for this part: normal 15-20%, heated 30-40%, peak of a sex scene 50-60%."""
+    """Share of spoken lines for this part: normal 15-20%, heated 30-40%, peak of a sex scene 50-60%, with a spoken-line count the model can follow."""
     txt = p.get("text") or ""
     n, k = p.get("beats", 1), p.get("beat", 1)
+    words = int(p.get("words") or 1000)
     sexual = sum(1 for w in SEX_WORDS if w in txt) >= 2
     f = (k - 1.0) / (n - 1) if n > 1 else 0.5
     extra = ""
     if sexual and f >= 0.67:
-        share = "50-60%"
-        extra = " This is the PEAK: more than half of the text is dialogue. The characters keep TALKING and answering each other line after line (moans, dirty talk, orders, praise, begging, teasing), with only one or two short sentences of narration between lines."
+        share, rate = "50-60%", 30
+        extra = " This is the PEAK: more than half of the text is dialogue. Write it as an exchange: two or three spoken lines in a row, then at most ONE short narration sentence, then more spoken lines. Most spoken lines are 1-3 sentences (moans, dirty talk naming the body parts, orders, praise, begging, teasing, answering back), not single words."
     elif sexual and f >= 0.34:
-        share = "30-40%"
+        share, rate = "30-40%", 18
         extra = " This part is heated: the characters talk to each other often (moans, dirty talk, praise, teasing) instead of long narration of feelings."
     elif sexual and n == 1:
-        share = "30-50%, rising toward the end"
+        share, rate = "30-50%, rising toward the end", 18
     else:
-        share = "15-20%"
-    return ("DIALOGUE SHARE: about %s of this part's text must be spoken lines (quoted), alternating with narration. Every narration paragraph is at most 3-4 sentences, then somebody speaks.%s" % (share, extra))
+        share, rate = "15-20%", 10
+    lines = max(6, int(words * rate / 1000))
+    return ("DIALOGUE SHARE: about %s of this part's text must be spoken lines (quoted): at least %d spoken lines, alternating with narration. Every narration paragraph is at most 3-4 sentences, then somebody speaks. Polite situations (talking to an elder, a boss, a stranger) use full polite sentences ending with ครับ/ค่ะ/คะ.%s" % (share, lines, extra))
 
 
 def heat_hint(p):
