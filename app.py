@@ -448,6 +448,17 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     return "\n".join(lines)
 
 
+PLAIN_WORDS = [("อวัยวะเพศ", "ของลับ"), ("อวัยวะสืบพันธุ์", "ของลับ"), ("องคชาต", "ควย"), ("ช่องคลอด", "หี"), ("น้ำอสุจิ", "น้ำแตก"), ("ถึงจุดสุดยอด", "เสร็จ")]
+
+
+def plain_words(t):
+    for a, b in PLAIN_WORDS:
+        t = t.replace(a, b)
+    t = re.sub(r"\b[Mm]issionary\b", "ท่ามิชชันนารี", t)
+    t = re.sub(r"\b[Oo]ral\b", "อม", t)
+    return t
+
+
 def clean_part(t):
     t = re.sub(r"[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]+", "", t.strip())   # stray Chinese characters the model sometimes emits inside Thai text
     m = re.search(r"```(?:draft|text|markdown)?\s*\n([\s\S]*?)(```|$)", t)
@@ -1052,6 +1063,7 @@ class H(BaseHTTPRequestHandler):
             r = json.loads(urllib.request.urlopen(req, timeout=300).read().decode("utf-8"))
             t = clean_part(r["choices"][0]["message"].get("content") or "")
             t = re.sub(r"\s*\n+\s*", " ", t)
+            t = plain_words(t)
             t = re.sub(r"\s*\((?:[A-Za-z][^)]{0,60})\)", "", t).strip()[:3000]
             if not re.search(r"ฉากที่\s*1", t):
                 return self._send(502, {"error": "โมเดลไม่ตอบเป็นรายการฉาก ลองอีกครั้ง"})
