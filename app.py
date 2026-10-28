@@ -1303,6 +1303,9 @@ def aw_run(b, cid, key):
                 if ch0.get("finish_reason") == "length":
                     t = trim_to_paragraph(t)
                 if t and not t.lstrip().startswith("{") and "```" not in t and len(t) > 200:
+                    if attempt == 0:   # experiment instrumentation: how much of the model's FIRST answer repeats what is already in the chapter
+                        job.setdefault("raw_dup", []).append(round(dup_ratio(t, cur0), 3))
+                        job.setdefault("raw_anat", []).append(anatomy_issues(t, info0))
                     sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)))
                     ok_t = ((not need_dlg or quote_share(t) >= DLG_MIN) and (not need_sex or sex_density(t) >= SEX_DENS_MIN)
                             and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0))
