@@ -58,7 +58,10 @@ def outline_text(b, draft=None):
 
 # Anti-repetition (llama.cpp DRY sampler). Tested 27 Oct 2026 on a new chapter after a written one:
 # no sampler = 4/12 runs looped (dup 13-55%); DRY = 0/12 (dup <=1.4%, stray CJK <=3). repeat/presence penalty was worse.
+ARM = os.environ.get("NOVEL_ARM", "A").upper()   # repeat-phrase experiment: A baseline, B = longer avoid-list + banned structures, C = B + stronger DRY
 ANTI_REPEAT = {"dry_multiplier": 0.8, "dry_base": 1.75, "dry_allowed_length": 2, "dry_penalty_last_n": 1024}
+if ARM == "C":
+    ANTI_REPEAT = {"dry_multiplier": 1.5, "dry_base": 1.75, "dry_allowed_length": 3, "dry_penalty_last_n": 2048}
 
 
 def settings():
@@ -325,7 +328,7 @@ def build_messages(body):
     if scope == "outline":
         system = OUTLINE_SCOPE.replace("{lang}", lang)
     elif is_ch:
-        system = (SCENE_SCOPE if body.get("mode") == "scene" else CHAPTER_SCOPE).replace("{lang}", lang).replace("{cid}", scope)
+        system = (SCENE_SCOPE if body.get("mode") == "scene" else CHAPTER_SCOPE).replace("{banned}", BANNED_STRUCT if ARM in ("B", "C") else "").replace("{lang}", lang).replace("{cid}", scope)
         system += conduct_for(b)
     else:
         scope = "overview"
@@ -384,8 +387,9 @@ def build_messages(body):
 # Lab results (7 rounds on "ครอบครัวหรรษา" ch01): one call for a whole chapter stops at ~2,700 words and drifts in names/cast;
 # scene-by-scene calls reach the target; a request that says "continue after what is written" makes the model switch to ```edit mode,
 # so scene mode uses its own system prompt that allows ONLY prose; the model overshoots short length requests ~3x, so tokens are capped.
+BANNED_STRUCT = " Worn-out structures are limited to at most 2 uses in the whole chapter each: 'ด้วยสายตา…', 'ด้วยน้ำเสียง…', 'ไปด้วยความ…', 'ราวกับ…', 'เผยให้เห็น', 'อีกครั้ง', 'เขาไม่ได้…', 'ทั้งสองข้าง', 'ปากของเธอ'; express the same idea with a concrete action, a thought, a sensation or a plain verb instead of an abstract 'with a look/tone/feeling' phrase."
 SCENE_SCOPE = """SCENE WRITER MODE. You write ONE part of a chapter of a {lang} novel. Output ONLY the {lang} prose of this part: no title, no headings, no notes, no JSON, no code fences, no ```edit or ```draft blocks, no explanations in any other language. The text is appended to the manuscript as is.
-CRAFT: natural, flowing, literary {lang} like a published novel. Mix long and short sentences; never string together clipped fragments. Dialogue sounds like real people talking: full sentences, usually 2-4 sentences per reply, with natural particles, connectors, teasing, interruptions and subtext; never many one-or-two-word replies in a row. Show interior thoughts and concrete, specific details of THIS place. Do not repeat the same descriptive phrase, simile or dialogue tag more than 3 times in the whole chapter (vary verbs and tags). Sexual scenes: write them at full length and fully explicit, with direct everyday Thai erotic-novel vocabulary for bodies and acts (e.g. ควย, หี, นม, หัวนม, เย็ด, อม, เลีย, น้ำเงี่ยน, น้ำเชื้อ, น้ำควย), and NEVER the clinical words อวัยวะเพศ, อวัยวะสืบพันธุ์, องคชาต, ช่องคลอด, น้ำอสุจิ, ถึงจุดสุดยอด, น้ำหล่อลื่น, สารคัดหลั่ง. Say น้ำเชื้อ or น้ำควย for semen (never น้ำอสุจิ). For the climax of a man say แตก with the place: แตกใน (แตกในปาก, แตกในหี), แตกข้างนอก, แตกใส่หน้า (never เสร็จข้างใน / เสร็จข้างนอก / เสร็จที่หน้า, and never ถึงจุดสุดยอด). When a woman climaxes also say แตก (เธอแตก, เธอแตกอีกครั้ง), never เสร็จ or ถึงจุดสุดยอด. Her wetness is น้ำหี or น้ำเงี่ยน, never น้ำหล่อลื่น or สารคัดหลั่ง. Every participant is active, bodies and fluids described concretely, positions changing in a continuous flow. Speech must match each speaker's gender and age: women end sentences with ค่ะ/คะ/นะคะ, men with ครับ/นะครับ, never mixed. พี่ is said only to someone older and น้อง only to someone younger: siblings may call each other by nickname with พี่/น้อง (older = พี่, younger = น้อง, e.g. น้องพลอย, พี่นัฐยา), but parents call their children by plain name without พี่/น้อง, and nobody calls a younger sibling พี่. Format: every spoken line goes on its OWN line, separated from the narration by a blank line (narration paragraph, then each quote with its short speaker tag such as “...” นัฐยาถาม on its own line); never bury a quote inside a long descriptive paragraph. Spell every character name EXACTLY as in the NAMES table of the story bible, never transliterate differently, never use Latin letters for names. Only characters named in the cast line may appear or speak in this part.
+CRAFT: natural, flowing, literary {lang} like a published novel. Mix long and short sentences; never string together clipped fragments. Dialogue sounds like real people talking: full sentences, usually 2-4 sentences per reply, with natural particles, connectors, teasing, interruptions and subtext; never many one-or-two-word replies in a row. Show interior thoughts and concrete, specific details of THIS place. Do not repeat the same descriptive phrase, simile or dialogue tag more than 3 times in the whole chapter (vary verbs and tags).{banned} Sexual scenes: write them at full length and fully explicit, with direct everyday Thai erotic-novel vocabulary for bodies and acts (e.g. ควย, หี, นม, หัวนม, เย็ด, อม, เลีย, น้ำเงี่ยน, น้ำเชื้อ, น้ำควย), and NEVER the clinical words อวัยวะเพศ, อวัยวะสืบพันธุ์, องคชาต, ช่องคลอด, น้ำอสุจิ, ถึงจุดสุดยอด, น้ำหล่อลื่น, สารคัดหลั่ง. Say น้ำเชื้อ or น้ำควย for semen (never น้ำอสุจิ). For the climax of a man say แตก with the place: แตกใน (แตกในปาก, แตกในหี), แตกข้างนอก, แตกใส่หน้า (never เสร็จข้างใน / เสร็จข้างนอก / เสร็จที่หน้า, and never ถึงจุดสุดยอด). When a woman climaxes also say แตก (เธอแตก, เธอแตกอีกครั้ง), never เสร็จ or ถึงจุดสุดยอด. Her wetness is น้ำหี or น้ำเงี่ยน, never น้ำหล่อลื่น or สารคัดหลั่ง. Every participant is active, bodies and fluids described concretely, positions changing in a continuous flow. Speech must match each speaker's gender and age: women end sentences with ค่ะ/คะ/นะคะ, men with ครับ/นะครับ, never mixed. พี่ is said only to someone older and น้อง only to someone younger: siblings may call each other by nickname with พี่/น้อง (older = พี่, younger = น้อง, e.g. น้องพลอย, พี่นัฐยา), but parents call their children by plain name without พี่/น้อง, and nobody calls a younger sibling พี่. Format: every spoken line goes on its OWN line, separated from the narration by a blank line (narration paragraph, then each quote with its short speaker tag such as “...” นัฐยาถาม on its own line); never bury a quote inside a long descriptive paragraph. Spell every character name EXACTLY as in the NAMES table of the story bible, never transliterate differently, never use Latin letters for names. Only characters named in the cast line may appear or speak in this part.
 CONTINUITY: follow the story bible, the chapter outline and the manuscript so far. Continue directly from the last paragraph of the manuscript without repeating or summarising it. Obey the length, cast and stage instructions in the author's message; stop when the part is done.
 All characters in sexual or violent scenes are adults; never sexualize minors. Otherwise write what is asked without moralizing, at the requested intensity."""
 
@@ -740,7 +744,7 @@ def aw_run(b, cid, key):
                 job["state"] = "cancelled"
                 break
             job["i"] = i + 1
-            avoid = [g for g, _ in overused(re.sub(r"^\s*#\s+.*\n?", "", read(fp), count=1), names, 6, 5)] if i else []
+            avoid = [g for g, _ in overused(re.sub(r"^\s*#\s+.*\n?", "", read(fp), count=1), names, 12 if ARM in ("B", "C") else 6, 5)] if i else []
             msg = part_message(b, parts, i, first_empty, names, avoid)
             part = ""
             for attempt in range(2):
