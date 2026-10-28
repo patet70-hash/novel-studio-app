@@ -315,7 +315,7 @@ def build_messages(body):
     budget = ctx_chars - len(system) - st["max_tokens"] * 3
     extra = ""
     if b and body.get("use_bible", True):
-        bible = read(os.path.join(bdir(b), "bible.md"))[:10000]
+        bible = read(os.path.join(bdir(b), "bible.md"))[:max(10000, int(CTX * 0.2))]
         if bible.strip():
             extra += "\n\n=== STORY BIBLE ===\n" + bible
     if b:
@@ -327,16 +327,22 @@ def build_messages(body):
                 draft = None
         ot = outline_text(b, draft)
         if ot.strip():
-            extra += "\n\n=== CHAPTER OUTLINE ===\n" + ot[:6000]
+            extra += "\n\n=== CHAPTER OUTLINE ===\n" + ot[:max(6000, int(CTX * 0.1))]
     ch = scope if is_ch else body.get("chapter")
     if b and is_ch:
         n = int(scope[2:] or 0) if scope[2:].isdigit() else 0
         c = {x["id"]: x for x in chapters(b)}.get(scope, {})
         extra += "\n\n=== THIS CHAPTER: %s | title: %s | summary: %s | target %s words%s ===" % (scope, c.get("title", "?"), c.get("summary", ""), c.get("target", 0), " | LOCKED" if c.get("locked") else "")
         if n > 1:
+            # big context: carry the previous chapter (up to ~20000 chars = a full 5000-word Thai chapter) and the tail of the one before it
+            prev_cap = 1800 if CTX < 65536 else min(20000, int(CTX * 0.15))
             prev = read(os.path.join(bdir(b), "chapters", "ch%02d.md" % (n - 1)))
             if prev.strip():
-                extra += "\n\n=== END OF PREVIOUS CHAPTER (for continuity only) ===\n" + prev[-1800:]
+                extra += "\n\n=== END OF PREVIOUS CHAPTER (for continuity only) ===\n" + prev[-prev_cap:]
+            if n > 2 and CTX >= 65536:
+                prev2 = read(os.path.join(bdir(b), "chapters", "ch%02d.md" % (n - 2)))
+                if prev2.strip():
+                    extra += "\n\n=== END OF THE CHAPTER BEFORE THAT (for continuity only) ===\n" + prev2[-3000:]
     if b and ch and SLUG.match(ch) and body.get("use_chapter", True) and scope != "outline":
         t = read(os.path.join(bdir(b), "chapters", ch + ".md"))
         if t.strip():
@@ -417,6 +423,36 @@ def llm_get(path, timeout=5):
 
 INDEX = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html"), encoding="utf-8").read() \
     if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")) else "<h1>index.html missing</h1>"
+
+
+def english_share(txt):
+    """Share of long free-text values (>=12 chars) in a proposal that contain no Thai letters; 0 when there is nothing to judge."""
+    m = re.search(r"```proposal\s*\n([\s\S]*?)\n\s*```", txt)
+    if not m:
+        return 0.0
+    try:
+        p = json.loads(m.group(1))
+    except Exception:
+        return 0.0
+    n = en = 0
+    for it in list(p.get("characters") or []) + list(p.get("locations") or []):
+        for o in [it] + list(it.get("outfits") or []):
+            for v in (o.get("fields") or {}).values():
+                if isinstance(v, str) and len(v) >= 12:
+                    n += 1
+                    if not re.search(r"[\u0E00-\u0E7F]", v):
+                        en += 1
+    return en / n if n >= 3 else 0.0
+
+
+ASSIST_LEVELS = {
+    "short": {"temp": 0.8, "style": "Keep free-text values as short phrases (a few words each).",
+              "size": "Keep every proposal SMALL so it fits in the reply: at most 3 characters and 2 locations per turn, at most 1 outfit per character."},
+    "rich": {"temp": 0.9, "style": "Make every free-text value vivid and specific, like a novelist's character sheet: one or two flowing sentences (about 15-40 words) with concrete sensory detail, a habit or quirk and a hook the author can use in scenes. Never write dry labels such as 'confident' or 'beautiful'. Names, places and backstories must be memorable and colourful, never generic.",
+             "size": "Keep every proposal small enough to finish: at most 2 characters and 2 locations per turn, at most 1 outfit per character."},
+    "max": {"temp": 0.95, "style": "Make every free-text value lush and detailed: two to four flowing sentences (about 40-90 words) with texture, smell, voice, mannerisms, secrets and contradictions, and how the person behaves in social and intimate scenes; for places give atmosphere, light, sound, smell and what makes the place good for scenes. Never write dry labels. Names and backstories must be memorable.",
+            "size": "Keep every proposal small enough to finish: ONE character, or up to 2 locations, per turn, at most 1 outfit."},
+}
 
 
 class H(BaseHTTPRequestHandler):
@@ -735,19 +771,25 @@ class H(BaseHTTPRequestHandler):
             return self._send(502, {"error": "LLM unavailable: %s" % e})
 
     def assist(self, d):
-        sysmsg = ("ASSIST MODE. You are the story-setup assistant inside a Thai author's novel studio. Talk to the author in THAI, short and warm. "
-                  "Goal: agree on the story setup (genre, tone, setting, protagonist, partner/love interest, antagonist, plot, style, outfits, locations) and fill in the details so the author does not have to click each field.\n"
+        detail = d.get("detail") if d.get("detail") in ASSIST_LEVELS else "rich"
+        lv = ASSIST_LEVELS[detail]
+        lang = str(d.get("lang") or "Thai")[:30]
+        note = str(d.get("note") or "").strip()[:1500]
+        sysmsg = ("ASSIST MODE. You are the story-setup assistant inside a Thai author's novel studio. Talk to the author in THAI, warm and lively but brief. "
+                  "Goal: agree on the story setup (genre, tone, setting, protagonist, partner/love interest, antagonist, plot, style, outfits, locations) and design colourful, memorable people and places so the author does not have to click each field.\n"
                   "Rules:\n1) If key specs are missing, ask at most 2 short questions. If the author gives enough, or says to decide for them, propose right away.\n"
                   "2) To propose, write one or two Thai sentences, then ONE fenced block exactly like ```proposal\n{json}\n``` containing ONLY valid JSON (no comments, no trailing commas).\n"
                   "JSON shape: {\"top\":{\"genre\":\"detective mystery, noir\",...},\"characters\":[{\"name\":\"Mara Voss\",\"fields\":{\"role\":\"protagonist\",\"age\":\"34\",...},\"outfits\":[{\"name\":\"Work coat\",\"fields\":{\"ostyle\":\"trench coat\"}}]}],\"locations\":[{\"name\":\"Harbour office\",\"fields\":{\"ltype\":\"office\"}}]}.\n"
-                  "3) Use only the field keys listed below. Values are short ENGLISH phrases (comma separated for several). Include only fields you want to set or change.\n"
+                  "3) Use only the field keys listed below. Include only fields you want to set or change. For fields that have a fixed list of options use an option from the list; write every free-text value in " + lang + ". " + lv["style"] + "\n"
                   "4) NEVER include anything listed as LOCKED. Work around locked items consistently.\n"
-                  "5) All characters are adults (18+). Never involve minors.\n6) Keep consistent with CURRENT SETUP; do not contradict chosen items unless the author asks.\n"
-                  "7) Keep every proposal SMALL so it fits in the reply: at most 3 characters and 2 locations per turn, at most 1 outfit per character, short phrases. Propose the rest in later turns, and always close the JSON and the fence.\n"
+                  "5) All characters are adults (18+). Never involve minors.\n6) Keep consistent with CURRENT SETUP; do not contradict chosen items unless the author asks. Do not duplicate people or places that already exist there; make new ones clearly different from each other (age, temperament, look, voice, role).\n"
+                  "7) " + lv["size"] + " Propose the rest in later turns, and always close the JSON and the fence.\n"
                   "8) NOTHING is created unless you send the proposal block. Whenever the author asks to add or change a character, location, outfit or any setup field, or agrees to a plan you suggested, put the proposal block in THAT SAME reply. Never answer only 'OK' or 'will do'.\n"
-                  "\nFIELD KEYS:\n" + str(d.get("spec", ""))[:4000] +
+                  + (("\nAUTHOR'S OWN INSTRUCTIONS (always obey; they override the defaults above):\n" + note + "\n") if note else "") +
+                  "\nLANGUAGE RULE (strict): every free-text value, every character name and every location name MUST be written in " + lang + " (native script), never in English, and never mix English words into the text. Names must be distinctive and different from every existing name. Only fields with a fixed option list keep the listed option.\n"
+                  "\nFIELD KEYS:\n" + str(d.get("spec", ""))[:6000] +
                   "\n\nLOCKED: " + str(d.get("locked", ""))[:1500] +
-                  "\n\nCURRENT SETUP:\n" + str(d.get("state", ""))[:9000])
+                  "\n\nCURRENT SETUP:\n" + str(d.get("state", ""))[:max(9000, int(CTX * 0.15))])
         msgs = [{"role": "system", "content": sysmsg}]
         # History hygiene (tested 28 Oct 2026 on a real book: replacing old proposals with a marker made the model print the marker instead of
         # proposing: 0/8 replies had a proposal; dropping only bad messages and keeping complete proposals intact: 8/8).
@@ -763,6 +805,12 @@ class H(BaseHTTPRequestHandler):
                 msgs.append({"role": "assistant", "content": c[:14000]})
             else:
                 msgs.append({"role": "user", "content": c[:6000]})
+        # the setup text and field keys are English, so the model drifts into English: repeat the language rule on the newest user turn
+        if lang.lower() == "thai":
+            for mm in reversed(msgs):
+                if mm["role"] == "user":
+                    mm["content"] += "\n\n[ค่าทุกช่อง ชื่อตัวละคร ชื่อสถานที่ ในข้อเสนอ ต้องเป็นภาษาไทยเท่านั้น]"
+                    break
         # keep context bounded: at most the 3 newest complete proposals stay in history (older ones are dropped whole, never replaced by a marker)
         seen = 0
         for i in range(len(msgs) - 1, 0, -1):
@@ -771,11 +819,20 @@ class H(BaseHTTPRequestHandler):
                 if seen > 3:
                     del msgs[i]
         # 3500 tokens ~ 80 s: stays under the ~100 s proxy limit for non-streaming calls (2200 cut real proposals; tested 28 Oct 2026)
-        payload = {"messages": msgs, "stream": False, "max_tokens": 3500, "temperature": 0.8, "chat_template_kwargs": {"enable_thinking": False}}
-        req = urllib.request.Request(LLM + "/v1/chat/completions", json.dumps(payload).encode(), {"Content-Type": "application/json"})
+        payload = {"messages": msgs, "stream": False, "max_tokens": 3500, "temperature": lv["temp"], "chat_template_kwargs": {"enable_thinking": False}}
+        def ask(ms):
+            p2 = dict(payload, messages=ms)
+            rq = urllib.request.Request(LLM + "/v1/chat/completions", json.dumps(p2).encode(), {"Content-Type": "application/json"})
+            return json.loads(urllib.request.urlopen(rq, timeout=300).read().decode("utf-8"))["choices"][0]["message"]["content"].strip()
+        t_start = time.time()
         try:
-            r = json.loads(urllib.request.urlopen(req, timeout=300).read().decode("utf-8"))
-            txt = r["choices"][0]["message"]["content"]
+            txt = ask(msgs)
+            # the setup text is English, so the model sometimes answers in English: retry once (only if there is time left before the ~100 s proxy cut)
+            if lang.lower() == "thai" and english_share(txt) > 0.3 and time.time() - t_start < 45:
+                retry = msgs + [{"role": "assistant", "content": txt}, {"role": "user", "content": "ค่าในข้อเสนอยังเป็นภาษาอังกฤษ ส่งข้อเสนอเดิมอีกครั้ง โดยเขียนค่าทุกช่องที่เป็นข้อความอิสระเป็นภาษาไทยทั้งหมด ห้ามมีอังกฤษปน ตอบสั้นๆ แล้วตามด้วยบล็อก proposal"}]
+                t2 = ask(retry)
+                if english_share(t2) < english_share(txt):
+                    txt = t2
         except Exception as e:
             return self._send(502, {"error": "LLM unavailable: %s" % e})
         txt = txt.strip()

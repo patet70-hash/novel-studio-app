@@ -3,8 +3,8 @@
 # Idempotent: reuses llama.cpp build + model already on /workspace.
 B=/workspace/novel_llm
 REPO=https://raw.githubusercontent.com/patet70-hash/novel-studio-app/main
-SHA_APP=189fa5f20b49303b0a9c607803c87f81c2dd5d47b03346424c10a2cefb835e06
-SHA_IDX=15b42e7e79afee65315f1fe28decdb404f208f2f709c7b18defccc0230ecb4ff
+SHA_APP=54c67fc13f56ac07f495254c4aa46a9946764211efa242e1429ef6742eca970c
+SHA_IDX=541a9dc420514a1e8299ccfa5cd9f1fe9a1065462d5d5a210e4048d339e78bf3
 mkdir -p $B/models $B/novel $B/app
 log(){ echo "[$(date -u +%H:%M:%S)] $*"; }
 
@@ -37,7 +37,7 @@ fi
 
 # 4) start the web app first (port 8080); llama-server follows on 127.0.0.1:8079
 pkill -f "$B/app/app.py" 2>/dev/null
-NOVEL_ROOT=$B/novel LLM_URL=http://127.0.0.1:8079 PORT=8080 nohup python3 $B/app/app.py >> $B/app.log 2>&1 &
+NOVEL_CTX=131072 NOVEL_ROOT=$B/novel LLM_URL=http://127.0.0.1:8079 PORT=8080 nohup python3 $B/app/app.py >> $B/app.log 2>&1 &
 log "app started"
 
 # 5) llama.cpp (build once, arch 86/89/120, -j8)
@@ -62,4 +62,4 @@ fi
 
 # 7) llama-server
 log "starting llama-server with $M"
-exec $B/llama.cpp/build/bin/llama-server -m "$M" --host 127.0.0.1 --port 8079 -c 32768 -ngl 99 --jinja >> $B/llama.log 2>&1
+exec $B/llama.cpp/build/bin/llama-server -m "$M" --host 127.0.0.1 --port 8079 -c 131072 -np 1 -ngl 99 --jinja >> $B/llama.log 2>&1

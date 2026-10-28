@@ -268,12 +268,32 @@ function drawAssist(){const el=$("#achat");if(!el)return;const arr=S.assist||[];
     pd.querySelector('[data-a=ok]').onclick=()=>{applyProp(r.prop,false);m.applied=true;S.synth=S.synth;dirty();renderSetup()};
     pd.querySelector('[data-a=no]').onclick=()=>{m.dismissed=true;dirty();drawAssist()}}
    el.appendChild(pd)}});el.scrollTop=el.scrollHeight}
-async function asend(){const t=$("#ain").value.trim();if(!t||!S)return;S.assist=S.assist||[];const b=$("#asend");
- S.assist.push({role:'user',content:t});const ph={role:'assistant',content:"กำลังคิด…"};S.assist.push(ph);$("#ain").value="";b.disabled=true;drawAssist();
- const msgs=S.assist.slice(0,-1).slice(-16).map(m=>({role:m.role,content:m.content}));
- try{const r=await(await api("assist",js("POST",{spec:specText(),state:compile(),locked:lockedText(),messages:msgs}))).json();ph.content=r.reply||"(ไม่มีคำตอบ)"}
+function acfg(){S.assistCfg=S.assistCfg||{detail:"rich",note:""};return S.assistCfg}
+async function askAssist(t,auto){S.assist=S.assist||[];
+ S.assist.push({role:'user',content:t});const ph={role:'assistant',content:"กำลังคิด…"};S.assist.push(ph);drawAssist();
+ const msgs=S.assist.slice(0,-1).slice(-16).map(m=>({role:m.role,content:m.content}));const c=acfg();let ok=false;
+ try{const r=await(await api("assist",js("POST",{spec:specText(),state:compile(),locked:lockedText(),messages:msgs,detail:c.detail||"rich",note:c.note||"",lang:meta.lang||"Thai"}))).json();ph.content=r.reply||"(ไม่มีคำตอบ)"}
  catch(e){ph.content="[ใช้ไม่ได้ — พอดเปิดอยู่และโมเดลพร้อมไหม? "+e.message+"]"}
- b.disabled=false;dirty();drawAssist()}
+ if(auto){const r=parseProp(ph.content);if(r.prop&&!r.err){const p=r.prop;delete p.top;const has=(a,n)=>a.some(x=>x.name.trim().toLowerCase()===String(n||"").trim().toLowerCase());
+  p.characters=(p.characters||[]).filter(c=>!has(S.chars,c.name));p.locations=(p.locations||[]).filter(l=>!has(S.locs,l.name));
+  if(p.characters.length+p.locations.length){applyProp(p,false);ph.applied=true;S.synth=S.synth;ok=true}}}
+ dirty();drawAssist();if(auto)renderSetup();return ok}
+async function asend(){const t=$("#ain").value.trim();if(!t||!S)return;const b=$("#asend");$("#ain").value="";b.disabled=true;await askAssist(t,false);b.disabled=false}
+let AFSTOP=false;
+async function afull(){if(!S||!book)return;const t0=$("#ain").value.trim();
+ const nC=Math.max(0,Math.min(20,+$("#afc").value||0)),nL=Math.max(0,Math.min(12,+$("#afl").value||0));
+ if(!nC&&!nL)return toast("ใส่จำนวนตัวละครหรือสถานที่ก่อน");
+ if(!t0&&!(S.assist||[]).length)return toast("พิมพ์แนวเรื่องที่อยากได้ในช่องแชทก่อน");
+ if(!confirm(`ให้ AI ออกแบบตัวละครใหม่ ${nC} คน สถานที่ใหม่ ${nL} แห่ง แล้วใช้ลงในเรื่องอัตโนมัติ?\nช่อง/ตัวละคร/สถานที่ที่ล็อก 🔒 จะไม่ถูกแตะ · ตัวที่ได้แก้หรือลบเองได้ภายหลัง · ใช้เวลาประมาณ 1–2 นาทีต่อรอบ`))return;
+ AFSTOP=false;const bF=$("#afull"),bS=$("#astop");bF.disabled=true;bS.disabled=false;$("#ain").value="";
+ const baseC=S.chars.length,baseL=S.locs.length,maxR=Math.ceil(nC/2)+Math.ceil(nL/2)+3,per=(acfg().detail==="max")?1:2;let first=t0,rounds=0,fail=false;
+ while(!AFSTOP&&rounds<maxR){const needC=nC-(S.chars.length-baseC),needL=nL-(S.locs.length-baseL);if(needC<=0&&needL<=0)break;
+  const pre=first?first+"\n\n":"";first=null;
+  const ask=needC>0?`${pre}ออกแบบตัวละครใหม่ ${Math.min(per,needC)} คน (ต้องการอีก ${needC}) ที่ยังไม่มีในเรื่อง ให้ต่างกันชัดเจนทั้งวัย นิสัย รูปลักษณ์ และบทบาท ใส่ลงในข้อเสนอเลย เสนอเฉพาะตัวละครใหม่ ห้ามแก้หรือส่งค่าอื่นของเรื่อง`:`${pre}ออกแบบสถานที่ใหม่ ${Math.min(2,needL)} แห่ง (ต้องการอีก ${needL}) ให้มีบรรยากาศชัดและต่างกัน ใส่ลงในข้อเสนอเลย เสนอเฉพาะสถานที่ใหม่ ห้ามแก้หรือส่งค่าอื่นของเรื่อง`;
+  toast(`ออกแบบรอบที่ ${rounds+1}… (ตัวละคร +${S.chars.length-baseC}/${nC}, สถานที่ +${S.locs.length-baseL}/${nL})`);
+  const ok=await askAssist(ask,true);rounds++;if(!ok){fail=true;break}}
+ bF.disabled=false;bS.disabled=true;
+ toast(`เสร็จ: ตัวละครใหม่ ${S.chars.length-baseC}/${nC}, สถานที่ใหม่ ${S.locs.length-baseL}/${nL}${AFSTOP?" (หยุดเอง)":fail?" (รอบสุดท้ายไม่ได้ข้อเสนอ ลองสั่งอีกครั้ง)":""}`)}
 /* ===== setup UI ===== */
 function row(f,obj,lockKey,rerender,ro){
  const d=document.createElement('div');d.className='fr';
@@ -291,6 +311,9 @@ function renderSetup(){const el=$("#su");if(!S){el.innerHTML="";return}const kee
  el.innerHTML=`<div class="bar2"><button class="p" id="rall">🎲 สุ่มทั้งเรื่อง</button><button id="rfine">✨ ให้โมเดลขัดเกลา</button><button id="pvw">ดู Bible</button><span class="small">ช่องที่ล็อก 🔒 จะไม่ถูกสุ่มทับ · ทุกช่องแก้ได้</span></div>
  <div class="fr" style="border:1px solid var(--bd);border-radius:12px;background:var(--pn);flex-wrap:wrap"><span class="lb">ชื่อเรื่อง</span><input id="mt" style="flex:1 1 140px;min-width:0" value="${esc(meta.title||"")}"><span class="lb" style="width:60px">ผู้แต่ง</span><input id="ma" style="flex:1 1 140px;min-width:0" value="${esc(meta.author||"")}"></div>
  <details class="sec" id="asst" open><summary>💬 คุยกับ AI เพื่อช่วยสร้างรายละเอียด</summary><div id="achat"></div>
+ <div class="fr" style="flex-wrap:wrap;gap:6px"><span class="lb">ระดับรายละเอียด</span><select id="adet"><option value="short">กระชับ</option><option value="rich">มีสีสัน (แนะนำ)</option><option value="max">จัดเต็ม</option></select><span class="small">AI จะเขียนแบบนักเขียน ไม่ใช่ป้ายแห้งๆ</span></div>
+ <div class="fr"><textarea id="anote" placeholder="คำสั่งปรับแต่งของคุณเต้ (ใช้ทุกครั้งที่ AI ออกแบบ) เช่น ชื่อไทยทั้งหมด / น้ำเสียงตลกดิบ / ทุกคนต้องมีนิสัยแปลกอย่างน้อย 1 อย่าง / สถานที่ต้องมีกลิ่นกับเสียงเฉพาะ" style="flex:1 1 220px;min-height:52px"></textarea></div>
+ <div class="fr" style="flex-wrap:wrap;gap:6px"><span class="lb">ออกแบบเต็มชุด</span><span class="small">ตัวละคร</span><input id="afc" type="number" min="0" max="20" value="4" style="width:58px"><span class="small">สถานที่</span><input id="afl" type="number" min="0" max="12" value="3" style="width:58px"><button class="p" id="afull">🎨 ออกแบบให้</button><button id="astop" disabled>หยุด</button><span class="small">พิมพ์แนวเรื่องในช่องแชทก่อน แล้วกดปุ่มนี้</span></div>
  <div class="fr" style="flex-wrap:wrap"><textarea id="ain" placeholder="เช่น ขอตัวเอกเป็นนักสืบหญิง 30 กว่า เรื่องมืดๆ ในเมืองฝนตก — หรือพิมพ์ว่า 'ช่วยคิดให้ทั้งหมด'" style="flex:1 1 220px"></textarea><button class="p" id="asend">ส่ง</button><button id="aclr" title="ล้างแชทนี้">ล้าง</button></div>
  <div class="fr"><span class="small">AI จะถามสเปคที่ขาด แล้วเสนอเป็นข้อเสนอให้กด "ใช้" · ช่องที่ล็อก 🔒 (ทั้งช่อง ตัวละคร สถานที่) จะไม่ถูกแตะ · ต้องรอโมเดลพร้อม</span></div></details>`;
  const rer=()=>renderSetup();
@@ -337,7 +360,7 @@ function renderSetup(){const el=$("#su");if(!S){el.innerHTML="";return}const kee
  $("#mt").oninput=e=>{meta.title=e.target.value;dirty()};$("#ma").oninput=e=>{meta.author=e.target.value;dirty()};
  $("#syn").oninput=e=>{S.synth=e.target.value;dirty()};$("#nts").oninput=e=>{S.notes=e.target.value;dirty()};
  $("#rall").onclick=()=>{if(S.chars.length&&!S.locks.chars&&!confirm("สุ่มใหม่จะทับช่องที่ไม่ได้ล็อกทั้งหมด (รวมตัวละครและสถานที่) ดำเนินการ?"))return;randomAll();S.synth="";S.synthNotes="";dirty();renderSetup();el.querySelectorAll('details.sec').forEach(d=>d.open=true)};
- $("#asend").onclick=asend;$("#ain").onkeydown=e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();asend()}};
+ $("#asend").onclick=asend;{const c=acfg();$("#adet").value=c.detail||"rich";$("#anote").value=c.note||"";$("#adet").onchange=e=>{acfg().detail=e.target.value;dirty()};$("#anote").oninput=e=>{acfg().note=e.target.value;dirty()};$("#afull").onclick=afull;$("#astop").onclick=()=>{AFSTOP=true}}$("#ain").onkeydown=e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();asend()}};
  $("#aclr").onclick=()=>{if(!confirm("ล้างแชทผู้ช่วยนี้? (ค่าที่ใช้ไปแล้วไม่หาย)"))return;S.assist=[];dirty();drawAssist()};drawAssist();
  $("#pvw").onclick=()=>{$("#prevt").textContent=compile();$("#prev").showModal()};
  $("#addc").onclick=()=>{S.chars.push(rndChar('supporting character'));dirty();rer()};$("#rc").onclick=()=>{regenChars();dirty();rer()};$("#fc1").onclick=()=>{S.chars.forEach(c=>c.folded=true);dirty();rer()};$("#fc2").onclick=()=>{S.chars.forEach(c=>c.folded=false);dirty();rer()};
