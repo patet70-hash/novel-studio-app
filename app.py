@@ -941,6 +941,7 @@ def climax_leftovers(t):
 
 def clean_part(t):
     t = re.sub(r"[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]+", "", t.strip())   # stray Chinese characters the model sometimes emits inside Thai text
+    t = re.sub(r"[\u0400-\u052F\u0590-\u06FF\u0900-\u0DFF\u0E80-\u0EFF\u1000-\u109F\u3040-\u30FF\uAC00-\uD7AF]+", "", t)   # stray Cyrillic / Hebrew / Arabic / Indic / Lao / Burmese / Kana / Hangul
     m = re.search(r"```(?:draft|text|markdown)?\s*\n([\s\S]*?)(```|$)", t)
     if m and not re.search(r"```edit", t):
         t = m.group(1).strip()
