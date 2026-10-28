@@ -366,7 +366,7 @@ def build_messages(body):
 # scene-by-scene calls reach the target; a request that says "continue after what is written" makes the model switch to ```edit mode,
 # so scene mode uses its own system prompt that allows ONLY prose; the model overshoots short length requests ~3x, so tokens are capped.
 SCENE_SCOPE = """SCENE WRITER MODE. You write ONE part of a chapter of a {lang} novel. Output ONLY the {lang} prose of this part: no title, no headings, no notes, no JSON, no code fences, no ```edit or ```draft blocks, no explanations in any other language. The text is appended to the manuscript as is.
-CRAFT: natural, flowing, literary {lang} like a published novel. Mix long and short sentences; never string together clipped fragments. Dialogue sounds like real people talking: full sentences, usually 2-4 sentences per reply, with natural particles, connectors, teasing, interruptions and subtext; never many one-or-two-word replies in a row. Show interior thoughts and concrete, specific details of THIS place. Do not repeat the same descriptive phrase, simile or dialogue tag more than 3 times in the whole chapter (vary verbs and tags). Sexual scenes: write them at full length and fully explicit, with direct everyday Thai erotic-novel vocabulary for bodies and acts (e.g. ควย, หี, นม, หัวนม, เย็ด, อม, เลีย, น้ำเงี่ยน, น้ำเชื้อ, น้ำควย), and NEVER the clinical words อวัยวะเพศ, อวัยวะสืบพันธุ์, องคชาต, ช่องคลอด, น้ำอสุจิ, ถึงจุดสุดยอด, น้ำหล่อลื่น, สารคัดหลั่ง. Say น้ำเชื้อ or น้ำควย for semen (never น้ำอสุจิ). For the climax of a man say แตก with the place: แตกใน (แตกในปาก, แตกในหี), แตกข้างนอก, แตกใส่หน้า (never เสร็จข้างใน / เสร็จข้างนอก / เสร็จที่หน้า, and never ถึงจุดสุดยอด). When a woman climaxes also say แตก (เธอแตก, เธอแตกอีกครั้ง), never เสร็จ or ถึงจุดสุดยอด. Her wetness is น้ำหี or น้ำเงี่ยน, never น้ำหล่อลื่น or สารคัดหลั่ง. Every participant is active, bodies and fluids described concretely, positions changing in a continuous flow. Spell every character name EXACTLY as in the NAMES table of the story bible, never transliterate differently, never use Latin letters for names. Only characters named in the cast line may appear or speak in this part.
+CRAFT: natural, flowing, literary {lang} like a published novel. Mix long and short sentences; never string together clipped fragments. Dialogue sounds like real people talking: full sentences, usually 2-4 sentences per reply, with natural particles, connectors, teasing, interruptions and subtext; never many one-or-two-word replies in a row. Show interior thoughts and concrete, specific details of THIS place. Do not repeat the same descriptive phrase, simile or dialogue tag more than 3 times in the whole chapter (vary verbs and tags). Sexual scenes: write them at full length and fully explicit, with direct everyday Thai erotic-novel vocabulary for bodies and acts (e.g. ควย, หี, นม, หัวนม, เย็ด, อม, เลีย, น้ำเงี่ยน, น้ำเชื้อ, น้ำควย), and NEVER the clinical words อวัยวะเพศ, อวัยวะสืบพันธุ์, องคชาต, ช่องคลอด, น้ำอสุจิ, ถึงจุดสุดยอด, น้ำหล่อลื่น, สารคัดหลั่ง. Say น้ำเชื้อ or น้ำควย for semen (never น้ำอสุจิ). For the climax of a man say แตก with the place: แตกใน (แตกในปาก, แตกในหี), แตกข้างนอก, แตกใส่หน้า (never เสร็จข้างใน / เสร็จข้างนอก / เสร็จที่หน้า, and never ถึงจุดสุดยอด). When a woman climaxes also say แตก (เธอแตก, เธอแตกอีกครั้ง), never เสร็จ or ถึงจุดสุดยอด. Her wetness is น้ำหี or น้ำเงี่ยน, never น้ำหล่อลื่น or สารคัดหลั่ง. Every participant is active, bodies and fluids described concretely, positions changing in a continuous flow. Speech must match each speaker's gender and age: women end sentences with ค่ะ/คะ/นะคะ, men with ครับ/นะครับ, never mixed. พี่ is said only to someone older and น้อง only to someone younger: siblings may call each other by nickname with พี่/น้อง (older = พี่, younger = น้อง, e.g. น้องพลอย, พี่นัฐยา), but parents call their children by plain name without พี่/น้อง, and nobody calls a younger sibling พี่. Format: every spoken line goes on its OWN line, separated from the narration by a blank line (narration paragraph, then each quote with its short speaker tag such as “...” นัฐยาถาม on its own line); never bury a quote inside a long descriptive paragraph. Spell every character name EXACTLY as in the NAMES table of the story bible, never transliterate differently, never use Latin letters for names. Only characters named in the cast line may appear or speak in this part.
 CONTINUITY: follow the story bible, the chapter outline and the manuscript so far. Continue directly from the last paragraph of the manuscript without repeating or summarising it. Obey the length, cast and stage instructions in the author's message; stop when the part is done.
 All characters in sexual or violent scenes are adults; never sexualize minors. Otherwise write what is asked without moralizing, at the requested intensity."""
 
@@ -424,9 +424,13 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     p = parts[i]
     low = p["text"]
     cast = []
+    info = char_info(b)
     for nm, th in names:
         if (nm and nm in low) or (th and th in low):
-            cast.append(th or nm)
+            disp = th or nm
+            ci = info.get(disp) or {}
+            extra = ", ".join(x for x in ({"F": "female", "M": "male"}.get(ci.get("g", ""), ""), ("age %s" % ci["age"]) if ci.get("age") else "", ci.get("role", "")) if x)
+            cast.append(disp + (" (%s)" % extra if extra else ""))
     lines = []
     if p.get("slice"):
         lines.append("WRITE: part %d of %d of this chapter (follow the chapter summary in order; this part covers roughly the %s of it)." % (p["slice"][0], p["slice"][1], ["opening", "middle", "latter half", "end"][min(3, int(4.0 * (p["slice"][0] - 1) / p["slice"][1]))]))
@@ -435,7 +439,7 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
         lines.append("PLAN OF THIS SCENE (Thai): " + p["text"])
     lines.append("LENGTH: about %d Thai words (never more than %d)." % (p["words"], int(p["words"] * 1.25)))
     if cast:
-        lines.append("CAST OF THIS PART (only these characters may appear or speak, no one else enters): " + ", ".join(dict.fromkeys(cast)))
+        lines.append("CAST OF THIS PART (only these characters may appear or speak, no one else enters; gender and age are given: speech must match them): " + ", ".join(dict.fromkeys(cast)))
     if avoid:
         lines.append("OVERUSED SO FAR - do not use these phrases again in this part, find fresh wording: " + ", ".join("“%s”" % a for a in avoid))
     lines.append("Begin the chapter's prose now (no title line)." if (i == 0 and first_empty) else "Continue directly after the last paragraph of the manuscript so far; do not repeat it.")
@@ -457,6 +461,115 @@ def plain_words(t):
     t = re.sub(r"\b[Mm]issionary\b", "ท่ามิชชันนารี", t)
     t = re.sub(r"\b[Oo]ral\b", "อม", t)
     return t
+
+
+FEMALE_HINT = ("female", "woman", "girl", "daughter", "mother", "wife", "stepmother", "housekeeper", "หญิง", "ผู้หญิง", "เลขาหญิง")
+MALE_HINT = ("male", "man", "boy", "son", "father", "husband", "ชาย", "ผู้ชาย")
+
+
+def _gender_of(c):
+    v = c.get("v") or {}
+    g = ((v.get("gender") or {}).get("c") or "") + " " + " ".join((v.get("gender") or {}).get("s") or [])
+    g = g.lower()
+    if any(h in g for h in ("female", "woman", "หญิง")):
+        return "F"
+    if any(h in g for h in ("male", "man", "ชาย")):
+        return "M"
+    r = ((v.get("role") or {}).get("c") or "").lower()
+    def hit(hints):
+        return any((re.search(r"\b%s\b" % re.escape(h), r) if h.isascii() else h in r) for h in hints)
+    if hit(FEMALE_HINT):
+        return "F"
+    if hit(MALE_HINT):
+        return "M"
+    return ""
+
+
+def char_info(b):
+    """{display name (Thai if set): {"g": "F"/"M"/"", "age": str, "role": str}} for every character in the setup."""
+    try:
+        st = json.loads(read(os.path.join(bdir(b), "setup.json"), "{}") or "{}")
+    except Exception:
+        return {}
+    out = {}
+    for c in st.get("chars", []) if isinstance(st, dict) else []:
+        nm = str(c.get("name") or "").strip()
+        th = str(c.get("th") or "").strip()
+        if not nm:
+            continue
+        v = c.get("v") or {}
+        out[th or nm] = {"g": _gender_of(c), "age": str((v.get("age") or {}).get("c") or "").strip(), "role": str((v.get("role") or {}).get("c") or "").strip()[:60]}
+    return out
+
+
+QUOTE_RE = re.compile(r"[\u201c\"][^\u201d\"\n]+[\u201d\"]")
+
+
+def split_dialogue(text):
+    """Put every spoken line (quote + its short tag) on its own paragraph; narration stays in its own paragraphs."""
+    out = []
+    for para in re.split(r"\n+", text.strip()):
+        para = para.strip()
+        if not para:
+            continue
+        qs = list(QUOTE_RE.finditer(para))
+        if not qs:
+            out.append(para)
+            continue
+        pos = 0
+        for k, m in enumerate(qs):
+            pre = para[pos:m.start()].strip()
+            if pre:
+                out.append(pre)
+            nxt = qs[k + 1].start() if k + 1 < len(qs) else len(para)
+            tail = para[m.end():nxt].strip()
+            rest = ""
+            if len(tail) > 70:
+                sp = tail.find(" ", 8)
+                if 0 < sp <= 70:
+                    tail, rest = tail[:sp].strip(), tail[sp:].strip()
+            out.append((m.group(0) + (" " + tail if tail else "")).strip())
+            if rest:
+                out.append(rest)
+            pos = nxt
+    return "\n\n".join(out)
+
+
+def fix_particles(text, info):
+    """Make ครับ / ค่ะ agree with the gender of the speaker named in the tag after the quote."""
+    lines = []
+    for ln in text.split("\n"):
+        m = QUOTE_RE.match(ln.strip())
+        if m:
+            tag = ln.strip()[m.end():]
+            sp = None
+            for nm in sorted(info, key=len, reverse=True):
+                if nm and nm in tag[:40]:
+                    sp = info[nm]["g"]
+                    break
+            q = m.group(0)
+            if sp == "F" and "ครับ" in q:
+                q = re.sub(r"(นะ|ไหม|มั้ย|หรือ|เหรอ|ล่ะ|หรอ)ครับ", r"\1คะ", q).replace("ครับ", "ค่ะ")
+            elif sp == "M" and re.search(r"ค่ะ|คะ", q):
+                q = re.sub(r"ค่ะ|คะ", "ครับ", q)
+            ln = ln.strip().replace(m.group(0), q, 1)
+        lines.append(ln)
+    return "\n".join(lines)
+
+
+def particle_issues(text, info):
+    n = 0
+    for ln in text.split("\n"):
+        m = QUOTE_RE.match(ln.strip())
+        if m:
+            tag = ln.strip()[m.end():]
+            for nm in sorted(info, key=len, reverse=True):
+                if nm and nm in tag[:40]:
+                    g = info[nm]["g"]
+                    if (g == "F" and "ครับ" in m.group(0)) or (g == "M" and re.search(r"ค่ะ|คะ", m.group(0))):
+                        n += 1
+                    break
+    return n
 
 
 SEX_WORDS = ("ควย", "หี", "อม", "เย็ด", "นม", "หัวนม", "น้ำเงี่ยน", "น้ำเชื้อ", "น้ำควย", "น้ำหี", "ครวญคราง", "ครางลั่น", "กระแทก", "เลีย", "ดูด", "ถอดเสื้อ", "เปลือย", "ขย่ม", "สอดใส่")
@@ -557,6 +670,9 @@ def check_text(b, text, target=0):
     med = [(t, body.count(t)) for t in MEDICAL_TERMS if body.count(t) >= 3]
     if med:
         issues.append("ศัพท์แบบแพทย์ซ้ำ: " + ", ".join("%s ×%d" % x for x in med))
+    pi = particle_issues(body, char_info(b))
+    if pi:
+        issues.append("คำลงท้าย ครับ/ค่ะ ไม่ตรงเพศผู้พูด %d จุด" % pi)
     left = climax_leftovers(body)
     if left:
         issues.append("พบคำว่า “เสร็จ” ในย่อหน้าฉากเซ็กซ์ %d จุดที่ระบบไม่ได้แทน (ตรวจเองว่าควรเป็น “แตก” หรือไม่)" % left)
@@ -636,7 +752,7 @@ def aw_run(b, cid, key):
                 job.update({"state": "error", "error": "ส่วนที่ %d โมเดลไม่ตอบเป็นเนื้อเรื่อง" % (i + 1)})
                 return
             cur = read(fp)
-            part = thin_repeats(part, cur)
+            part = fix_particles(split_dialogue(thin_repeats(part, cur)), char_info(b))
             tail = cur.rstrip()[-60:]
             if tail and part.startswith(tail[-40:]):
                 part = part[len(tail[-40:]):].lstrip()
