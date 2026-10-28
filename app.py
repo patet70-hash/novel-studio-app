@@ -58,7 +58,10 @@ def outline_text(b, draft=None):
 
 # Anti-repetition (llama.cpp DRY sampler). Tested 27 Oct 2026 on a new chapter after a written one:
 # no sampler = 4/12 runs looped (dup 13-55%); DRY = 0/12 (dup <=1.4%, stray CJK <=3). repeat/presence penalty was worse.
-ANTI_REPEAT = {"dry_multiplier": 0.8, "dry_base": 1.75, "dry_allowed_length": 2, "dry_penalty_last_n": 1024}
+DRY_LAST_N = int(os.environ.get("NOVEL_DRY_N", "16384"))
+# Root cause of whole-block copies in ch03/05/07 (28 Oct): the DRY repeat penalty looked back only 1024 tokens while the prompt carries the whole chapter so far
+# (up to 20000 chars) and the previous chapter, so the model could replay a paragraph block written >1024 tokens earlier without any penalty.
+ANTI_REPEAT = {"dry_multiplier": 0.8, "dry_base": 1.75, "dry_allowed_length": 2, "dry_penalty_last_n": DRY_LAST_N}
 
 
 def settings():
@@ -538,6 +541,34 @@ def heat_hint(p):
     return "REGISTER FOR THIS PART (ANGER: the men's language is raw and rough, กู/มึง and swearing, women's anger sharp but still in their usual self-reference)."
 
 
+def anatomy_issues(text, info):
+    """number of places where a woman is given a ควย (สอดควย…, ควยของมิ้นท์) or a man a หี; strap-ons are not part of this story."""
+    F = [n for n, v in (info or {}).items() if n and v.get("g") == "F"]
+    M = [n for n, v in (info or {}).items() if n and v.get("g") == "M"]
+    n = 0
+    if F:
+        fr = "|".join(re.escape(x) for x in sorted(F, key=len, reverse=True))
+        n += len(re.findall(r"(?:%s)(?:สอด|ยัด|ถอน|ดึง|กระแทก|ขย่ม|ซอย)[\u0E01-\u0E4E]{0,2}(?:ควย|หัวควย)" % fr, text))
+        n += len(re.findall(r"(?:ควย|หัวควย)(?:ของ)?(?:%s)" % fr, text))
+        n += len(re.findall(r"(?:%s)(?:ของ)?เธอ?(?:ควย)" % fr, text))
+    if M:
+        mr = "|".join(re.escape(x) for x in sorted(M, key=len, reverse=True))
+        n += len(re.findall(r"(?:หี|เม็ดแตด|น้ำหี)(?:ของ)?(?:%s)" % mr, text))
+    return n
+
+
+def anatomy_line(cast_info):
+    f = [n for n, v in cast_info if v.get("g") == "F"]
+    m = [n for n, v in cast_info if v.get("g") == "M"]
+    if not f:
+        return ""
+    s = "ANATOMY (obey strictly): " + ", ".join(f) + (" are women: they have หี, เม็ดแตด, นม, หัวนม and NO ควย" if f else "")
+    if m:
+        s += "; " + ", ".join(m) + " are men: they have ควย and no หี"
+    s += ". Never give a woman a ควย and never use a strap-on or toy unless the plan names it; sex between two women is done with mouths, fingers, tongues and rubbing หี against หี (ขย่มหีชนหี)."
+    return s
+
+
 def part_message(b, parts, i, first_empty, names, avoid=None):
     p = parts[i]
     low = p["text"]
@@ -556,8 +587,12 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
         lines.append("WRITE: scene %d of %d%s." % (p["scene"], p["scenes"], (", beat %d of %d of this scene" % (p["beat"], p["beats"])) if p["beats"] > 1 else ""))
         lines.append("PLAN OF THIS SCENE (Thai): " + p["text"])
     lines.append("LENGTH: about %d Thai words (never more than %d)." % (p["words"], int(p["words"] * 1.25)))
+    ci_list = [(n.split(" (")[0], info.get(n.split(" (")[0]) or {}) for n in dict.fromkeys(cast)]
+    al = anatomy_line(ci_list) if is_sexual_text(p.get("text")) else ""
     if cast:
         lines.append("CAST OF THIS PART (only these characters may appear or speak, no one else enters; gender and age are given: speech must match them): " + ", ".join(dict.fromkeys(cast)))
+    if al:
+        lines.append(al)
     hh = heat_hint(p)
     if hh:
         lines.append(hh)
@@ -693,8 +728,8 @@ def polite_line(q, sp):
     body = m.group(2).rstrip()
     tail = re.search(r"[\s.!?…]*$", body).group(0)
     core = body[:len(body) - len(tail)] if tail else body
-    if len(core) < 8 or PARTICLE_END.search(core):
-        return q
+    if len(core) < 8 or PARTICLE_END.search(core) or re.search(r"(ครับ|ค่ะ|คะ|คับ)(?:คุณ|พี่|น้อง|ท่าน)?[\u0E01-\u0E4E]{0,12}$", core):
+        return q   # already polite, also when a vocative follows the particle (ค่ะคุณกฤษณ์ must not become ค่ะคุณกฤษณ์ค่ะ)
     ask = QUESTION_END.search(core) is not None or "?" in tail
     pm = {"M": "ครับ", "F": "คะ" if ask else "ค่ะ"}[sp]
     if re.search(r"(นะ|สิ)$", core):
@@ -717,6 +752,22 @@ def elder_listener(q, spn, info):
     return re.search(r"พ่อ|แม่|ป้า|ลุง|น้า|ปู่|ย่า|ยาย|คุณพ่อ|คุณแม่|ท่าน", q) is not None
 
 
+def tag_speaker(tag, info):
+    """the speaker named in the tag after a quote: the name that appears FIRST in the tag (the subject), longest name on a tie; not simply the longest name in it
+    (“...” กฤษณ์ถามโซเฟีย is Krit speaking)."""
+    best = None
+    t40 = tag[:40]
+    for nm in info:
+        if not nm:
+            continue
+        i = t40.find(nm)
+        if i < 0:
+            continue
+        if best is None or i < best[0] or (i == best[0] and len(nm) > len(best[1])):
+            best = (i, nm)
+    return best[1] if best else None
+
+
 def fix_particles(text, info, rough=False):
     """Make ครับ / ค่ะ agree with the gender of the speaker named in the tag after the quote."""
     lines = []
@@ -725,12 +776,9 @@ def fix_particles(text, info, rough=False):
         if m:
             tag = ln.strip()[m.end():]
             sp = None
-            spn = None
-            for nm in sorted(info, key=len, reverse=True):
-                if nm and nm in tag[:40]:
-                    sp = info[nm]["g"]
-                    spn = nm
-                    break
+            spn = tag_speaker(tag, info)
+            if spn:
+                sp = info[spn]["g"]
             if sp is None:
                 tg = tag.lstrip()
                 sp = "M" if tg.startswith("เขา") else "F" if tg.startswith("เธอ") else None
@@ -783,12 +831,11 @@ def particle_issues(text, info):
         m = QUOTE_RE.match(ln.strip())
         if m:
             tag = ln.strip()[m.end():]
-            for nm in sorted(info, key=len, reverse=True):
-                if nm and nm in tag[:40]:
-                    g = info[nm]["g"]
-                    if (g == "F" and "ครับ" in m.group(0)) or (g == "M" and re.search(r"ค่ะ|คะ", m.group(0))):
-                        n += 1
-                    break
+            nm = tag_speaker(tag, info)
+            if nm:
+                g = info[nm]["g"]
+                if (g == "F" and "ครับ" in m.group(0)) or (g == "M" and re.search(r"ค่ะ|คะ", m.group(0))):
+                    n += 1
     return n
 
 
@@ -1020,6 +1067,9 @@ def check_text(b, text, target=0):
     nt = fix_name_typos(body, names, count_only=True)
     if nt:
         issues.append("ชื่อตัวละครสะกดผิดจากตาราง %d จุด (เช่น กฤษฎ์ แทน กฤษณ์)" % nt)
+    an = anatomy_issues(body, char_info(b))
+    if an:
+        issues.append("กายวิภาคผิดเพศ %d จุด (ผู้หญิงมี ควย / ผู้ชายมี หี)" % an)
     if target and w > target * 1.2:
         issues.append("ความยาว %d คำ เกินเป้า %d คำ (%d%%)" % (w, target, w * 100 // target))
     rep = overused(body, names)
@@ -1173,13 +1223,13 @@ CALM_DENS_MAX = 3.5   # an ordinary (non-sexual) scene may not exceed this many 
 DUP_PART_MAX = 0.05   # at most this share of a part's long paragraphs may repeat word for word
 
 
-def part_score(t, need_dlg, need_sex, need_calm=False, existing=""):
+def part_score(t, need_dlg, need_sex, need_calm=False, existing="", anat=False):
     """1.0 each for a satisfied check, proportional when short; the sum is used to pick the better of two versions."""
     a = min(quote_share(t) / DLG_MIN, 1.0) if need_dlg else 1.0
     b = min(sex_density(t) / SEX_DENS_MIN, 1.0) if need_sex else 1.0
     c = min(CALM_DENS_MAX / max(sex_density(t), 0.01), 1.0) if need_calm else 1.0
     d = 1.0 - min(1.0, dup_ratio(t, existing) / 0.5)
-    return a + b + c + d
+    return a + b + c + d - (0.5 if anat else 0.0)
 
 
 def dup_ratio(t, existing=""):
@@ -1212,6 +1262,7 @@ def aw_run(b, cid, key):
             need_sex = is_sexual_text(parts[i].get("text"))
             need_calm = not need_sex
             cur0 = read(fp)
+            info0 = char_info(b)
             for attempt in range(3):
                 if attempt == 2 and cand is None:
                     break   # the third call exists only for the spoken-line rewrite
@@ -1223,6 +1274,8 @@ def aw_run(b, cid, key):
                         why.append("it did not stay on the sex: this part must be the sexual act itself from the first sentence to the last, with the body parts named (ควย, หี, นม, หัวนม, น้ำเงี่ยน) in nearly every paragraph and no drifting into work, family, memories or chat")
                     if need_calm and sex_density(cand[1]) > CALM_DENS_MAX:
                         why.append("this is an ORDINARY scene (no sex yet): remove the explicit sex words and acts, keep it to talk, atmosphere, glances and light touches")
+                    if anatomy_issues(cand[1], info0):
+                        why.append("it gave a woman a ควย or a man a หี: women have only หี, เม็ดแตด and นม; men have ควย; no strap-ons; rewrite those acts correctly")
                     if dup_ratio(cand[1], cur0) > DUP_PART_MAX:
                         why.append("it repeated whole paragraphs and lines that were already written: every paragraph must be new, with new body movements, new words and new events")
                     m = msg + "\nREWRITE: your previous version was not acceptable: " + "; and ".join(why or ["write it more vividly"]) + ". Write the part again, keeping the same events."
@@ -1250,9 +1303,9 @@ def aw_run(b, cid, key):
                 if ch0.get("finish_reason") == "length":
                     t = trim_to_paragraph(t)
                 if t and not t.lstrip().startswith("{") and "```" not in t and len(t) > 200:
-                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0)
+                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)))
                     ok_t = ((not need_dlg or quote_share(t) >= DLG_MIN) and (not need_sex or sex_density(t) >= SEX_DENS_MIN)
-                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and dup_ratio(t, cur0) <= DUP_PART_MAX)
+                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0))
                     if cand is not None:
                         job["retries"] = job.get("retries", 0) + 1
                         if sc_t >= cand[0]:
