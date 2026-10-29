@@ -1370,6 +1370,8 @@ def _plan_issues_pose(text, part):
     lines = [re.sub(r"“[^”]*”?", "", ln) for ln in (text or "").split("\n") if ln.strip()]
     cum_n = sum(1 for ln in lines if _CUM.search(ln))
     out = []
+    if any(st.get("id") in ("T6", "M7") for st in pp.get("steps", [])) and not re.search(r"ทวาร|รูก้น|รูตูด|ตูด|ทวารหนัก|เข้าไปในก้น|ก้นของเธอ", "\n".join(lines)):
+        out.append("แผนมีท่า double (ควยหนึ่งดอกในหี อีกดอกในทวารพร้อมกัน) แต่ไม่พบการเขียนว่าสอดควยเข้าทวารเลย: ต้องเขียนขั้นตอนนี้ให้ชัด (เจล นิ้วช้าๆ แล้วค่อยๆ สอดเข้าทวาร เธอร้องขอให้ช้า)")
     if not has_f and cum_n:
         out.append("ผู้ชายแตกทั้งที่แผนของ beat นี้ยังไม่ถึงจุดจบ")
     if pp.get("quick") and re.search(r"(?:เลีย|ดูด|กิน)(?:ยอด)?(?:หี|เม็ดแตด|แตด)|(?:ปาก|ลิ้น|ริมฝีปาก)ของ(?:เขา|[ก-ฮ]{2,8})[^\n“]{0,25}(?:หี|เม็ดแตด|ยอดหี)", "\n".join(lines)):
@@ -1790,6 +1792,18 @@ def chapter_polish(text, info):
         n[0] += 1
         return m.group(0) if (n[0] - 1) % 3 == 0 else alts[(n[0] - 2) % len(alts)]
     t = re.sub(r"พุ่งออกมา", rep, t)
+    nm = [x for x in (info or {}) if x]
+    if nm:   # R73 (r72-trio-e: "ควยของปกรณ์" x8, "ควยของธนา" x8): chapter-wide, keep the 1st and every 3rd per name; the others lose "ของ<name>" when that man was named in the last 150 characters
+        alt = "|".join(re.escape(x) for x in sorted(nm, key=len, reverse=True))
+        cn = {}
+        base = t
+        def rep3(m):
+            w, who = m.group(1), m.group(2)
+            cn[(w, who)] = cn.get((w, who), 0) + 1
+            if (cn[(w, who)] - 1) % 3 == 0:
+                return m.group(0)
+            return w if who in base[max(0, m.start() - 150):m.start()] else m.group(0)
+        t = re.sub(r"(ควย|หน้าอก|ริมฝีปาก|มือ|ต้นขา|สะโพก|ปลายนิ้ว|ปลายลิ้น)ของ(" + alt + r")", rep3, t)
     t = re.sub(r"(หี[^\n“”]{0,30})ล้นออกทางปาก", r"\1ล้นออกมาไหลเยิ้ม", t)
     lines = t.split("\n")
     k = len(lines)
