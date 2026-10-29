@@ -1521,6 +1521,20 @@ def _name_variant_res(names):
 
 def fix_name_typos(text, names, count_only=False):
     n = 0
+    # R24 (29 Oct): a name with ONE extra repeated consonant (ลลลิตา for ลลิตา, seen ×12 in R20/R23) is repaired first
+    known_all = {th for _, th in names if th} | {nm for nm, _ in names if nm}
+    for nm, th in names:
+        if not th or len(th) < 4 or re.search(r"[A-Za-z\s]", th):
+            continue
+        for i, ch in enumerate(th):
+            if re.match(r"[\u0E01-\u0E2E]", ch):
+                var = th[:i] + ch + th[i:]
+                if var in known_all or var == th:
+                    continue
+                c = text.count(var)
+                if c:
+                    n += c
+                    text = text.replace(var, th)
     for th, rx, known in _name_variant_res(names):
         def sub(m, th=th, known=known):
             nonlocal n
