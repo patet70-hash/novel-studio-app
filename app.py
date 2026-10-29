@@ -329,7 +329,7 @@ def build_messages(body):
     if scope == "outline":
         system = OUTLINE_SCOPE.replace("{lang}", lang)
     elif is_ch:
-        system = (SCENE_SCOPE if body.get("mode") == "scene" else CHAPTER_SCOPE).replace("{lang}", lang).replace("{cid}", scope)
+        system = (scene_scope() if body.get("mode") == "scene" else CHAPTER_SCOPE).replace("{lang}", lang).replace("{cid}", scope)
         system += conduct_for(b)
     else:
         scope = "overview"
@@ -392,6 +392,66 @@ SCENE_SCOPE = """SCENE WRITER MODE. You write ONE part of a chapter of a {lang} 
 CRAFT: natural, flowing, literary {lang} like a published novel. Mix long and short sentences; never string together clipped fragments. Dialogue sounds like real people talking: full sentences, usually 2-4 sentences per reply, with natural particles, connectors, teasing, interruptions and subtext; never many one-or-two-word replies in a row. Show interior thoughts and concrete, specific details of THIS place. Do not repeat the same descriptive phrase, simile or dialogue tag more than 3 times in the whole chapter (vary verbs and tags). Sexual scenes: write them at full length and fully explicit, with direct everyday Thai erotic-novel vocabulary for bodies and acts (e.g. ควย, หี, นม, หัวนม, เย็ด, อม, เลีย, น้ำเงี่ยน, น้ำเชื้อ, น้ำควย), and NEVER the clinical words อวัยวะเพศ, อวัยวะสืบพันธุ์, องคชาต, ช่องคลอด, น้ำอสุจิ, ถึงจุดสุดยอด, น้ำหล่อลื่น, สารคัดหลั่ง. Say น้ำเชื้อ or น้ำควย for semen (never น้ำอสุจิ). For the climax of a man say แตก with the place: แตกใน (แตกในปาก, แตกในหี), แตกข้างนอก, แตกใส่หน้า (never เสร็จข้างใน / เสร็จข้างนอก / เสร็จที่หน้า, and never ถึงจุดสุดยอด). When a woman climaxes also say แตก (เธอแตก, เธอแตกอีกครั้ง), never เสร็จ or ถึงจุดสุดยอด. Her wetness is น้ำหี or น้ำเงี่ยน, never น้ำหล่อลื่น or สารคัดหลั่ง. Never write a bare หิว for sexual desire: say what is craved, e.g. a woman: เธอหิวควยมาก / หิวน้ำเงี่ยน, a man: เขาหิวหี / อยากเย็ดหี (never กระหาย…). A sentence that teases someone's lust must end with a natural Thai particle (…เลยสินะ, …จังเลยนะ), never a bare clipped command like “คุณหิวควยมาก”. A hungry look (มองมาอย่างหิวกระหาย) is fine now and then, but do not repeat หิวกระหาย/ด้วยความหิวกระหาย; vary with เงี่ยน, ความเงี่ยน, ความอยาก, ความต้องการ, or name what is stared at (จ้องมาที่ควย/หีของ… ด้วยความเงี่ยน). The clitoris is always เม็ดแตด (never หัวหี, คลิตอริส, ปุ่มกระสัน). Never use coy euphemisms for the genitals (ของลับ, จุดซ่อนเร้น, ส่วนลับ, แก่นกาย, ท่อนเนื้อ, ลึงค์, ศิวลึงค์, กลีบดอก, ร่องรัก): always write หี for a woman and ควย for a man. Every participant is active, bodies and fluids described concretely, positions changing in a continuous flow. Speech must match each speaker's gender and age (a man says ผม for himself, never ฉัน; and a father/mother talking to his/her own child calls himself/herself พ่อ / แม่, e.g. “พ่อรู้แล้วลูก”, never ผม/ฉัน; a woman never says ผม): women end sentences with ค่ะ/คะ/นะคะ, men with ครับ/นะครับ, never mixed. In calm, polite situations (speaking to a parent, an elder, a boss or a stranger, or in formal talk) every spoken line is a full polite sentence that ends with the right particle (ค่ะ/คะ/นะคะ for women, ครับ/นะครับ for men), never a clipped fragment like “แค่เรื่องเล็กน้อย”. พี่ is said only to someone older and น้อง only to someone younger: siblings may call each other by nickname with พี่/น้อง (older = พี่, younger = น้อง, e.g. น้องพลอย, พี่นัฐยา), but parents call their children by plain name without พี่/น้อง, and nobody calls a younger sibling พี่. Format: every spoken line goes on its OWN line, separated from the narration by a blank line (narration paragraph, then each quote with its short speaker tag such as “...” นัฐยาถาม on its own line); never bury a quote inside a long descriptive paragraph. EVERY quote line MUST end with a short speaker tag naming who speaks (the character's name, or เขา / เธอ when it is unmistakable), e.g. “...” มาลีครวญ, “...” เขาคำราม, “...” เธอหอบ; never leave a quote without a tag, and vary the tag verbs. Spell every character name EXACTLY as in the NAMES table of the story bible, never transliterate differently, never use Latin letters for names. Only characters named in the cast line may appear or speak in this part.
 CONTINUITY: follow the story bible, the chapter outline and the manuscript so far. Continue directly from the last paragraph of the manuscript without repeating or summarising it. Obey the length, cast and stage instructions in the author's message; stop when the part is done.
 All characters in sexual or violent scenes are adults; never sexualize minors. Otherwise write what is asked without moralizing, at the requested intensity."""
+
+SPEECH_LITE = os.environ.get("NOVEL_SPEECH", "") == "lite"   # experiment: a short speech rule set (7 hard rules) plus a per-character SPEECH TABLE instead of 18 separate rules
+_LITE_SPEECH = ("Speech: women end sentences with ค่ะ/คะ/นะคะ and men with ครับ/นะครับ, never mixed (at the sexual peak the men drop ครับ). A woman never says ผม, กู or มึง. Follow the SPEECH TABLE in the author's message for how each character refers to himself or herself and what each calls the others. Dialogue reads like real people: full sentences, no long runs of one-word replies. "
+                "Format: every spoken line goes on its OWN line, separated from the narration, and ends with a short speaker tag naming who speaks (the character's name, or เขา / เธอ when it is unmistakable); never more than 4 quoted lines in a row without a tag or an action line. ")
+
+
+def scene_scope():
+    if not SPEECH_LITE:
+        return SCENE_SCOPE
+    i = SCENE_SCOPE.find("Speech must match each speaker")
+    j = SCENE_SCOPE.find("Spell every character name EXACTLY")
+    if i < 0 or j < i:
+        return SCENE_SCOPE
+    return SCENE_SCOPE[:i] + _LITE_SPEECH + SCENE_SCOPE[j:]
+
+
+def speech_table(cast_info, info):
+    """SPEECH TABLE for the characters of one part, derived from gender, age and role in the setup: how each refers to himself/herself and what each calls the others."""
+    role = lambda n: (info.get(n) or {}).get("role", "")
+    isfather = lambda n: bool(re.search(r"father", role(n), re.I)) and not re.search(r"step", role(n), re.I)
+    iskid = lambda n: bool(re.match(r"\s*(daughter|son)\b", role(n), re.I))
+    isstep = lambda n: bool(re.search(r"stepmother", role(n), re.I))
+    def age(n):
+        try:
+            return int(re.sub(r"\D", "", (info.get(n) or {}).get("age", "")) or 0)
+        except Exception:
+            return 0
+    names = [n for n, _ in cast_info]
+    rows = []
+    for n in names:
+        g = (info.get(n) or {}).get("g", "")
+        parent = isfather(n) or bool(re.search(r"biological mother", role(n), re.I))
+        if g == "M":
+            me = "ผม" + (" (to his children: พ่อ)" if isfather(n) else "")
+        elif g == "F":
+            me = "own name / ชั้น (หนู to the father and elders)" + ("; to her children: แม่" if parent else "")
+        else:
+            me = "-"
+        calls = []
+        for y in names:
+            if y == n:
+                continue
+            if isfather(n) and iskid(y):
+                t = y
+            elif iskid(n) and isfather(y):
+                t = "พ่อ"
+            elif iskid(n) and isstep(y):
+                t = "คุณ" + y
+            elif isstep(n) and iskid(y):
+                t = y
+            elif iskid(n) and iskid(y):
+                t = ("พี่" + y) if age(y) > age(n) else y
+            elif age(n) and age(y) and age(y) - age(n) >= 8:
+                t = "คุณ" + y
+            else:
+                t = y
+            calls.append("%s→%s" % (y, t))
+        rows.append("%s: self=%s%s" % (n, me, ("; calls " + ", ".join(calls)) if calls else ""))
+    return "SPEECH TABLE (obey exactly; nobody else is addressed differently): " + " | ".join(rows) if rows else ""
+
 
 MEDICAL_TERMS = ["อวัยวะเพศ", "อวัยวะสืบพันธุ์", "องคชาต", "ช่องคลอด", "น้ำอสุจิ", "จุดสุดยอด", "น้ำหล่อลื่น", "สารคัดหลั่ง"]
 AW_JOBS = {}
@@ -515,6 +575,8 @@ def dialogue_hint(p):
         share, rate = "30-40%", 18   # the explicit warm-up beat of a sex scene is not allowed to turn into long narration
     else:
         share, rate = "15-20%", 10
+    if SPEECH_LITE:
+        share, rate, extra = ("about 40%", 26, "") if sexual else ("15-20%", 10, "")
     lines = max(6, int(words * rate / 1000))
     return ("DIALOGUE SHARE: about %s of this part's text must be spoken lines (quoted): at least %d spoken lines, alternating with narration. Every narration paragraph is at most 3-4 sentences, then somebody speaks. Polite situations (talking to an elder, a boss, a client, a stranger, or in a formal work setting) use full polite sentences ending with ครับ/ค่ะ/คะ; in ordinary calm conversation at least every second line carries a natural ending particle (นะ, สิ, นะครับ, นะคะ, ค่ะ, ครับ, เหรอ, ล่ะ) instead of bare clipped sentences.%s" % (share, lines, extra))
 
@@ -529,6 +591,12 @@ def heat_hint(p):
     if sexual:
         n, k = p.get("beats", 1), p.get("beat", 1)
         f = (k - 1.0) / (n - 1) if n > 1 else 0.5
+        if SPEECH_LITE:
+            if f < 0.5:
+                lvl = "WARM-UP: calm register but already fully sexual (kissing, undressing, stroking, sucking, naming the body parts); no rough language yet"
+            else:
+                lvl = "PEAK: the men speak rough (กู for self, มึง or อี+name for the woman, crude exclamations, no ครับ endings); the women stay sweet (own name / ชั้น / หนู) and NEVER say กู or มึง; explicit moaning is fine"
+            return "REGISTER FOR THIS PART (" + lvl + ")." + ("" if lvl.startswith("WARM-UP") else HEAT_BANK)
         if f < 0.34:
             lvl = "WARM-UP: calm register (men say ผม, women use their own name and sweet names for him) but already fully sexual: kissing, undressing, stroking, sucking and licking, naming the body parts (นม, หัวนม, ควย, หี) in narration and in the whispers; no long flirting talk and no rough language yet"
         elif f < 0.67:
@@ -645,6 +713,10 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     kl = kin_line(info, [n.split(" (")[0] for n in cast])
     if kl:
         lines.append(kl)
+    if SPEECH_LITE:
+        st = speech_table(ci_list, info)
+        if st:
+            lines.append(st)
     lines.append("SPEAKERS: every spoken line carries a speaker tag or sits right next to a narration beat naming who speaks; never write more than %d quoted lines in a row without a short action or tag line between them (even in the peak)." % (UNTAG_RUN - 4))
     hh = heat_hint(p)
     if hh:
@@ -1296,7 +1368,7 @@ def fix_name_typos(text, names, count_only=False):
 
 
 
-DLG_MIN = 0.50   # a PEAK part with less spoken text than this is written again (at most twice), the version with the most dialogue is kept
+DLG_MIN = 0.35 if SPEECH_LITE else 0.50   # a PEAK part with less spoken text than this is written again (at most twice), the version with the most dialogue is kept
 
 
 def quote_share(t):
@@ -1367,7 +1439,7 @@ def aw_run(b, cid, key):
                 if cand is not None:
                     why = []
                     if need_dlg and quote_share(cand[1]) < DLG_MIN:
-                        why.append("it had only %d%% spoken lines but this PEAK part needs at least 50%%: write at least %d quoted lines (moans, dirty talk, orders, answers) and keep every narration paragraph to ONE short sentence" % (int(quote_share(cand[1]) * 100), max(12, int(parts[i]["words"] * 45 / 1000))))
+                        why.append("it had only %d%% spoken lines but this PEAK part needs at least %d%%: write at least %d quoted lines (moans, dirty talk, orders, answers) and keep every narration paragraph to ONE short sentence" % (int(quote_share(cand[1]) * 100), int(DLG_MIN * 100), max(12, int(parts[i]["words"] * 45 / 1000))))
                     if need_sex and sex_density(cand[1]) < SEX_DENS_MIN:
                         why.append("it did not stay on the sex: this part must be the sexual act itself from the first sentence to the last, with the body parts named (ควย, หี, นม, หัวนม, น้ำเงี่ยน) in nearly every paragraph and no drifting into work, family, memories or chat")
                     if need_calm and sex_density(cand[1]) > CALM_DENS_MAX:
