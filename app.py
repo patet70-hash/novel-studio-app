@@ -1521,7 +1521,13 @@ def thin_manner(text):
     def rep(m):
         n[0] += 1
         return m.group(0) if n[0] == 1 else "ออกมา"
-    return re.sub(r"ออกมาเสียง(?:สั่นเครือ|แหลม|ทุ้ม|สั่น|แผ่ว|เบา|ต่ำ|ดัง|ห้าว|พร่า|แหบ|เครือ|ลั่น|ขาด)[ก-ฮ]{0,4}", rep, text)
+    adj = r"(?:สั่นเครือ|แหบพร่า|แหลมสูง|ทุ้มต่ำ|แผ่วเบา|แหลม|ทุ้ม|สั่น|แผ่ว|เบา|ต่ำ|ดัง|ห้าว|พร่า|แหบ|เครือ|ลั่น|ขาด)"
+    m_ = [0]
+    def rep3(m):
+        m_[0] += 1
+        return m.group(0) if m_[0] == 1 else m.group(1)   # R61: "ครางเสียงแหลม" x9 -> keep the first per part, then just "คราง"
+    text = re.sub(r"(คราง|ร้อง|คราง)เสียง" + adj, rep3, text)
+    return re.sub(r"ออกมาเสียง" + adj, rep, text)
 
 
 def thin_fluid(text):
