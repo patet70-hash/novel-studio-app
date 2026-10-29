@@ -953,7 +953,7 @@ def pose_block_group(part):
         L.append(ln)
     L.append("PLAN RULES: each man's cock is in ONE place at a time; her mouth holds ONE cock at a time, her pussy ONE cock, her anus only in the double-penetration step; the men NEVER touch, kiss, lick or rub each other; a man comes only at his CLIMAX step; after he comes he is soft and rests (he may kiss her and touch her with his hands) until a recovery step; the woman has a pussy only and the men a cock only; keep every paragraph to one position.")
     if os.environ.get("NOVEL_GSPEAK", "1") != "0":   # R48 (29 Oct): speaker / address rules for three-person scenes
-        L.append("SPEAKING RULES (three people are talking): every spoken line is said by exactly ONE person and its tag names that person (%s, %s or %s). Her moans, her climax and her requests are said by %s ONLY, tagged to her, never to a man. The men speak TO her or about her; %s and %s never speak vulgar or insulting words to each other and never talk about each other's body (between themselves only a short plain line such as asking the other to wait or to move). A man never calls himself by his own name and never speaks of himself in the third person. She never says กู or มึง; the men never say ชั้น." % (A, B, W, W, A, B))
+        L.append("SPEAKING RULES (three people are talking): every spoken line is said by exactly ONE person and its tag names that person (%s, %s or %s). Her moans, her climax and her requests are said by %s ONLY, tagged to her, never to a man. The men speak TO her or about her; %s and %s never speak vulgar or insulting words to each other and never talk about each other's body (between themselves only a short plain line such as asking the other to wait or to move). A man never calls himself by his own name and never speaks of himself in the third person. She never says กู or มึง; the men never say ชั้น. In the narration two men are present, so never write a bare 'เขา' for a man: write his name; and do not repeat 'ควยของ…' in every sentence (at most twice per paragraph, otherwise just say what he does). 'ให้หมด' goes only with a liquid (กลืนให้หมด, กินน้ำควยให้หมด), never with a body part (never 'ดูดควยให้หมด')." % (A, B, W, W, A, B))
     return " ".join(L[:1]) + "\n" + "\n".join(L[1:])
 
 
@@ -1170,6 +1170,7 @@ def kin_line(info, present, kin=None):
 
 
 LEN_SCALE = float(os.environ.get("NOVEL_LENSCALE", "0.9"))  # R21 switch (default unchanged 0.9); chapters came out at ~110% of target (ch03-08: 5,191 / 5,286 / 6,011 / 5,980 / 5,872 / 5,858 words for 5,000): ask for 10% less
+G_LEN = float(os.environ.get("NOVEL_GLEN", "0.8"))  # R50 switch: extra length factor for group (2 men + 1 woman) parts
 
 
 def part_message(b, parts, i, first_empty, names, avoid=None):
@@ -1189,7 +1190,8 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     else:
         lines.append("WRITE: scene %d of %d%s." % (p["scene"], p["scenes"], (", beat %d of %d of this scene" % (p["beat"], p["beats"])) if p["beats"] > 1 else ""))
         lines.append("PLAN OF THIS SCENE (Thai): " + p["text"])
-    lines.append("LENGTH: about %d Thai words (never more than %d)." % (int(p["words"] * LEN_SCALE), int(p["words"] * LEN_SCALE * 1.2)))
+    ls_ = LEN_SCALE * (G_LEN if _is_group(p) else 1.0)   # R50 (29 Oct): three-person parts overshoot by ~23% even at LENSCALE 0.6 (R45/R48/R49): ask for less
+    lines.append("LENGTH: about %d Thai words (never more than %d)." % (int(p["words"] * ls_), int(p["words"] * ls_ * 1.2)))
     ci_list = [(n.split(" (")[0], info.get(n.split(" (")[0]) or {}) for n in dict.fromkeys(cast)]
     al = anatomy_line(ci_list) if is_sexual_text(p.get("text")) else ""
     if cast:
