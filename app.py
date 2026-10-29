@@ -1203,6 +1203,26 @@ def overused(body, names, top=5, fill_min=10):
     return out[:top]
 
 
+FORMULA_RE = re.compile(r"^[\u201c\"][^\u201c\u201d\"\n]{1,30}(?:\.\.\.|\u2026)[^\u201c\u201d\"\n]{1,30}[\u201d\"]\s*$")
+
+
+def formula_lines(text):
+    """(formula quoted lines, all quoted lines): short two-beat lines 'X... Y' that make the dialogue read like a loop."""
+    q = [ln.strip() for ln in (text or "").split("\n") if QUOTE_RE.match(ln.strip())]
+    return sum(1 for ln in q if FORMULA_RE.match(ln)), len(q)
+
+
+def formula_heavy(text):
+    f, n = formula_lines(text)
+    return n >= 8 and f >= 0.7 * n
+
+
+def loop_tail(text):
+    """True if the last 8 non-empty lines are all very short (<=22 chars): a looping/fading ending."""
+    ls = [ln.strip() for ln in (text or "").split("\n") if ln.strip() and not ln.startswith("#")]
+    return len(ls) >= 10 and all(len(x) <= 22 for x in ls[-8:])
+
+
 def check_text(b, text, target=0):
     """quality report for a chapter text (Thai messages)."""
     issues = []
@@ -1257,6 +1277,11 @@ def check_text(b, text, target=0):
     aq = body.count('"')
     if aq >= 4 and body.count("\u201c") >= 4:
         issues.append("เครื่องหมายคำพูดปนกัน: ตรง \" %d ตัว และโค้ง “ ” %d ตัว (ควรเป็นแบบเดียวกัน)" % (aq, body.count("\u201c")))
+    ff, fn = formula_lines(body)
+    if fn >= 8 and ff >= 0.5 * fn:
+        issues.append("บทพูดสูตรเดียวกัน “X... Y” %d จาก %d บรรทัด (อ่านเหมือนวน ควรหลากหลายรูปประโยค)" % (ff, fn))
+    if loop_tail(body):
+        issues.append("ตอนจบเป็นบรรทัดสั้นๆ ต่อกัน 8 บรรทัดท้าย (เสี่ยงวน/จบไม่สมบูรณ์)")
     ut = untagged_dialogue(body)
     if ut:
         issues.append("บทพูดล้วนไม่มีผู้พูด/บรรยายคั่น %d บรรทัด (ติดกัน ≥%d บรรทัด) อ่านไม่รู้ว่าใครพูด" % (ut, UNTAG_RUN))
@@ -1470,6 +1495,8 @@ def aw_run(b, cid, key):
                         why.append("it gave a woman a ควย or a man a หี: women have only หี, เม็ดแตด and นม; men have ควย; no strap-ons; rewrite those acts correctly")
                     if dup_ratio(cand[1], cur0) > DUP_PART_MAX:
                         why.append("it repeated whole paragraphs and lines that were already written: every paragraph must be new, with new body movements, new words and new events")
+                    if formula_heavy(cand[1]):
+                        why.append("most quoted lines had the same shape 'short phrase... short phrase': vary the dialogue: full sentences, questions, commands, names, one-word cries, interrupted lines, and mix action beats between the lines")
                     if untag_n(cand[1]):
                         why.append("it had a long run of bare quoted lines with no speaker or action between them: after every 2-3 quoted lines add a short action beat or tag that names who is speaking and what the bodies are doing, so the reader always knows who talks")
                     m = msg + "\nREWRITE: your previous version was not acceptable: " + "; and ".join(why or ["write it more vividly"]) + ". Write the part again, keeping the same events."
@@ -1498,13 +1525,14 @@ def aw_run(b, cid, key):
                     t = trim_to_paragraph(t)
                 if t and not t.lstrip().startswith("{") and "```" not in t and len(t) > 200:
                     untag_t = untag_n(t)
+                    fh_t = formula_heavy(t)
                     if attempt == 0:   # experiment instrumentation: how much of the model's FIRST answer repeats what is already in the chapter
                         job.setdefault("raw_dup", []).append(round(dup_ratio(t, cur0), 3))
                         job.setdefault("raw_anat", []).append(anatomy_issues(t, info0))
                         job.setdefault("raw_untag", []).append(untag_t)
-                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)), bool(untag_t))
+                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)), bool(untag_t) or fh_t)
                     ok_t = ((not need_dlg or quote_share(t) >= DLG_MIN) and (not need_sex or sex_density(t) >= SEX_DENS_MIN)
-                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0) and not untag_t)
+                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0) and not untag_t and not fh_t)
                     if cand is not None:
                         job["retries"] = job.get("retries", 0) + 1
                         if sc_t >= cand[0]:
