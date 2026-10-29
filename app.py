@@ -907,7 +907,7 @@ def make_quickie_plan(nbeats, rng, table=None):
     return out
 
 
-def make_group_plan(nbeats, rng, A, B, table=None):
+def make_group_plan(nbeats, rng, A, B, table=None, dp=False, tail_ok=True):
     """one scene's chain for one woman and two men A, B (names). Steps: {"id", "w", "who"?, "fin"?}. Shape: warm-up for both, group steps (her
     climax in one or two), then (3+ beats) the first man comes and rests while the second continues alone, then he comes too; with 5+ beats a
     recovery of both, another group step and a last common finish. Two beats: warm-up, two group steps, one common finish. Both men always come."""
@@ -921,8 +921,8 @@ def make_group_plan(nbeats, rng, A, B, table=None):
         ns = 1 if n == 3 else 2
         ng, tail = S - 3 - ns, False
     else:
-        ns, tail = 2, True
-        ng = S - 3 - ns - 3
+        ns, tail = 2, bool(tail_ok)   # R79: a scene whose summary names where each man comes has no second round of finishes
+        ng = S - 3 - ns - (3 if tail else 0)
     first, second = (A, B) if rng.random() < 0.5 else (B, A)
     chain = [{"id": "M1"}]
     used = {}
@@ -961,6 +961,10 @@ def make_group_plan(nbeats, rng, A, B, table=None):
             add_group()
             k = rng.sample(["F1", "F2", "F3"], 2)
             chain.append({"id": "FB", "fin": {first: k[0], second: k[1]}})
+    if dp:   # R79: the summary asks for the double: M7 replaces the last group step before the first finish (needs two oral/pen steps before it)
+        gi = [i for i, c in enumerate(chain) if (G.get(c["id"]) or {}).get("k") in ("oral", "pen")]
+        if len(gi) >= 3 and "M7" not in [c["id"] for c in chain]:
+            chain[gi[-1]] = {"id": "M7"}
     force = os.environ.get("NOVEL_FORCEPOSE", "")   # experiment switch: put this group pose (e.g. M7) into every group chain, in place of the last group step before the first finish
     if force in G and force not in [c["id"] for c in chain]:
         gi = [i for i, c in enumerate(chain) if (G.get(c["id"]) or {}).get("k") in ("oral", "pen")]
@@ -996,7 +1000,7 @@ TRIO_TABLE = {
 }
 
 
-def make_group3_plan(nbeats, rng, men, table=None):
+def make_group3_plan(nbeats, rng, men, table=None, dp=False, tail_ok=True):
     """one scene's chain for one woman and three men (names list). Steps: {"id", "w", "r": [A,B,C] roles, "who", "ab"/"rest", "fin"}.
     Shape: warm-up and trio steps with all three men; (3+ beats) the first man comes and rests while the other two continue with the two-men table;
     the second comes and rests while the third continues alone; the third comes. 5+ beats add a recovery of all three, one more trio step and a last
@@ -1049,13 +1053,17 @@ def make_group3_plan(nbeats, rng, men, table=None):
         sp = rng.choice(_SOLO_PEN)
         chain.append({"id": sp, "who": m3})
         chain.append({"id": rng.choice(fins), "who": m3})
-        if n >= 5:
+        if n >= 5 and tail_ok:
             chain.append({"id": "RT", "r": roles()})
             prev[0] = "RT"
             add_trio()
             k = ["F1", "F2", "F3"]
             rng.shuffle(k)
             chain.append({"id": "FT", "r": list(order), "fin": dict(zip(order, k))})
+    if dp and ngr >= 3 and "T6" not in [c["id"] for c in chain]:   # R79: the summary asks for the double: it replaces the last trio step
+        ti = [i for i, c in enumerate(chain) if c["id"] in TRIO_TABLE and TRIO_TABLE[c["id"]]["k"] in ("oral", "pen")]
+        if len(ti) >= 3:
+            chain[ti[-1]] = {"id": "T6", "r": roles()}
     act = [i for i, c in enumerate(chain) if i > 0 and _pose_kind(t, c["id"]) in ("oral", "pen")]
     for i in rng.sample(act, min(len(act), rng.randint(1, 2))):
         chain[i]["w"] = True
@@ -1248,6 +1256,14 @@ def finish_wanted(txt):
     return ""
 
 
+_DP_RE = re.compile(r"สอดสองรู|สองรูพร้อม|สองรู|ดับเบิล|double|DP|สอดทวารพร้อม|หีกับทวาร|หีและทวาร", re.I)
+
+
+def dp_wanted(txt):
+    """R79 (r76-dp: the summary said 'มีท่าสอดสองรูพร้อมกัน' and the double was never written): the author asks for the double penetration."""
+    return bool(_DP_RE.search(txt or ""))
+
+
 def finish_wanted_men(txt, names):
     """R75 (29 Oct, r74-mix): in a scene with several men the author names where EACH man comes ('ปกรณ์แตกในปากเธอ ก้องแตกบนหน้าท้องเธอ'):
     {name: (kind F1/F2/F3, place)} for the men the text names, others free."""
@@ -1334,9 +1350,9 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         for k in range(60):
             rng = random.Random(zlib.crc32(("%s|%s|%d|%d|%d" % (b, cid, sc, salt, k)).encode("utf-8")))
             if group3:
-                plan = make_group3_plan(len(ps), rng, men, t)
+                plan = make_group3_plan(len(ps), rng, men, t, dp=dp_wanted(txt), tail_ok=not finish_wanted_men(txt, men))
             elif group:
-                plan = make_group_plan(len(ps), rng, men[0], men[1], t)
+                plan = make_group_plan(len(ps), rng, men[0], men[1], t, dp=dp_wanted(txt), tail_ok=not finish_wanted_men(txt, men))
             elif quick:
                 plan = make_quickie_plan(len(ps), rng, t)
             else:
@@ -1928,8 +1944,9 @@ def unify_register(text, info):
     for ln, m, spn in parsed:
         if m and spn in rough:
             q = m.group(0)
-            if re.search(PRE + r"ผม" + HAIR_, q) and "ครับ" not in q:   # R75: every ผม of a rough man, not only the dirty lines
-                q2 = re.sub(PRE + r"ผม" + HAIR_, "กู", q)
+            if re.search(PRE + r"ผม" + HAIR_, q):   # R75: every ผม of a rough man, not only the dirty lines; R79 (r78-dp: "สิครับ ผมอยากเห็น" from a man who says กู 7 times): his ครับ goes too
+                q2 = re.sub(r"\s*(?:นะ)?ครับ", "", q) if "ครับ" in q else q
+                q2 = re.sub(PRE + r"ผม" + HAIR_, "กู", q2)
                 ln = ln.replace(q, q2, 1)
         out.append(ln)
     return "\n".join(out)
