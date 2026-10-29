@@ -927,6 +927,21 @@ def plan_issues(text, part):
         out.append("ผู้ชายแตกทั้งที่แผนของ beat นี้ยังไม่ถึงจุดจบ")
     if has_f and not cum_n:
         out.append("beat นี้ต้องมีการแตกของผู้ชายตามแผน แต่ไม่พบ")
+    if has_f and cum_n:
+        # R40 (29 Oct): the kind of finish must match the plan (R38: said "inside" then came outside; R39: plan outside, written in her mouth)
+        fid = [s["id"] for s in pp.get("steps", []) if _pose_kind(t, s["id"]) == "finish"][-1]
+        alltxt = text or ""
+        inside = re.search(r"แตก(?:ข้าง)?ใน(?!ปาก)|ข้างในตัว|ในหีของ|ปล่อยใน|หลั่งใน|ฝังน้ำ", alltxt)
+        mouth = re.search(r"(?:น้ำเชื้อ|น้ำควย|แตก|พุ่ง)[^\n]{0,30}(?:ในปาก|ใส่ปาก|เข้าปาก|ลงคอ)|(?:ในปาก|ใส่ปาก)[^\n]{0,30}(?:น้ำเชื้อ|น้ำควย|แตก|พุ่ง)", alltxt)
+        outside = re.search(r"แตกนอก|แตกข้างนอก|(?:น้ำเชื้อ|น้ำควย|พุ่ง)[^\n]{0,40}(?:หน้าท้อง|หน้าอก|ท้อง|ก้น|แผ่นหลัง|หลังของ|ต้นขา|ใบหน้า|นม)", alltxt)
+        if fid == "F2" and (inside or mouth):
+            out.append("แผนให้ผู้ชายแตกข้างนอกบนตัวเธอ ห้ามแตกในหีหรือในปาก")
+        elif fid == "F1" and not mouth:
+            out.append("แผนให้ผู้ชายแตกในปากเธอ ต้องเขียนให้ชัด")
+        elif fid == "F3" and not inside:
+            out.append("แผนให้ผู้ชายแตกข้างในหีเธอ ต้องเขียนให้ชัด")
+        elif fid == "F3" and (mouth or (outside and not inside)):
+            out.append("แผนให้ผู้ชายแตกข้างในหีเธอ ห้ามแตกนอกหรือในปาก")
     return out
 
 
@@ -1260,7 +1275,7 @@ def fix_particles(text, info, rough=False):
                 q = re.sub(r"(?<![ก-ฮ])ผม" + HAIR, "กู", q)
                 q = re.sub(r"นะครับ", "นะ", q).replace("ครับ", "")
             if sp == "M":   # R23 (29 Oct): a man never says ชั้น (women's pronoun): ผม, or กู in the rough register
-                q = re.sub(r"(?<![ก-ฮ])ชั้น(?!วาง|ที่|หนึ่ง|สอง|สาม|บน|ล่าง|ใน|เรียน|ปี|ประถม|มัธยม|เชิง|ๆ)", "กู" if re.search(r"มึง|(?<![ก-ฮ])กู(?!เก|รู)", q) else "ผม", q)
+                q = re.sub(r"(?:(?<![ก-ฮ])|(?<=ของ)|(?<=ให้)|(?<=กับ)|(?<=ถึง)|(?<=แก่))ชั้น(?!วาง|ที่|หนึ่ง|สอง|สาม|บน|ล่าง|ใน|เรียน|ปี|ประถม|มัธยม|เชิง|ๆ)", "กู" if re.search(r"มึง|(?<![ก-ฮ])กู(?!เก|รู)", q) else "ผม", q)
             if sp == "M" and rough_scene and "ครับ" in q and not elder_listener(q, spn, info):
                 q = re.sub(r"นะครับ", "นะ", q).replace("ครับ", "")
             if sp == "M" and "ครับ" in q and re.search(r"อย่า|ห้าม|ให้หมด|ซะ|สัส|เหี้ย|ชิบหาย|ควย|หี(?![ก-ฮ])|เย็ด|กลืน|ดูด|อ้าปาก|แตก", q):
