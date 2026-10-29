@@ -2321,6 +2321,13 @@ def dup_ratio(t, existing=""):
     return sum(sc) / float(len(sc)) if sc else 0.0
 
 
+LONG_FACTOR = 1.3   # R68: a part longer than this x its planned words is rewritten (R66: 3,779 words for a 3,000-word chapter). Measured against the plan, not the prompt's scaled ask: the pod asks for 0.6x on purpose because the model overshoots
+
+
+def part_too_long(t, p):
+    return body_words("# x\n" + (t or "")) > max(1, int(p["words"])) * LONG_FACTOR
+
+
 def aw_run(b, cid, key):
     job = AW_JOBS[key]
     try:
@@ -2368,6 +2375,8 @@ def aw_run(b, cid, key):
                         why.append("its body logic was impossible or it ignored the POSITION PLAN: " + " | ".join((posture_issues(cand[1], _is_group(parts[i])) + plan_issues(cand[1], parts[i]))[:3]) + ". Rules: one cock is in ONE place at a time (mouth OR pussy OR hand); to switch, first write the man pulling out or the couple changing position (e.g. ดึงควยออก, พลิกตัว, เปลี่ยนท่า) and the new position; nobody has two things in the mouth; the man comes only at a HIS CLIMAX step of the plan")
                     if formula_heavy(cand[1]):
                         why.append("most quoted lines had the same shape 'short phrase... short phrase': vary the dialogue: full sentences, questions, commands, names, one-word cries, interrupted lines, and mix action beats between the lines")
+                    if part_too_long(cand[1], parts[i]):
+                        why.append("it was far too long: write about %d Thai words and never more than %d: fewer repeated body-part descriptions and fewer fillers, keep the plan steps and the ending" % (int(parts[i]["words"] * 0.85), int(parts[i]["words"])))
                     if echo_n(cand[1]):
                         why.append("it had a long run of one-word lines echoed back and forth (like “อม” / “ดูด” / “แรง” / “หมด”): never answer a line by repeating its word; write real sentences, give each line new content, and put an action beat of the body between every two or three lines")
                     if untag_n(cand[1]):
@@ -2407,9 +2416,9 @@ def aw_run(b, cid, key):
                         job.setdefault("raw_dup", []).append(round(dup_ratio(t, cur0), 3))
                         job.setdefault("raw_anat", []).append(anatomy_issues(t, info0))
                         job.setdefault("raw_untag", []).append(untag_t)
-                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)), bool(untag_t) or fh_t or bool(fam_t) or bool(pos_t))
+                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)), bool(untag_t) or fh_t or bool(fam_t) or bool(pos_t) or part_too_long(t, parts[i]))
                     ok_t = ((not need_dlg or quote_share(t) >= DLG_MIN) and (not need_sex or sex_density(t) >= SEX_DENS_MIN)
-                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0) and not untag_t and not fh_t and not fam_t and not pos_t)
+                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0) and not untag_t and not fh_t and not fam_t and not pos_t and not part_too_long(t, parts[i]))
                     if cand is not None:
                         job["retries"] = job.get("retries", 0) + 1
                         if sc_t >= cand[0]:
