@@ -1505,6 +1505,16 @@ def thin_owner(text):
     return re.sub(r"(ควย|หน้าอก|ริมฝีปาก|มือ|ต้นขา|ลำตัว|สะโพก)ของ(?:เขา|เธอ)(?!วง|เอง)", rep, text)
 
 
+def thin_tagverb(text, verb="พึมพำ", keep=1):
+    """R56 (R54: พึมพำ x6-10): in one part keep `keep` of the tag verb, the others rotate to other verbs."""
+    alts = ["กระซิบ", "ว่า", "เอ่ย", "ตอบ"]
+    n = [0]
+    def rep(m):
+        n[0] += 1
+        return m.group(0) if n[0] <= keep else alts[(n[0] - keep - 1) % len(alts)]
+    return re.sub(verb, rep, text)
+
+
 def fix_swallow(text):
     """R50 (29 Oct, user): "ให้หมด" goes with a liquid, never with a body part: you cannot suck a cock / eat a pussy "until it is all gone".
     ดูดควย…ให้หมด -> ดูดควย…แรงๆ ; อมควย…ให้หมด -> อมควย…ให้ลึก ; เลีย/กินหี…ให้หมด -> …แรงๆ. A phrase with น้ำ (น้ำควย, น้ำเชื้อ, น้ำหี) is left alone."""
@@ -1531,6 +1541,8 @@ def fix_particles(text, info, rough=False):
             n0 = tag_speaker(ln0.strip()[m0.end():], info)
             if n0 and info.get(n0, {}).get("g") == "M":
                 rough_men.add(n0)
+    men_n = len({tag_speaker(ln0.strip()[QUOTE_RE.match(ln0.strip()).end():], info) for ln0 in text.split("\n") if QUOTE_RE.match(ln0.strip())} & {n for n, v in info.items() if v.get("g") == "M"})   # R56: how many different men talk in this part
+    blow_part = bool(re.search(r"อมควย|ดูดควย|อ้าปากรับควย|ควย[^\n“]{0,12}(?:เข้าปาก|ในปาก)", text))
     sexy_part = len(re.findall(r"ควย|หี(?![ก-ฮ])|เย็ด|น้ำเงี่ยน|น้ำเชื้อ|หัวนม", text)) >= 3   # R50: a clearly sexual part (self-name rule also for plain lines like "ก้องก็อยากเล่นด้วย")
     for ln in text.split("\n"):
         m = QUOTE_RE.match(ln.strip())
@@ -1559,6 +1571,14 @@ def fix_particles(text, info, rough=False):
                 q = re.sub(r"ของ" + nm_, "ของ" + me, q)
                 q = re.sub(r"(?<![ก-ฮ])" + nm_ + r"(?=\s*(?:จะ|ก็|อยาก|กำลัง|ชอบ|ต้องการ|ไม่ไหว|ขอ))", me, q)
                 q = re.sub(r"^([“\"])" + nm_ + r"[\s.…,!]*(?=[ก-ฮเแโใไ])", r"\1", q)
+            if sp == "M" and men_n <= 1:
+                # R56 (R54/R55): a man talking to her never names her body by her name ("หีของลลิตา…"): หีมึง (rough) / หีของคุณ (polite)
+                for fn in [n for n, v in info.items() if v.get("g") == "F" and n != spn and n in q]:
+                    pr = "มึง" if (spn in rough_men or re.search(r"(?<![ก-ฮ])กู(?!เก|รู)|มึง", q)) else "คุณ"
+                    q = re.sub(r"(ควย|หี|นม|หัวนม|น้ำหี|น้ำเงี่ยน|ปาก|ลิ้น|ก้น|ตูด|เม็ดแตด|ตัว|น้ำนม)(?:ของ)?" + re.escape(fn), lambda mm: mm.group(1) + ("" if pr == "มึง" else "ของ") + pr, q)
+            if sp == "M" and blow_part and re.search(r"รสชาติ(?:ของ)?หี", q):
+                # R56: while her mouth is on his cock he does not taste her pussy
+                q = re.sub(r"รสชาติ(?:ของ)?หี(?:ของ)?(?:มึง|เธอ|คุณ|[ก-ฮ]{2,8}(?=[^ก-ฮ]|ห|ใ))?", "ปากมึง", q)
             HAIR = r"(?![ก-ฮ]*(?:ยาว|สั้น|หอม|เปียก|ดำ|ขาว|หงอก|ร่วง))"
             if sp in ("M", "F") and re.search(r"ลูก(?![ก-ฮ]|ค้า|น้อง|พี่)|ลูก(?=นะ|สิ|เถอะ|ค่ะ|คะ|ครับ|จ้ะ|จ๊ะ|ไหม|เหรอ|ล่ะ|เลย|รัก|คนนี้|คนดี)", q) and not re.search(r"ลูกค้า|ลูกน้อง|ลูกพี่", q):
                 # a parent talking to his/her child says พ่อ / แม่, never ผม / ฉัน
@@ -2314,7 +2334,7 @@ def aw_run(b, cid, key):
                 return
             cur = read(fp)
             part = drop_dup_paragraphs(fix_name_typos(part, names), cur)
-            part = thin_owner(fix_swallow(fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak"))))
+            part = thin_tagverb(thin_owner(fix_swallow(fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak")))))
             tail = cur.rstrip()[-60:]
             if tail and part.startswith(tail[-40:]):
                 part = part[len(tail[-40:]):].lstrip()
