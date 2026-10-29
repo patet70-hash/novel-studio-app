@@ -1419,7 +1419,7 @@ def fix_particles(text, info, rough=False):
                     sp = "F"   # an untagged ฉัน is treated as a woman (หนู to elders/family, else ชั้น below)
             if spn and sp in ("M", "F") and spn in q and re.search(r"ควย|ดุ้น|หี(?![ก-ฮ])|แตก|เย็ด|ดูด|อม|เลีย|น้ำ", q):
                 # R49 (29 Oct): a speaker never names himself/herself in bed ("ดูดควยก้องให้หมด" said by ก้อง): the name becomes ผม / กู / ชั้น, a leading self-call is dropped
-                me = "ชั้น" if sp == "F" else ("กู" if re.search(r"มึง|(?<![ก-ฮ])กู(?!เก|รู)", q) else "ผม")
+                me = "ชั้น" if sp == "F" else ("กู" if (rough_scene or re.search(r"มึง|(?<![ก-ฮ])กู(?!เก|รู)|ดูด|กลืน|กิน|อม|ให้หมด|แรงๆ|สั่ง", q)) else "ผม")   # user 29 Oct: a man's dirty order in bed is กู ("ดูดควยกูแรงๆ", "กินน้ำควยกูให้หมด"), not ผม
                 nm_ = re.escape(spn)
                 q = re.sub(r"(ควย|ดุ้น|หี|น้ำเงี่ยน|น้ำควย|น้ำเชื้อ|น้ำหี|ปาก|ลิ้น|นม|ตัว)(?:ของ)?" + nm_, lambda mm: mm.group(1) + me, q)
                 q = re.sub(r"ของ" + nm_, "ของ" + me, q)
