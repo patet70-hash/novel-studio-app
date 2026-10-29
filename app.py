@@ -1203,6 +1203,45 @@ def overused(body, names, top=5, fill_min=10):
     return out[:top]
 
 
+def family_issues(text, info):
+    """hard story-rule violations the model keeps making: (a) man-on-man sex acts, (b) the wife calling the husband พ่อ / the husband calling himself พ่อ to her,
+    (c) a real daughter/son called บุญธรรม (adopted). Returns a list of short Thai descriptions (empty = clean)."""
+    out = []
+    info = info or {}
+    role = lambda n: (info.get(n) or {}).get("role", "")
+    M = [n for n, v in info.items() if n and v.get("g") == "M"]
+    fathers = [n for n in info if re.search(r"father", role(n), re.I) and not re.search(r"step", role(n), re.I)]
+    wives = [n for n in info if re.search(r"stepmother", role(n), re.I)]
+    kids = [n for n in info if re.match(r"\s*(daughter|son)\b", role(n), re.I)]
+    paras = [p for p in (text or "").split("\n") if p.strip()]
+    if len(M) >= 2:
+        mr = "|".join(re.escape(x) for x in sorted(M, key=len, reverse=True))
+        for p in paras:
+            for mm in re.finditer(r"(?:อม|เลีย|ดูด|ชัก|จับ|ลูบ)[\u0E01-\u0E4E]{0,4}(?:ควย|หัวควย)(?:ของ)?(%s)" % mr, p):
+                actor = re.match(r"\s*(%s)" % mr, p)
+                if (actor and actor.group(1) != mm.group(1)) or (not actor and re.search(r"(?:%s)[^\n]{0,25}(?:อม|เลีย|ดูด)" % mr, p)):
+                    out.append("ชายกับชาย: " + p[max(0, mm.start() - 20):mm.end() + 5])
+                    break
+        for p in paras:
+            m = re.search(r"\u201c(?:พ่อ|พี่)[^\u201d]{0,12}ควย(?:ของ)?(?:พ่อ|พี่)", p)
+            if m:
+                out.append("ชายกับชาย (บทพูด): " + p[:50])
+    if fathers and wives:
+        wr = "|".join(re.escape(x) for x in wives)
+        fr = "|".join(re.escape(x) for x in fathers)
+        for p in paras:
+            q = re.findall(r"\u201c([^\u201d]*)\u201d", p)
+            rest = re.sub(r"\u201c[^\u201d]*\u201d", "", p)
+            for t in q:
+                if re.search(r"พ่อ|คุณพ่อ", t) and re.search(wr, rest) and not re.search(fr + "|" + "|".join(re.escape(k) for k in kids), rest):
+                    out.append("ภรรยาเรียกสามีว่าพ่อ: " + t[:40])
+                if re.search(r"(?:ให้|ของ|จะ|กับ)พ่อ", t) and re.search(fr, rest) and re.search(wr, t) and not re.search("|".join(re.escape(k) for k in kids), t):
+                    out.append("สามีเรียกตัวเองว่าพ่อกับภรรยา: " + t[:40])
+    if kids and re.search(r"บุญธรรม", text or "") and not any(re.search(r"adopt", role(n), re.I) for n in info):
+        out.append("เรียกลูกแท้ว่าบุญธรรม")
+    return out
+
+
 FORMULA_RE = re.compile(r"^[\u201c\"][^\u201c\u201d\"\n]{1,30}(?:\.\.\.|\u2026)[^\u201c\u201d\"\n]{1,30}[\u201d\"]\s*$")
 
 
@@ -1277,6 +1316,9 @@ def check_text(b, text, target=0):
     aq = body.count('"')
     if aq >= 4 and body.count("\u201c") >= 4:
         issues.append("เครื่องหมายคำพูดปนกัน: ตรง \" %d ตัว และโค้ง “ ” %d ตัว (ควรเป็นแบบเดียวกัน)" % (aq, body.count("\u201c")))
+    fi = family_issues(body, char_info(b))
+    if fi:
+        issues.append("ขัดกฎความสัมพันธ์/เพศ %d จุด เช่น %s" % (len(fi), " | ".join(fi[:2])))
     ff, fn = formula_lines(body)
     if fn >= 8 and ff >= 0.5 * fn:
         issues.append("บทพูดสูตรเดียวกัน “X... Y” %d จาก %d บรรทัด (อ่านเหมือนวน ควรหลากหลายรูปประโยค)" % (ff, fn))
@@ -1495,6 +1537,8 @@ def aw_run(b, cid, key):
                         why.append("it gave a woman a ควย or a man a หี: women have only หี, เม็ดแตด and นม; men have ควย; no strap-ons; rewrite those acts correctly")
                     if dup_ratio(cand[1], cur0) > DUP_PART_MAX:
                         why.append("it repeated whole paragraphs and lines that were already written: every paragraph must be new, with new body movements, new words and new events")
+                    if family_issues(cand[1], info0):
+                        why.append("it broke a story rule: " + " | ".join(family_issues(cand[1], info0)[:3]) + ". Rules: the men NEVER touch, suck or lick each other (every sexual act is man-with-woman only; the men may watch, wait or talk while a woman is with the other man); the wife never calls her husband พ่อ/คุณพ่อ and he never calls himself พ่อ to her (he uses ผม/กู and her name); the daughter is the husband's real daughter, never บุญธรรม")
                     if formula_heavy(cand[1]):
                         why.append("most quoted lines had the same shape 'short phrase... short phrase': vary the dialogue: full sentences, questions, commands, names, one-word cries, interrupted lines, and mix action beats between the lines")
                     if untag_n(cand[1]):
@@ -1526,13 +1570,14 @@ def aw_run(b, cid, key):
                 if t and not t.lstrip().startswith("{") and "```" not in t and len(t) > 200:
                     untag_t = untag_n(t)
                     fh_t = formula_heavy(t)
+                    fam_t = family_issues(t, info0)
                     if attempt == 0:   # experiment instrumentation: how much of the model's FIRST answer repeats what is already in the chapter
                         job.setdefault("raw_dup", []).append(round(dup_ratio(t, cur0), 3))
                         job.setdefault("raw_anat", []).append(anatomy_issues(t, info0))
                         job.setdefault("raw_untag", []).append(untag_t)
-                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)), bool(untag_t) or fh_t)
+                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)), bool(untag_t) or fh_t or bool(fam_t))
                     ok_t = ((not need_dlg or quote_share(t) >= DLG_MIN) and (not need_sex or sex_density(t) >= SEX_DENS_MIN)
-                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0) and not untag_t and not fh_t)
+                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0) and not untag_t and not fh_t and not fam_t)
                     if cand is not None:
                         job["retries"] = job.get("retries", 0) + 1
                         if sc_t >= cand[0]:
