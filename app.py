@@ -798,7 +798,7 @@ def pose_table():
 
 
 def _pose_kind(t, pid):
-    return (t.get(pid) or GROUP_TABLE.get(pid) or {}).get("k", "")
+    return (t.get(pid) or GROUP_TABLE.get(pid) or TRIO_TABLE.get(pid) or {}).get("k", "")
 
 
 # R45 (29 Oct): GROUP TABLE for one woman + two men (the men are both with her at the same time but never touch each other). {A} / {B} are the
@@ -977,6 +977,142 @@ def make_group_plan(nbeats, rng, A, B, table=None):
     return out
 
 
+# R69 (29 Oct, user: "3 ชาย 1 หญิง"): TRIO TABLE for one woman + three men A, B, C (all three with her at once; the men never touch each other). Her body has
+# five places: mouth (ONE cock), pussy (ONE cock), anus (only in the double-penetration step T6), and two hands (a cock each). Every pose uses all three men
+# in roles A, B, C; the plan rotates which man plays which role from step to step.
+TRIO_TABLE = {
+    "T1": {"n": "สามคนเล้าโลมเธอ", "k": "warm", "d": "{W} sits or lies on the bed between {A}, {B} and {C}: {A} kisses her mouth, {B} kisses her neck, nipples and breasts, {C} kisses and strokes her thighs; clothes come off; no cock touches her yet", "next": ["T2", "T3", "T4", "T5", "T7", "T9"]},
+    "T2": {"n": "อมควยหนึ่ง มือจับสอง", "k": "oral", "d": "{W} kneels in front of the three standing men: {A}'s cock is in her mouth while her right hand strokes {B}'s cock and her left hand strokes {C}'s cock, then they swap (one cock at her lips at a time); nobody is inside her pussy", "next": ["T3", "T4", "T5", "T7", "T9", "T10"]},
+    "T3": {"n": "เลียหี + อมควย + มือจับ", "k": "oral", "d": "{W} lies on her back: {A} lies between her thighs licking her pussy and clit with his tongue and fingers only; {B} kneels by her head and she sucks his cock; {C} kneels on her other side and she strokes his cock with her hand; nobody penetrates her", "next": ["T4", "T5", "T6", "T7", "T8", "T10"]},
+    "T4": {"n": "ด็อกกี้ + อมควย + มือจับ", "k": "pen", "d": "{W} is on her hands and knees: {A} kneels behind her with his cock in her pussy; {B} kneels in front of her with his cock in her mouth; {C} kneels beside her and she strokes his cock with one hand (the other hand holds the bed)", "next": ["T5", "T6", "T7", "T8", "T10"]},
+    "T5": {"n": "ขึ้นคร่อม + อมควย + มือจับ", "k": "pen", "d": "{A} lies on his back and {W} rides him facing him, his cock in her pussy; {B} kneels beside her head and she sucks his cock; {C} kneels on her other side and she strokes his cock with her hand", "next": ["T4", "T6", "T7", "T8", "T10"]},
+    "T6": {"n": "double: หี + ทวาร + อมควย", "k": "pen", "dp": True, "d": "DOUBLE PENETRATION plus mouth, slow and careful: {A} lies on his back and {W} lies on top of him facing him with her chest on his, his cock in her pussy; {B} kneels behind her and, after gel and slow fingers, eases his cock into her anus; {C} kneels in front of her face and she sucks his cock; she moans, asks them to go slowly, then they move together; one cock in the pussy, one in the anus, one in the mouth, the men do not touch each other", "next": ["T5", "T4"]},
+    "T7": {"n": "มิชชันนารี + อมควย + มือจับ", "k": "pen", "d": "missionary: {W} on her back, {A} between her legs with his cock in her pussy; {B} kneels beside her head and she sucks his cock; {C} kneels on her other side and she strokes his cock with her hand", "next": ["T4", "T5", "T6", "T8", "T10"]},
+    "T8": {"n": "ตะแคงช้อน + อมควย + นมหนีบ", "k": "pen", "d": "{W} lies on her side: {A} lies behind her in spoon position, his cock in her pussy from behind; {B} lies in front of her and she sucks his cock; {C} kneels over her chest and slides his cock between her breasts, which she presses together (his cock touches only her breasts)", "next": ["T4", "T5", "T7", "T10"]},
+    "T9": {"n": "นมหนีบ + เลียหี + มือจับ", "k": "oral", "d": "{W} lies on her back: {B} kneels astride her chest and slides his cock between her breasts which she presses together (his cock touches only her breasts); {A} lies between her thighs licking her pussy and clit with his tongue and fingers only; {C} kneels beside her head and she strokes his cock with her hand and licks the tip; nobody penetrates her", "next": ["T4", "T5", "T7", "T10"]},
+    "T10": {"n": "นั่งตัก + อมควย + เล้าโลมหลัง", "k": "pen", "d": "{A} sits on the bed edge, {W} sits on his lap facing him with his cock in her pussy; {B} stands beside her and she sucks his cock; {C} kneels behind her, kisses her neck and plays with her breasts (his cock only rubs her back, it is not inside her)", "next": ["T4", "T5", "T6", "T8"]},
+    "FT": {"n": "แตกพร้อมกันสามคน", "k": "finish", "d": "all three men come in this step (each in the way given below); make sure {W} has come before or with them", "next": []},
+    "RT": {"n": "ปลุกทั้งสามคน", "k": "recover", "d": "all three men have just come and are soft: {W} licks, sucks and strokes {A}, {B} and {C} one after the other (one cock in her mouth at a time) while they kiss and touch her, until all are hard again; no penetration in this step", "next": ["T2", "T4", "T5", "T7"]},
+}
+
+
+def make_group3_plan(nbeats, rng, men, table=None):
+    """one scene's chain for one woman and three men (names list). Steps: {"id", "w", "r": [A,B,C] roles, "who", "ab"/"rest", "fin"}.
+    Shape: warm-up and trio steps with all three men; (3+ beats) the first man comes and rests while the other two continue with the two-men table;
+    the second comes and rests while the third continues alone; the third comes. 5+ beats add a recovery of all three, one more trio step and a last
+    common finish. Under 3 beats: warm-up, two trio steps, one common finish. Every man always comes."""
+    t = table or pose_table()
+    n = max(1, int(nbeats))
+    order = list(men)
+    rng.shuffle(order)
+    m1, m2, m3 = order
+    chain = [{"id": "T1", "r": list(order)}]
+    used = {}
+    prev = ["T1"]
+    last_r = [tuple(order)]
+
+    def roles():
+        for _ in range(8):
+            r = list(men)
+            rng.shuffle(r)
+            if tuple(r) != last_r[0]:
+                break
+        last_r[0] = tuple(r)
+        return r
+
+    def add_trio():
+        c = [x for x in TRIO_TABLE[prev[0]].get("next", []) if x in TRIO_TABLE and TRIO_TABLE[x]["k"] in ("oral", "pen") and x != prev[0]]
+        gcount = sum(1 for x in chain if (TRIO_TABLE.get(x["id"]) or {}).get("k") in ("oral", "pen"))
+        if gcount < 2 or used.get("T6", 0):
+            c = [x for x in c if x != "T6"]
+        if not c:
+            c = [x for x in TRIO_TABLE if TRIO_TABLE[x]["k"] in ("oral", "pen") and x not in ("T6", prev[0])]
+        fresh = [x for x in c if used.get(x, 0) == 0] or c
+        pk = rng.choice(fresh)
+        used[pk] = used.get(pk, 0) + 1
+        chain.append({"id": pk, "r": roles()})
+        prev[0] = pk
+
+    fins = [x for x in t if _pose_kind(t, x) == "finish"] or ["F3"]
+    ngr = 2 if n != 3 else 1
+    for _ in range(ngr):
+        add_trio()
+    if n < 3:
+        k = ["F1", "F2", "F3"]
+        rng.shuffle(k)
+        chain.append({"id": "FT", "r": list(order), "fin": dict(zip(order, k))})
+    else:
+        chain.append({"id": rng.choice(fins), "who": m1})
+        gp = [x for x in GROUP_TABLE if GROUP_TABLE[x]["k"] in ("oral", "pen") and x != "M7"]
+        chain.append({"id": rng.choice(gp), "ab": [m2, m3], "rest": [m1]})
+        chain.append({"id": rng.choice(fins), "who": m2})
+        sp = rng.choice(_SOLO_PEN)
+        chain.append({"id": sp, "who": m3})
+        chain.append({"id": rng.choice(fins), "who": m3})
+        if n >= 5:
+            chain.append({"id": "RT", "r": roles()})
+            prev[0] = "RT"
+            add_trio()
+            k = ["F1", "F2", "F3"]
+            rng.shuffle(k)
+            chain.append({"id": "FT", "r": list(order), "fin": dict(zip(order, k))})
+    act = [i for i, c in enumerate(chain) if i > 0 and _pose_kind(t, c["id"]) in ("oral", "pen")]
+    for i in rng.sample(act, min(len(act), rng.randint(1, 2))):
+        chain[i]["w"] = True
+    if act and not any(c.get("w") for c in chain):
+        chain[act[0]]["w"] = True
+    out, m = [], len(chain)
+    for b in range(n):
+        out.append(chain[(m * b) // n:(m * (b + 1)) // n])
+    return out
+
+
+def pose_block_group3(part):
+    pp = part["pose"]
+    t = pose_table()
+    cs = pp.get("cast") or {}
+    men = cs.get("men") or ["A", "B", "C"]
+    W = cs.get("W", "she")
+    L = ["POSITION PLAN FOR %s WITH THREE MEN, %s, %s AND %s, AT THE SAME TIME (ground truth: the positions come from a fixed table so the bodies stay in possible places; obey it exactly, in this order, and use NO other position in this part):" % (W, men[0], men[1], men[2])]
+    if pp.get("carry"):
+        L.append("CARRY-OVER FROM THE LAST SCENE: %s was left wanting more and is still aroused: show it in the first lines of this part (a look, a touch, a request) before STEP 1." % pp["carry"])
+    if pp.get("prev"):
+        pv = t.get(pp["prev"]) or GROUP_TABLE.get(pp["prev"]) or TRIO_TABLE.get(pp["prev"]) or {}
+        L.append("Where the scene stands now: %s." % (pv.get("n", "")))
+    for k, st in enumerate(pp["steps"], 1):
+        pid = st["id"]
+        row = TRIO_TABLE.get(pid) or GROUP_TABLE.get(pid) or t.get(pid) or {}
+        kind = row.get("k", "")
+        who = st.get("who")
+        if pid in TRIO_TABLE:
+            r = st.get("r") or men
+            ln = "STEP %d [%s]: %s" % (k, row.get("n", pid), row.get("d", "").format(A=r[0], B=r[1], C=r[2], W=W))
+            if pid == "FT":
+                ln += " | " + " ; ".join("%s: %s" % (nm, (t.get(fid) or {}).get("d", "")) for nm, fid in (st.get("fin") or {}).items())
+        elif st.get("ab"):
+            a, b_ = st["ab"]
+            ln = "STEP %d [%s]: ONLY %s and %s are with %s now; %s has already come and rests beside them, kissing her and touching her with his hands, his cock soft and not used: %s" % (
+                k, row.get("n", pid), a, b_, W, " and ".join(st.get("rest") or []), row.get("d", "").format(A=a, B=b_, W=W))
+        else:
+            others = [x for x in men if x != who]
+            ln = "STEP %d [%s]: ONLY %s is with %s in this step (in the description below 'he' / 'his' means %s)%s: %s" % (
+                k, row.get("n", pid), who or men[0], W, who or men[0],
+                ("; " + " and ".join(others) + " have already come and rest beside them, kissing her and touching her breasts with their hands, their cocks soft and not used") if who and kind != "finish" else "",
+                row.get("d", ""))
+        if st.get("w"):
+            ln += " | HER CLIMAX happens in this step: show it plainly; afterwards they simply carry on, she needs no recovery."
+        if kind == "finish" and pid != "FT":
+            ln += " | %s's CLIMAX happens here and only here; %s has come before or with him." % (who or men[0], W)
+        if pid == "FT":
+            ln += " | ALL THREE MEN'S CLIMAX happens here and only here."
+        if kind == "recover":
+            ln += " | The men stay soft until the end of this step; nobody penetrates anyone in it."
+        L.append(ln)
+    L.append("PLAN RULES: each man's cock is in ONE place at a time; her mouth holds ONE cock at a time, her pussy ONE cock, her anus only in the double-penetration step, each hand at most one cock; the men NEVER touch, kiss, lick or rub each other; a man comes only at his CLIMAX step; after he comes he is soft and rests (he may kiss her and touch her with his hands) until a recovery step; the woman has a pussy only and the men a cock only; keep every paragraph to one position.")
+    L.append("SPEAKING RULES (four people are talking): every spoken line is said by exactly ONE person and its tag names that person (%s, %s, %s or %s). Her moans, her climax and her requests are said by %s ONLY, tagged to her, never to a man. The men speak TO her or about her; the three men never speak vulgar or insulting words to each other and never talk about each other's body (between themselves only a short plain line such as asking the other to wait or to move). A man never calls himself by his own name and never speaks of himself in the third person. She never says กู or มึง; the men never say ชั้น. In the narration three men are present, so never write a bare 'เขา' for a man: write his name; and do not repeat 'ควยของ…' in every sentence (at most twice per paragraph, otherwise just say what he does). 'ให้หมด' goes only with a liquid (กลืนให้หมด, กินน้ำควยให้หมด), never with a body part (never 'ดูดควยให้หมด')." % (men[0], men[1], men[2], W, W))
+    return " ".join(L[:1]) + "\n" + "\n".join(L[1:])
+
+
 def pose_block_group(part):
     pp = part["pose"]
     t = pose_table()
@@ -1029,6 +1165,8 @@ def pose_block(part):
     pp = (part or {}).get("pose")
     if not pp or not pp.get("steps"):
         return ""
+    if pp.get("g") == 3:
+        return pose_block_group3(part)
     if pp.get("g"):
         return pose_block_group(part)
     t = pose_table()
@@ -1143,14 +1281,18 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         men = [n for n in present if info[n].get("g") == "M"]
         women = [n for n in present if info[n].get("g") == "F"]
         group = len(men) == 2 and len(women) == 1
-        if not group and (len(men) != 1 or len(women) != 1):
+        group3 = len(men) == 3 and len(women) == 1
+        if not group and not group3 and (len(men) != 1 or len(women) != 1):
             continue
+        group = group or group3
         quick = (not group) and bool(QUICKIE_RE.search(txt))
         want_fin = finish_wanted(txt)
         pick = None
         for k in range(60):
             rng = random.Random(zlib.crc32(("%s|%s|%d|%d|%d" % (b, cid, sc, salt, k)).encode("utf-8")))
-            if group:
+            if group3:
+                plan = make_group3_plan(len(ps), rng, men, t)
+            elif group:
                 plan = make_group_plan(len(ps), rng, men[0], men[1], t)
             elif quick:
                 plan = make_quickie_plan(len(ps), rng, t)
@@ -1182,8 +1324,8 @@ def attach_pose_plans(b, parts, cid="", salt=0):
             if quick:
                 p["pose"]["quick"] = True
             if group:
-                p["pose"]["g"] = True
-                p["pose"]["cast"] = {"A": men[0], "B": men[1], "W": women[0]}
+                p["pose"]["g"] = 3 if group3 else True
+                p["pose"]["cast"] = {"men": list(men), "W": women[0]} if group3 else {"A": men[0], "B": men[1], "W": women[0]}
             if carry and p is ps[0]:
                 p["pose"]["carry"] = carry
             if steps:
