@@ -647,6 +647,8 @@ def anatomy_issues(text, info):
         n += len(re.findall(r"(?:%s)(?:สอด|ยัด|กระแทก|ขย่ม|ซอย)[\u0E01-\u0E4E]{0,2}(?:ควย|หัวควย)" % fr, text))
         n += len(re.findall(r"(?:ควย|หัวควย)(?:ของ)?(?:%s)" % fr, text))
         n += len(re.findall(r"(?:%s)(?:ของ)?เธอ?(?:ควย)" % fr, text))
+    # R32 (29 Oct): gender-swapped acts in plain pronoun form ("อมควยเธอ", "ควยของเธอ"): เธอ is a woman and has no ควย (the retry asks for a rewrite; the quoted case is already fixed by fix_particles)
+    n += len(re.findall(r"(?:ควย|หัวควย|ดุ้น)(?:ของ)?เธอ", text))
     present_f = [x for x in F if x in text]
     present_m = [x for x in M if x in text]
     if present_f and not present_m:   # a scene with only women in it: every ควย / น้ำควย is wrong (no strap-on in this story)
@@ -655,6 +657,47 @@ def anatomy_issues(text, info):
         mr = "|".join(re.escape(x) for x in sorted(M, key=len, reverse=True))
         n += len(re.findall(r"(?:หี|เม็ดแตด|น้ำหี)(?:ของ)?(?:%s)" % mr, text))
     return n
+
+
+_MOUTH_COCK = re.compile(r"(?:อม|ดูด|เลีย|กลืน|ชัก)[ก-๎]{0,3}(?:ควย|หัวควย|ดุ้น)|(?:ควย|หัวควย|ดุ้น)[^\n”]{0,12}(?:ในปาก|ใส่ปาก|เข้าปาก|ลงคอ|ในคอ|ปากเธอ|ปากของเธอ)|(?:ในปาก|เข้าปาก|ใส่ปาก)[^\n”]{0,8}(?:ควย|หัวควย|ดุ้น)")
+_PEN_VAG = re.compile(r"(?:ควย|หัวควย|ดุ้น)[^\n”]{0,16}(?:เข้า|ใน|ใส่|เสียบ|แทง|กระแทก|ซอย|เบียด|แหวก)[^\n”]{0,8}(?:หี|ช่องคลอด)|(?:เสียบ|แทง|กระแทก|ซอย|สอด|ยัด)[^\n”]{0,10}หี|(?:ในหี|เข้าหี|ใส่หี)")
+_CUN = re.compile(r"(?:เลีย|ดูด|ตวัดลิ้น|ลิ้น)[^\n”]{0,25}(?:หี|เม็ดแตด|น้ำหี|ร่องหี)")
+_CUM = re.compile(r"น้ำเชื้อ[^\n”]{0,4}(?:พุ่ง|ไหล|ทะลัก|กระเซ็น|ร้อน)|พุ่ง(?:ออก|ใส่|เข้า)|ปล่อยน้ำ|แตก(?:ใน|ใส่|ลง|ออก|แล้ว)|ฉีดน้ำ")
+_TRANS = re.compile(r"เปลี่ยนท่า|พลิก|ดึง[^\n”]{0,6}ออก|ถอน|ชัก[^\n”]{0,4}ออก|จัดท่า|จับ[^\n”]{0,8}(?:นอน|คว่ำ|หงาย|ตะแคง|ขึ้น|ยก)|ขึ้นคร่อม|คุกเข่า|ลุก|ผลัก|ยันตัว|นอนลง|นั่งลง|ยืน|ถอด|ปลด|ยก|ดัน|อุ้ม|หันหลัง|โน้มตัว|นอนหงาย|คว่ำ|เสียบ|สอดเข้า|ดึงตัว")
+
+
+def posture_issues(text):
+    """R32 (29 Oct): body-logic problems a reader notices at once: one cock in mouth and pussy at the same moment, fingers and cock in the
+    mouth together, a jump between acts (blowjob / licking / penetration) with no pulling out or change of position, and the man coming
+    twice. Only narration lines count (quoted lines are talk). Returns short Thai descriptions (empty = clean)."""
+    out = []
+    lines = [ln.strip() for ln in (text or "").split("\n") if ln.strip() and not ln.lstrip().startswith("#")]
+    nar = [re.sub(r"“[^”]*”?", "", ln) for ln in lines]
+    acts = []
+    cum_idx = []
+    for i, ln in enumerate(nar):
+        bj, pen, cun = bool(_MOUTH_COCK.search(ln)), bool(_PEN_VAG.search(ln)), bool(_CUN.search(ln))
+        if bj and pen and not re.search(r"ดึง|ถอน|ออก|ก่อนจะ|เปลี่ยน|พลิก", ln):
+            out.append("ควยอยู่ทั้งในปากและในหีพร้อมกัน: " + lines[i][:40])
+        if bj and re.search(r"นิ้ว[^\n]{0,8}(?:เข้า|ใน|ใส่)[^\n]{0,6}ปาก", ln):
+            out.append("นิ้วกับควยอยู่ในปากพร้อมกัน: " + lines[i][:40])
+        a = "BJ" if bj else "PEN" if pen else "CUN" if cun else None
+        if a:
+            acts.append((i, a))
+        if _CUM.search(ln):
+            cum_idx.append(i)
+    for (i, a), (j, b) in zip(acts, acts[1:]):
+        if a != b and not any(_TRANS.search(x) for x in nar[i:j + 1]) and not (a == "BJ" and b == "BJ"):
+            out.append("เปลี่ยนจาก %s เป็น %s ทันทีโดยไม่มีช่วงเปลี่ยนท่า/ดึงออก: %s" % (a, b, lines[j][:30]))
+            break
+    groups, last = 0, -99
+    for i in cum_idx:
+        if i - last > 3:
+            groups += 1
+        last = i
+    if groups >= 2 and not re.search(r"อีกรอบ|อีกครั้ง|ยังแข็ง|รอบสอง|รอบที่สอง", "\n".join(nar)):
+        out.append("ผู้ชายแตกซ้ำ %d ครั้งในฉากเดียว" % groups)
+    return out
 
 
 def anatomy_line(cast_info):
@@ -916,7 +959,7 @@ def elder_listener(q, spn, info):
     own = ((info.get(spn) or {}).get("role") or "") if spn else ""
     if re.search(r"ลูก|หลาน", q) or re.search(r"พ่อ|แม่|ป๊า|ม๊า|ปู่|ย่า|ตา|ยาย", own):
         return False
-    return re.search(r"พ่อ|แม่|ป๊า|ม๊า|ป้า|ลุง|น้า|ปู่|ย่า|ยาย|คุณพ่อ|คุณแม่|ท่าน", q) is not None
+    return re.search(r"พ่อ|แม่|ป๊า|ม๊า|ป้า|ลุง|(?<!ห)น้า|ปู่|(?<!อ)ย่า|ยาย|คุณพ่อ|คุณแม่|ท่าน", q) is not None   # R32: "อย่า" contains ย่า and "หน้า" contains น้า: they made every "อย่า…" / "หน้าอก" line count as talk to an elder (polite ครับ/ค่ะ added)
 
 
 def tag_speaker(tag, info):
@@ -982,6 +1025,9 @@ def fix_particles(text, info, rough=False):
                 q = re.sub(r"นะครับ", "นะ", q).replace("ครับ", "")
             if sp == "M":   # R23 (29 Oct): a man never says ชั้น (women's pronoun): ผม, or กู in the rough register
                 q = re.sub(r"(?<![ก-ฮ])ชั้น(?!วาง|ที่|หนึ่ง|สอง|สาม|บน|ล่าง|ใน|เรียน|ปี|ประถม|มัธยม|เชิง|ๆ)", "กู" if re.search(r"มึง|(?<![ก-ฮ])กู(?!เก|รู)", q) else "ผม", q)
+            if sp == "M" and "ครับ" in q and re.search(r"อย่า|ห้าม|ให้หมด|ซะ|สัส|เหี้ย|ชิบหาย|ควย|หี(?![ก-ฮ])|เย็ด|กลืน|ดูด|อ้าปาก|แตก", q):
+                # R32 (29 Oct): a man's order / dirty talk in bed is never polite ("อย่าให้เล็ดครับ"): drop ครับ
+                q = re.sub(r"นะครับ", "นะ", q).replace("ครับ", "")
             if sp == "M":
                 q = re.sub(r"(?<!ดิ)ฉัน(?![ทใ])", "ผม" if "กู" not in q else "กู", q)   # a man says ผม, not ฉัน (กู when rough)
                 if "กู" in q:   # rough register: ผม->กู, and he addresses her มึง, not เธอ/คุณ
@@ -1636,6 +1682,8 @@ def aw_run(b, cid, key):
                         why.append("it repeated whole paragraphs and lines that were already written: every paragraph must be new, with new body movements, new words and new events")
                     if family_issues(cand[1], info0):
                         why.append("it broke a story rule: " + " | ".join(family_issues(cand[1], info0)[:3]) + ". Rules: nobody can lick, suck or touch their own body parts; a woman has no น้ำเชื้อ (only น้ำหี / น้ำเงี่ยน); never write several paragraphs that start with the same words (each paragraph must move the scene forward); the men NEVER touch, suck or lick each other (every sexual act is man-with-woman only; the men may watch, wait or talk while a woman is with the other man); the daughter is the husband's real daughter, never บุญธรรม")
+                    if posture_issues(cand[1]):
+                        why.append("its body logic was impossible: " + " | ".join(posture_issues(cand[1])[:3]) + ". Rules: one cock is in ONE place at a time (mouth OR pussy OR hand); to switch, first write the man pulling out or the couple changing position (e.g. ดึงควยออก, พลิกตัว, เปลี่ยนท่า) and the new position; nobody has two things in the mouth; the man comes ONCE, at the end of the scene")
                     if formula_heavy(cand[1]):
                         why.append("most quoted lines had the same shape 'short phrase... short phrase': vary the dialogue: full sentences, questions, commands, names, one-word cries, interrupted lines, and mix action beats between the lines")
                     if untag_n(cand[1]):
@@ -1669,13 +1717,15 @@ def aw_run(b, cid, key):
                     untag_t = untag_n(t)
                     fh_t = formula_heavy(t)
                     fam_t = family_issues(t, info0)
-                    if attempt == 0:   # experiment instrumentation: how much of the model's FIRST answer repeats what is already in the chapter
+                    pos_t = posture_issues(t)
+                    if attempt == 0:
+                        job.setdefault("raw_pos", []).append(len(pos_t))   # experiment instrumentation: how much of the model's FIRST answer repeats what is already in the chapter
                         job.setdefault("raw_dup", []).append(round(dup_ratio(t, cur0), 3))
                         job.setdefault("raw_anat", []).append(anatomy_issues(t, info0))
                         job.setdefault("raw_untag", []).append(untag_t)
-                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)), bool(untag_t) or fh_t or bool(fam_t))
+                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)), bool(untag_t) or fh_t or bool(fam_t) or bool(pos_t))
                     ok_t = ((not need_dlg or quote_share(t) >= DLG_MIN) and (not need_sex or sex_density(t) >= SEX_DENS_MIN)
-                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0) and not untag_t and not fh_t and not fam_t)
+                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0) and not untag_t and not fh_t and not fam_t and not pos_t)
                     if cand is not None:
                         job["retries"] = job.get("retries", 0) + 1
                         if sc_t >= cand[0]:
