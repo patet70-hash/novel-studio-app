@@ -1515,6 +1515,15 @@ def thin_tagverb(text, verb="พึมพำ", keep=1):
     return re.sub(verb, rep, text)
 
 
+def thin_manner(text):
+    """R60 (R60: "…ออกมาเสียง…" x10 e.g. ครางออกมาเสียงแหลม): in one part keep the first, the others lose the "เสียงX" tail (ครางออกมา)."""
+    n = [0]
+    def rep(m):
+        n[0] += 1
+        return m.group(0) if n[0] == 1 else "ออกมา"
+    return re.sub(r"ออกมาเสียง(?:สั่นเครือ|แหลม|ทุ้ม|สั่น|แผ่ว|เบา|ต่ำ|ดัง|ห้าว|พร่า|แหบ|เครือ|ลั่น|ขาด)[ก-ฮ]{0,4}", rep, text)
+
+
 def thin_fluid(text):
     """R58 (R57: "น้ำเงี่ยน" x8): in one part keep every other "น้ำเงี่ยน", the others become "น้ำหี" (kept for น้ำเงี่ยนของ... too)."""
     n = [0]
@@ -1610,7 +1619,7 @@ def fix_particles(text, info, rough=False):
                 if re.search(r"(?<!ดิ)ฉัน(?![ทใ])", q):
                     pl = "หนู" if re.search(r"พ่อ|แม่|ป๊า|ม๊า|พี่|ป้า|ลุง|น้า|(?<![ก-ฮ])อา(?![ก-ฮ])", q) else "ชั้น"
                     q = re.sub(r"(?<!ดิ)ฉัน(?![ทใ])", pl, q)
-            if sp == "M" and spn in rough_men and sexy_part and not elder_listener(q, spn, info) and re.search(r"(?<![ก-ฮ])ผม" + HAIR, q):
+            if sp == "M" and (spn in rough_men or ("ครับ" not in q and re.search(r"ควย|หี(?!บ)|เย็ด|น้ำเงี่ยน|น้ำควย|แตกใน|แตกใส่", q))) and sexy_part and not elder_listener(q, spn, info) and re.search(r"(?<![ก-ฮ])ผม" + HAIR, q):
                 # R55: this man says กู / มึง elsewhere in the same sexual part, so his ผม lines become กู (polite ครับ dropped, เธอ / คุณ -> มึง)
                 q = re.sub(r"(?<![ก-ฮ])ผม" + HAIR, "กู", q)
                 q = re.sub(r"นะครับ", "นะ", q).replace("ครับ", "")
@@ -2350,7 +2359,7 @@ def aw_run(b, cid, key):
                 return
             cur = read(fp)
             part = drop_dup_paragraphs(fix_name_typos(part, names), cur)
-            part = thin_fluid(thin_tagverb(thin_owner(fix_swallow(fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak"))))))
+            part = thin_manner(thin_fluid(thin_tagverb(thin_owner(fix_swallow(fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak")))))))
             tail = cur.rstrip()[-60:]
             if tail and part.startswith(tail[-40:]):
                 part = part[len(tail[-40:]):].lstrip()
