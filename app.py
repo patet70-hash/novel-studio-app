@@ -513,7 +513,7 @@ def rebalance_sex_share(scenes, target):
     return scenes
 
 
-BEAT_W = int(os.environ.get("NOVEL_BEATW", "1300"))   # R22 switch: max words per beat (a scene longer than this is written as several beats); default unchanged
+BEAT_W = int(os.environ.get("NOVEL_BEATW", "1300"))   # R22 (29 Oct): NOVEL_BEATW=500 gave the best round so far (scene 1,650 -> 1,407 words, clean order of positions, finish=stop everywhere); the code default stays 1300 (t13 fixtures assume it), the pod sets 500 by env
 
 
 def plan_scenes(summary, target):
@@ -980,6 +980,8 @@ def fix_particles(text, info, rough=False):
                 # R18 (29 Oct): mixed register inside one quote (ผม...มึง): a man who says มึง is rough, so ผม -> กู and ครับ is dropped
                 q = re.sub(r"(?<![ก-ฮ])ผม" + HAIR, "กู", q)
                 q = re.sub(r"นะครับ", "นะ", q).replace("ครับ", "")
+            if sp == "M":   # R23 (29 Oct): a man never says ชั้น (women's pronoun): ผม, or กู in the rough register
+                q = re.sub(r"(?<![ก-ฮ])ชั้น(?!วาง|ที่|หนึ่ง|สอง|สาม|บน|ล่าง|ใน|เรียน|ปี|ประถม|มัธยม|เชิง|ๆ)", "กู" if re.search(r"มึง|(?<![ก-ฮ])กู(?!เก|รู)", q) else "ผม", q)
             if sp == "M":
                 q = re.sub(r"(?<!ดิ)ฉัน(?![ทใ])", "ผม" if "กู" not in q else "กู", q)   # a man says ผม, not ฉัน (กู when rough)
                 if "กู" in q:   # rough register: ผม->กู, and he addresses her มึง, not เธอ/คุณ
