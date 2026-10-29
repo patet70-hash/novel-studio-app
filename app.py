@@ -1515,7 +1515,7 @@ def fix_swallow(text):
         return m.group(0)[: m.start(4) - m.start(0)] + ("ให้ลึก" if verb == "อม" else "แรงๆ")
     text = re.sub(r"(ดูด|อม|เลีย|กิน|แดก)((?:ควย|ดุ้น|หี|แตด|เม็ดแตด|นม|หัวนม))([^\s“”\"]{0,10}?)(ให้หมด(?:เลย)?)", rep, text)
     # R54: a bare "อมให้หมด / ดูดจนหมด" (no object) has the same problem
-    return re.sub(r"(?<![ก-ฮ])(อม|ดูด)(?:ให้|จน)หมด(?:เลย)?(?![ก-ฮ])", lambda m: m.group(1) + ("ให้ลึก" if m.group(1) == "อม" else "แรงๆ"), text)
+    return re.sub(r"(?<![ก-ฮ])(อม|ดูด)(?:ให้|จน)หมด(?=เลย|นะ|สิ|ซิ|ด้วย|[^ก-ฮ]|$)", lambda m: m.group(1) + ("ให้ลึก" if m.group(1) == "อม" else "แรงๆ"), text)
 
 
 def fix_particles(text, info, rough=False):
