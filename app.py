@@ -737,6 +737,23 @@ POSE_TABLE = {
     "E1": {"n": "ด็อกกี้", "k": "pen", "d": "doggy: she on hands and knees, he kneels behind her holding her hips, cock in her pussy from behind", "m": "จับเธอคุกเข่าคว่ำหน้าแล้วเข้าทางด้านหลัง", "next": ["D1", "E2", "E3", "D2"]},
     "E2": {"n": "ท่าตะแคง", "k": "pen", "d": "spoon: both lie on their sides, he behind her, one of her legs lifted, cock in her pussy from behind", "m": "พลิกเธอนอนตะแคงแล้วโอบจากด้านหลัง", "next": ["D1", "E1"]},
     "E3": {"n": "ยืนเย็ดจากด้านหลัง", "k": "pen", "d": "standing: she stands bent over a table or leaning on the wall, he stands behind her, cock in her pussy", "m": "ลากเธอไปยืนโน้มตัวพิงโต๊ะ", "next": ["E1", "D1"]},
+    # R52 (29 Oct): 16 more poses approved by the user (24 -> 40); their edges are added by _EDGE_ADD below
+    "A3": {"n": "จูบในห้องน้ำ/ใต้ฝักบัว", "k": "warm", "d": "in the shower (or at the sink) under running water, both naked or half-wet in underwear: wet kissing, hands soaping each other's skin; no genital contact yet", "m": "พาเธอเข้าห้องน้ำ เปิดฝักบัว", "next": ["A2", "B2"]},
+    "B3": {"n": "นวดหลังแล้วจูบไล่", "k": "warm", "d": "she lies face down on the bed (shirt off or in underwear), he sits astride her thighs and massages her shoulders, back and buttocks with oil or his hands, then kisses down her spine; she turns her face to kiss him; no genital contact yet", "m": "ให้เธอนอนคว่ำแล้วนวดหลังให้", "next": ["B2", "C2", "C5", "D8"]},
+    "C4": {"n": "หญิงนั่งบนหน้า", "k": "oral", "d": "face-sitting: he lies on his back, she kneels over his face (facing his feet or his head) holding the headboard or his hands, his tongue and lips on her pussy and clit; his cock is not involved", "m": "ดึงเธอขึ้นมาคร่อมหน้า", "next": ["D2", "D3", "D1", "E1"]},
+    "C5": {"n": "ชายเลียหีจากด้านหลัง", "k": "oral", "d": "she is on her hands and knees (or lies face down with her hips raised), he lies or kneels behind her with his face between her buttocks, licking her pussy and clit, fingers allowed; his cock is not involved", "m": "จับเธอคุกเข่าคว่ำหน้าแล้วก้มเลียจากด้านหลัง", "next": ["E1", "E2", "D8", "E4", "D1"]},
+    "C6": {"n": "หนีบควยด้วยนม", "k": "warm", "d": "titfuck: she lies on her back (or kneels), he kneels astride her chest and slides his cock between her breasts which she presses together with both hands, the tip near her chin or lips; his cock touches nothing else; no penetration", "m": "ให้เธอนอนหงาย แล้วคุกเข่าคร่อมอกเธอ", "next": ["C1", "C2", "D1", "D2", "E1"]},
+    "D6": {"n": "นอนตะแคงเผชิญหน้า", "k": "pen", "d": "face to face on their sides: both lie on their sides looking at each other, her upper leg over his hip, cock in her pussy from the front, kissing", "m": "พลิกเธอนอนตะแคงหันหน้าเข้าหากัน", "next": ["D1", "D7", "E2", "D2"]},
+    "D7": {"n": "ท่ากรรไกร", "k": "pen", "d": "scissors: he lies on his side and she lies on her other side facing away at an angle, their legs interlaced like scissors, hips pressed together, cock in her pussy", "m": "ให้เธอนอนตะแคงเอาขาสอดไขว้กับเขา", "next": ["D6", "E2", "D1"]},
+    "D8": {"n": "นอนคว่ำ", "k": "pen", "d": "prone: she lies flat on her stomach with her legs together, he lies on top of her back (behind her), cock in her pussy from behind, his hands under her shoulders or on the bed", "m": "ให้เธอนอนคว่ำแล้วขึ้นคร่อมทับด้านหลัง", "next": ["E1", "E4", "D1"]},
+    "D9": {"n": "ชายยืนที่ขอบเตียง", "k": "pen", "d": "edge of the bed: she lies on her back at the edge of the bed with her legs around his waist or on his forearms, he stands in front of her between her legs, cock in her pussy (he is in FRONT of her)", "m": "ดึงเธอมานอนหงายที่ขอบเตียงแล้วยืนอยู่หน้าเธอ", "next": ["D1", "D4", "E3", "D2"]},
+    "D10": {"n": "นั่งเก้าอี้คร่อมหันหน้า", "k": "pen", "d": "chair: he sits on a chair, she straddles his lap facing him, her hands on his shoulders, her feet on the floor or the chair, she rides him; cock in her pussy", "m": "พาเธอมาคร่อมตักเขาที่เก้าอี้", "next": ["D11", "D5", "D2"]},
+    "D11": {"n": "นั่งเก้าอี้คร่อมหันหลัง", "k": "pen", "d": "chair, reversed: he sits on a chair, she sits on his lap facing away with her back against his chest, her feet on the floor, his hands on her breasts and hips; cock in her pussy", "m": "ให้เธอหมุนตัวหันหลังนั่งพิงอกเขา", "next": ["D10", "D3"]},
+    "D12": {"n": "นั่งขัดสมาธิกอดรัด", "k": "pen", "d": "lotus: he sits cross-legged on the bed, she sits on his lap facing him with her legs wrapped around his waist, arms round each other, slow rocking, chests pressed together, kissing; cock in her pussy", "m": "ดึงเธอมานั่งบนตักแล้วให้เธอเอาขารัดเอว", "next": ["D5", "D2", "D1"]},
+    "E4": {"n": "ก้นโด่งซุกหมอน", "k": "pen", "d": "face down, ass up: she kneels with her face and chest pressed into the pillow or mattress and her buttocks raised high, he kneels behind her holding her hips, cock in her pussy from behind", "m": "กดตัวเธอลงให้หน้าและอกแนบที่นอน ก้นโด่งขึ้น", "next": ["E1", "D8", "E2"]},
+    "E5": {"n": "ยืนอุ้มพิงผนัง", "k": "pen", "d": "standing carry: he stands holding her up by her thighs, her legs around his waist and her arms round his neck, her back against the wall, cock in her pussy (a short, intense step: he cannot hold her long)", "m": "อุ้มเธอยกขึ้นพิงผนัง", "next": ["E6", "D1", "E3"]},
+    "E6": {"n": "ยืนเผชิญหน้ายกขา", "k": "pen", "d": "standing face to face: they stand pressed together against the wall, he holds one of her legs up on his forearm (the other foot on the floor), cock in her pussy from the front", "m": "ดึงเธอลุกขึ้นยืนหันหน้าเข้าหากัน ยกขาเธอข้างหนึ่งขึ้น", "next": ["E5", "E3", "D1"]},
+    "R5": {"n": "ปลุกด้วยการอาบน้ำ", "k": "recover", "d": "he has just come and is soft: she takes him into the shower (or washes him with a warm cloth) and soaps and strokes his cock with her hands, kissing him, until it is hard again; no penetration yet", "m": "", "next": ["C2", "D1", "D2", "E1", "D5"]},
     "R1": {"n": "ปลุกด้วยปาก", "k": "recover", "d": "he has just come and is soft: she kneels or lies beside him and licks and sucks his cock until it is hard again; no penetration yet", "m": "", "next": ["C2", "D1", "D2", "E1", "D5"]},
     "R2": {"n": "ปลุกด้วยมือ", "k": "recover", "d": "he has just come and is soft: she strokes his cock with her hand while kissing him until it is hard again; no penetration yet", "m": "", "next": ["C2", "D1", "D2", "E1", "D5"]},
     "R3": {"n": "ปลุกด้วยการถูไถ", "k": "recover", "d": "he has just come and is soft: she rubs his cock between her thighs or breasts and kisses him until it is hard again; no penetration yet", "m": "", "next": ["C2", "D1", "D2", "E1", "D5"]},
@@ -746,6 +763,19 @@ POSE_TABLE = {
     "F3": {"n": "แตกใน", "k": "finish", "d": "he comes deep inside her pussy and stays inside for a moment; describe the orgasm", "m": "", "next": []},
     "G1": {"n": "กอดหลังจบ", "k": "after", "d": "afterglow: a short hug, breathing, a kiss (2-3 sentences only)", "m": "", "next": []},
 }
+
+
+_EDGE_ADD = {   # R52: where the new poses can be reached from (old poses keep their own edges)
+    "B1": ["C6", "C4", "D9", "D10"], "B2": ["C6", "C4", "D6"], "C1": ["C6", "D10"], "C2": ["D9", "D6", "C5"],
+    "D1": ["D6", "D9", "D12"], "D2": ["D10", "D12", "D6"], "D3": ["D11"], "D4": ["D9"], "D5": ["D10", "D12"],
+    "E1": ["E4", "D8", "C5"], "E2": ["D7", "D6", "D8"], "E3": ["E6", "E5"],
+    "R1": ["C4", "D6", "D8", "D10"], "R2": ["C4", "D6", "D8", "D10"], "R3": ["C4", "D6", "D8", "D10"], "R4": ["C4", "D6", "D8", "D10"],
+}
+for _pid, _add in _EDGE_ADD.items():
+    for _x in _add:
+        if _x not in POSE_TABLE[_pid]["next"]:
+            POSE_TABLE[_pid]["next"].append(_x)
+POSE_START = ("A2", "B1", "B2", "A3", "B3")   # first steps of a scene
 
 
 def pose_table():
@@ -778,9 +808,22 @@ GROUP_TABLE = {
     "M7": {"n": "double: หี + ทวาร", "k": "pen", "dp": True, "d": "DOUBLE PENETRATION, slow and careful: {A} lies on his back, {W} lies on top of him facing him with her chest on his, his cock in her pussy; {B} kneels behind her and, after gel and slow fingers, eases his cock into her anus; she moans, asks them to go slowly, then they move together; one cock in the pussy, one in the anus, the men do not touch each other", "next": ["M5", "M4"]},
     "M8": {"n": "มิชชันนารี + มือจับ", "k": "pen", "d": "missionary: {W} on her back, {A} between her legs with his cock in her pussy; {B} kneels beside her head and she strokes his cock with her hand and licks the tip", "next": ["M4", "M5", "M7", "M9"]},
     "M9": {"n": "นั่งตัก + เล้าโลมจากข้างหลัง", "k": "pen", "d": "{A} sits on the bed edge, {W} sits on his lap facing him with his cock in her pussy; {B} kneels behind her, kisses her neck and plays with her breasts (his cock only rubs her back, it is not inside her)", "next": ["M4", "M5", "M7"]},
+    # R52 (29 Oct): five more group poses (user: add 2-men-1-woman poses too)
+    "M10": {"n": "หนีบควยด้วยนม + เลียหี", "k": "oral", "d": "{W} lies on her back: {B} kneels astride her chest and slides his cock between her breasts which she presses together with both hands (his cock touches only her breasts); {A} lies between her thighs licking her pussy and clit, he uses only his tongue and fingers; nobody penetrates her", "next": ["M4", "M5", "M8", "M9", "M11"]},
+    "M11": {"n": "นั่งเก้าอี้คร่อม + อมควย", "k": "pen", "d": "{A} sits on a chair and {W} straddles his lap facing him, her feet on the floor or the chair, his cock in her pussy, she rides him; {B} stands beside the chair and she turns her head and sucks his cock (or strokes it); the men do not touch each other", "next": ["M4", "M5", "M8", "M12"]},
+    "M12": {"n": "ขอบเตียง + อมควย", "k": "pen", "d": "{W} lies on her back at the edge of the bed with her legs around {A}'s waist, {A} stands between her legs with his cock in her pussy; {B} kneels on the bed beside her head and she sucks his cock; the men do not touch each other", "next": ["M4", "M5", "M13", "M8"]},
+    "M13": {"n": "นั่งบนหน้า + อมควย", "k": "oral", "d": "{A} lies on his back and {W} kneels over his face, his tongue on her pussy and clit (his cock is not involved); she leans forward holding {B}'s hips and sucks his cock while he kneels or stands in front of her; the men do not touch each other", "next": ["M4", "M5", "M6", "M8", "M14"]},
+    "M14": {"n": "สองมือสองควย", "k": "oral", "d": "{W} kneels between the two men who stand (or kneel on the bed) on either side of her: a cock in each hand, she strokes both, licks and kisses the tip of one then the other (one cock at her lips at a time); nobody is inside her", "next": ["M3", "M4", "M5", "M8", "M10"]},
     "FB": {"n": "แตกพร้อมกัน", "k": "finish", "d": "both men come in this step (each in the way given below); make sure {W} has come before or with them", "next": []},
     "RB": {"n": "ปลุกทั้งสองคน", "k": "recover", "d": "both men have just come and are soft: {W} licks, sucks and strokes {A} and {B} one after the other (one cock in her mouth at a time) while they kiss and touch her, until both are hard again; no penetration in this step", "next": ["M2", "M4", "M5", "M8"]},
 }
+for _pid, _add in {"M1": ["M10", "M13", "M14"], "M2": ["M10", "M11", "M12"], "M3": ["M10", "M11", "M13"], "M4": ["M11", "M12"], "M5": ["M11", "M12", "M13"],
+                   "M6": ["M11", "M12"], "M8": ["M10", "M12", "M13"], "M9": ["M11", "M13"], "RB": ["M10", "M11", "M12", "M13", "M14"]}.items():
+    for _x in _add:
+        if _x not in GROUP_TABLE[_pid]["next"]:
+            GROUP_TABLE[_pid]["next"].append(_x)
+
+
 _SOLO_PEN = ["D1", "D2", "D4", "E1", "E2", "D5"]
 
 
@@ -800,7 +843,7 @@ def make_pose_plan(nbeats, rng, table=None):
     for si, ln in enumerate(segs):
         for j in range(ln):
             if prev is None:
-                cands = [x for x in ("A2", "B1", "B2") if x in t]
+                cands = [x for x in POSE_START if x in t]
             elif _pose_kind(t, prev) == "recover" or _pose_kind(t, prev) == "finish":
                 cands = [x for x in (t.get(prev) or {}).get("next", []) if x in t]
             else:
@@ -837,6 +880,24 @@ def make_pose_plan(nbeats, rng, table=None):
     for b in range(nbeats):
         lo, hi = (n * b) // nbeats, (n * (b + 1)) // nbeats
         out.append(chain[lo:hi])
+    return out
+
+
+QUICKIE_RE = re.compile(r"ควิกกี้|quickie|ทำให้(?:เขา)?(?:แบบ)?เร็ว|แบบเร็วๆ|รีบๆ\s*(?:ทำให้|อม|เอา)")
+
+
+def make_quickie_plan(nbeats, rng, table=None):
+    """R52 (29 Oct, user): a quickie scene where the woman gives it to the man fast: a short start, then the mouth (C1) or the breasts (C6), then his
+    finish in her mouth or on her body. No climax of hers is required (she does it for him). Steps carry q=True."""
+    t = table or pose_table()
+    start = rng.choice([x for x in ("A1", "B1", "B2", "A2") if x in t] or ["B1"])
+    giver = rng.choice([x for x in ("C1", "C6") if x in t] or ["C1"])
+    fin = rng.choice([x for x in ("F1", "F2") if x in t] or ["F2"])
+    chain = [{"id": start}, {"id": giver}, {"id": fin, "q": True}]
+    nb = max(1, int(nbeats))
+    out, n = [], len(chain)
+    for b in range(nb):
+        out.append(chain[(n * b) // nb:(n * (b + 1)) // nb])
     return out
 
 
@@ -966,6 +1027,8 @@ def pose_block(part):
         return pose_block_group(part)
     t = pose_table()
     L = ["POSITION PLAN (ground truth: the positions below come from a fixed table so the bodies stay in possible places; obey it exactly, in this order, and use NO other position in this part):"]
+    if pp.get("quick"):
+        L.append("QUICKIE: this scene is short and hurried: she gives it to him fast (clothes mostly on or half off, no long foreplay, no talk about feelings); it ends when he comes.")
     if pp.get("carry"):
         L.append("CARRY-OVER FROM THE LAST SCENE: %s was left wanting more and is still aroused: show it in the first lines of this part (a look, a touch, a request) before STEP 1." % pp["carry"])
     if pp.get("prev"):
@@ -988,7 +1051,10 @@ def pose_block(part):
         if st.get("w"):
             ln += " | HER CLIMAX happens in this step: show it plainly (her body tightening, shaking, she says she is coming); afterwards they simply carry on, she needs no recovery."
         if kind == "finish":
-            ln += " | HIS CLIMAX happens here and only here: write the moment, and make sure she has come before or with him."
+            if pp.get("quick"):
+                ln += " | HIS CLIMAX happens here and only here: write the moment; this is a quickie, she does it for him and needs no climax of her own."
+            else:
+                ln += " | HIS CLIMAX happens here and only here: write the moment, and make sure she has come before or with him."
         if kind == "recover":
             ln += " | He stays soft until the end of this step; nobody may penetrate him in it."
         L.append(ln)
@@ -1040,10 +1106,16 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         group = len(men) == 2 and len(women) == 1
         if not group and (len(men) != 1 or len(women) != 1):
             continue
+        quick = (not group) and bool(QUICKIE_RE.search(txt))
         pick = None
         for k in range(60):
             rng = random.Random(zlib.crc32(("%s|%s|%d|%d|%d" % (b, cid, sc, salt, k)).encode("utf-8")))
-            plan = make_group_plan(len(ps), rng, men[0], men[1], t) if group else make_pose_plan(len(ps), rng, t)
+            if group:
+                plan = make_group_plan(len(ps), rng, men[0], men[1], t)
+            elif quick:
+                plan = make_quickie_plan(len(ps), rng, t)
+            else:
+                plan = make_pose_plan(len(ps), rng, t)
             sig = _plan_sig(plan)
             if sig in seen:
                 continue
@@ -1061,6 +1133,8 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         carry = want if (want and want in txt) else None
         for p, steps in zip(ps, plan):
             p["pose"] = {"steps": steps, "prev": prev}
+            if quick:
+                p["pose"]["quick"] = True
             if group:
                 p["pose"]["g"] = True
                 p["pose"]["cast"] = {"A": men[0], "B": men[1], "W": women[0]}
