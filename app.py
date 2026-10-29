@@ -1061,6 +1061,12 @@ def pose_block(part):
                 ln += " | HIS CLIMAX happens here and only here: write the moment; this is a quickie, she does it for him and needs no climax of her own."
             else:
                 ln += " | HIS CLIMAX happens here and only here: write the moment, and make sure she has come before or with him."
+            if pp.get("place"):
+                ln += " | WHERE HE COMES: the cum lands on her %s (narrate it landing there, not on any other part of her body)." % pp["place"]
+            elif pp.get("fin") == "F1":
+                ln += " | WHERE HE COMES: in her mouth (narrate it in her mouth, not on her body)."
+            elif pp.get("fin") == "F3":
+                ln += " | WHERE HE COMES: deep inside her pussy."
         if kind == "recover":
             ln += " | He stays soft until the end of this step; nobody may penetrate him in it."
         L.append(ln)
@@ -1094,6 +1100,21 @@ def finish_wanted(txt):
         return "F3"
     if re.search(r"แตก(?:บน|ใส่|ที่|ลง)(?:ก้น|หลัง|หน้าท้อง|ท้อง|นม|หน้าอก|หน้า|ตัว|ต้นขา|ใบหน้า|แผ่นหลัง|ตูด)|แตกนอก|แตกข้างนอก|น้ำแตกบน|น้ำแตกที่", t):
         return "F2"
+    return ""
+
+
+_PLACES = [("ก้น", r"ก้น|ตูด|แก้มก้น"), ("หลัง", r"หลัง"), ("ใบหน้า", r"ใบหน้า|หน้า(?!ท้อง|อก)"), ("หน้าอก", r"หน้าอก|นม|เนินอก"), ("หน้าท้อง", r"ท้อง"), ("ต้นขา", r"ต้นขา")]
+
+
+def finish_place(txt):
+    """R65: the body part the author names for an outside finish ('แตกบนก้น') -> key of _PLACES, '' = free."""
+    m = re.search(r"แตก(?:บน|ใส่|ที่|ลง)\s*(ก้น|ตูด|หลัง|แผ่นหลัง|หน้าท้อง|ท้อง|นม|หน้าอก|ใบหน้า|หน้า|ต้นขา)", txt or "")
+    if not m:
+        return ""
+    w = m.group(1)
+    for k, rx in _PLACES:
+        if re.fullmatch(rx, w) or re.match(rx, w):
+            return k
     return ""
 
 
@@ -1154,6 +1175,10 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         carry = want if (want and want in txt) else None
         for p, steps in zip(ps, plan):
             p["pose"] = {"steps": steps, "prev": prev}
+            if want_fin and not group:
+                p["pose"]["fin"] = want_fin
+                if finish_place(txt):
+                    p["pose"]["place"] = finish_place(txt)
             if quick:
                 p["pose"]["quick"] = True
             if group:
@@ -1193,7 +1218,7 @@ def plan_issues(text, part):
     if has_f and cum_n and not pp.get("g"):
         # R40 (29 Oct): the kind of finish must match the plan (R38: said "inside" then came outside; R39: plan outside, written in her mouth)
         fid = [s["id"] for s in pp.get("steps", []) if _pose_kind(t, s["id"]) == "finish"][-1]
-        alltxt = text or ""
+        alltxt = "\n".join(lines)   # R65: narration only: a line she SAYS ("แตกใส่ปากชั้นได้เลย") is not where he comes
         inside = re.search(r"แตก(?:ข้าง)?ใน(?!ปาก)|ข้างในตัว|ในหีของ|ปล่อยใน|หลั่งใน|ฝังน้ำ", alltxt)
         mouth = re.search(r"(?:น้ำเชื้อ|น้ำควย|แตก|พุ่ง)[^\n]{0,30}(?:ในปาก|ใส่ปาก|เข้าปาก|ลงคอ)|(?:ในปาก|ใส่ปาก)[^\n]{0,30}(?:น้ำเชื้อ|น้ำควย|แตก|พุ่ง)", alltxt)
         outside = re.search(r"แตกนอก|แตกข้างนอก|(?:น้ำเชื้อ|น้ำควย|พุ่ง)[^\n]{0,40}(?:หน้าท้อง|หน้าอก|ท้อง|ก้น|แผ่นหลัง|หลังของ|ต้นขา|ใบหน้า|นม)", alltxt)
@@ -1205,6 +1230,11 @@ def plan_issues(text, part):
             out.append("แผนให้ผู้ชายแตกข้างในหีเธอ ต้องเขียนให้ชัด")
         elif fid == "F3" and (mouth or (outside and not inside)):
             out.append("แผนให้ผู้ชายแตกข้างในหีเธอ ห้ามแตกนอกหรือในปาก")
+    if has_f and cum_n and not pp.get("g") and pp.get("place"):
+        rx = dict(_PLACES).get(pp["place"], "")
+        near = [ln for ln in lines if _CUM.search(ln)] + [lines[i + 1] for i, ln in enumerate(lines[:-1]) if _CUM.search(ln)]
+        if rx and not any(re.search(rx, ln) for ln in near):
+            out.append("น้ำเชื้อต้องไปตกที่%s ของเธอตามแผน แต่เขียนไปตกที่อื่น" % pp["place"])
     return out
 
 
