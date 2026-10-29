@@ -1218,6 +1218,29 @@ def untagged_dialogue(text, run=UNTAG_RUN):
     return n
 
 
+def echo_runs(text, minrun=8, maxlen=12):
+    """R54 (29 Oct, R53 scene 2): a ping-pong of one-word tagged lines ("อม" / "ดูด" / "แรง" / "หมด"): the number of quoted lines that sit in runs of at
+    least `minrun` consecutive lines whose quote is at most `maxlen` characters (punctuation and spaces not counted). Narration breaks a run."""
+    n = cur = 0
+    for ln in (text or "").split("\n"):
+        if not ln.strip():
+            continue
+        m = QUOTE_RE.match(ln.strip())
+        if m and len(re.sub(r"[\s.…!?,“”\"]", "", m.group(0))) <= maxlen:
+            cur += 1
+        else:
+            if cur >= minrun:
+                n += cur
+            cur = 0
+    if cur >= minrun:
+        n += cur
+    return n
+
+
+def echo_n(t):
+    return echo_runs(split_dialogue(t or ""))
+
+
 def untag_n(t):
     return untagged_dialogue(split_dialogue(t or ""))
 
@@ -1486,7 +1509,9 @@ def fix_swallow(text):
         if "น้ำ" in m.group(2) + mid:
             return m.group(0)
         return m.group(0)[: m.start(4) - m.start(0)] + ("ให้ลึก" if verb == "อม" else "แรงๆ")
-    return re.sub(r"(ดูด|อม|เลีย|กิน|แดก)((?:ควย|ดุ้น|หี|แตด|เม็ดแตด|นม|หัวนม))([^\s“”\"]{0,10}?)(ให้หมด(?:เลย)?)", rep, text)
+    text = re.sub(r"(ดูด|อม|เลีย|กิน|แดก)((?:ควย|ดุ้น|หี|แตด|เม็ดแตด|นม|หัวนม))([^\s“”\"]{0,10}?)(ให้หมด(?:เลย)?)", rep, text)
+    # R54: a bare "อมให้หมด / ดูดจนหมด" (no object) has the same problem
+    return re.sub(r"(?<![ก-ฮ])(อม|ดูด)(?:ให้|จน)หมด(?:เลย)?(?![ก-ฮ])", lambda m: m.group(1) + ("ให้ลึก" if m.group(1) == "อม" else "แรงๆ"), text)
 
 
 def fix_particles(text, info, rough=False):
@@ -2210,6 +2235,8 @@ def aw_run(b, cid, key):
                         why.append("its body logic was impossible or it ignored the POSITION PLAN: " + " | ".join((posture_issues(cand[1], _is_group(parts[i])) + plan_issues(cand[1], parts[i]))[:3]) + ". Rules: one cock is in ONE place at a time (mouth OR pussy OR hand); to switch, first write the man pulling out or the couple changing position (e.g. ดึงควยออก, พลิกตัว, เปลี่ยนท่า) and the new position; nobody has two things in the mouth; the man comes only at a HIS CLIMAX step of the plan")
                     if formula_heavy(cand[1]):
                         why.append("most quoted lines had the same shape 'short phrase... short phrase': vary the dialogue: full sentences, questions, commands, names, one-word cries, interrupted lines, and mix action beats between the lines")
+                    if echo_n(cand[1]):
+                        why.append("it had a long run of one-word lines echoed back and forth (like “อม” / “ดูด” / “แรง” / “หมด”): never answer a line by repeating its word; write real sentences, give each line new content, and put an action beat of the body between every two or three lines")
                     if untag_n(cand[1]):
                         why.append("it had a long run of bare quoted lines with no speaker or action between them: after every 2-3 quoted lines add a short action beat or tag that names who is speaking and what the bodies are doing, so the reader always knows who talks")
                     m = msg + "\nREWRITE: your previous version was not acceptable: " + "; and ".join(why or ["write it more vividly"]) + ". Write the part again, keeping the same events."
@@ -2239,7 +2266,7 @@ def aw_run(b, cid, key):
                     t = trim_to_paragraph(t)
                 if t and not t.lstrip().startswith("{") and "```" not in t and len(t) > 200:
                     untag_t = untag_n(t)
-                    fh_t = formula_heavy(t)
+                    fh_t = formula_heavy(t) or bool(echo_n(t))   # R54: an echo loop counts like a formula-heavy part
                     fam_t = family_issues(t, info0)
                     pos_t = posture_issues(t, _is_group(parts[i])) + plan_issues(t, parts[i])
                     if attempt == 0:
