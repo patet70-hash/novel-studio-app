@@ -1028,7 +1028,7 @@ def pose_block(part):
     t = pose_table()
     L = ["POSITION PLAN (ground truth: the positions below come from a fixed table so the bodies stay in possible places; obey it exactly, in this order, and use NO other position in this part):"]
     if pp.get("quick"):
-        L.append("QUICKIE: this scene is short and hurried: she gives it to him fast (clothes mostly on or half off, no long foreplay, no talk about feelings); it ends when he comes.")
+        L.append("QUICKIE: this scene is short and hurried: she gives it to him fast (clothes mostly on or half off, no long foreplay, no talk about feelings); it ends when he comes. Only she does things to him: he never licks, sucks or fingers her, and she is not undressed below the waist. He keeps ONE way of speaking the whole scene (ผม/ครับ, or กู/มึง if he is rough), never switching.")
     if pp.get("carry"):
         L.append("CARRY-OVER FROM THE LAST SCENE: %s was left wanting more and is still aroused: show it in the first lines of this part (a look, a touch, a request) before STEP 1." % pp["carry"])
     if pp.get("prev"):
@@ -1165,6 +1165,8 @@ def plan_issues(text, part):
     out = []
     if not has_f and cum_n:
         out.append("ผู้ชายแตกทั้งที่แผนของ beat นี้ยังไม่ถึงจุดจบ")
+    if pp.get("quick") and re.search(r"(?:เลีย|ดูด|กิน)(?:ยอด)?(?:หี|เม็ดแตด|แตด)|(?:ปาก|ลิ้น|ริมฝีปาก)ของ(?:เขา|[ก-ฮ]{2,8})[^\n“]{0,25}(?:หี|เม็ดแตด|ยอดหี)", "\n".join(lines)):
+        out.append("ฉากควิกกี้: ผู้หญิงทำให้ผู้ชายอย่างเดียว ห้ามผู้ชายเลีย/ดูดหีหรือทำให้เธอ")
     if has_f and not cum_n:
         out.append("beat นี้ต้องมีการแตกของผู้ชายตามแผน แต่ไม่พบ")
     if has_f and cum_n and not pp.get("g"):
@@ -1519,6 +1521,14 @@ def fix_particles(text, info, rough=False):
     lines = []
     # R35 (29 Oct): a part where a man says กู / มึง is a rough scene: his polite ครับ in the same part (e.g. "ท่านี้เสียวกว่าไหมครับ") is dropped
     rough_scene = bool(re.search(r"(?<![ก-ฮ])กู(?!เก|รู)|มึง", text))
+    # R55 (29 Oct, R54 scene 2): one man must keep ONE register inside a sexual part (ผม in the foreplay, then กู / มึง): collect who says กู / มึง
+    rough_men = set()
+    for ln0 in text.split("\n"):
+        m0 = QUOTE_RE.match(ln0.strip())
+        if m0 and re.search(r"(?<![ก-ฮ])กู(?!เก|รู)|มึง", m0.group(0)):
+            n0 = tag_speaker(ln0.strip()[m0.end():], info)
+            if n0 and info.get(n0, {}).get("g") == "M":
+                rough_men.add(n0)
     sexy_part = len(re.findall(r"ควย|หี(?![ก-ฮ])|เย็ด|น้ำเงี่ยน|น้ำเชื้อ|หัวนม", text)) >= 3   # R50: a clearly sexual part (self-name rule also for plain lines like "ก้องก็อยากเล่นด้วย")
     for ln in text.split("\n"):
         m = QUOTE_RE.match(ln.strip())
@@ -1566,6 +1576,11 @@ def fix_particles(text, info, rough=False):
                 if re.search(r"(?<!ดิ)ฉัน(?![ทใ])", q):
                     pl = "หนู" if re.search(r"พ่อ|แม่|ป๊า|ม๊า|พี่|ป้า|ลุง|น้า|(?<![ก-ฮ])อา(?![ก-ฮ])", q) else "ชั้น"
                     q = re.sub(r"(?<!ดิ)ฉัน(?![ทใ])", pl, q)
+            if sp == "M" and spn in rough_men and sexy_part and not elder_listener(q, spn, info) and re.search(r"(?<![ก-ฮ])ผม" + HAIR, q):
+                # R55: this man says กู / มึง elsewhere in the same sexual part, so his ผม lines become กู (polite ครับ dropped, เธอ / คุณ -> มึง)
+                q = re.sub(r"(?<![ก-ฮ])ผม" + HAIR, "กู", q)
+                q = re.sub(r"นะครับ", "นะ", q).replace("ครับ", "")
+                q = re.sub(r"เธอ|คุณ", "มึง", q)
             if sp == "M" and re.search(r"มึง|(?<![ก-ฮ])กู(?!เก|รู)", q) and re.search(r"(?<![ก-ฮ])ผม" + HAIR, q):
                 # R18 (29 Oct): mixed register inside one quote (ผม...มึง): a man who says มึง is rough, so ผม -> กู and ครับ is dropped
                 q = re.sub(r"(?<![ก-ฮ])ผม" + HAIR, "กู", q)
