@@ -991,6 +991,8 @@ def fix_particles(text, info, rough=False):
                 pl = "หนู" if re.search(r"พ่อ|แม่|ป๊า|ม๊า|พี่|ป้า|ลุง|น้า|(?<![ก-ฮ])อา(?![ก-ฮ])", q) else "ชั้น"
                 q = re.sub(r"กู(?!เก|รู)", pl, q)
                 q = re.sub(r"มึง", "คุณ", q).replace("หีคุณ", "หีของคุณ").replace("ควยคุณ", "ควยของคุณ")
+            if sp == "F" and re.search(r"(ควย|น้ำควย|ดุ้น)เธอ", q):   # R25 (29 Oct): she says ควยคุณ to him, never ควยเธอ (seen in R19/R23/R24)
+                q = re.sub(r"(ควย|น้ำควย|ดุ้น)เธอ", r"\1ของคุณ", q)
             if sp == "F" and "ครับ" in q:
                 q = re.sub(r"(นะ|ไหม|มั้ย|หรือ|เหรอ|ล่ะ|หรอ)ครับ", r"\1คะ", q).replace("ครับ", "ค่ะ")
             elif sp == "M" and re.search(r"ค่ะ|คะ", q):
