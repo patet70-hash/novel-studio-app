@@ -1285,10 +1285,14 @@ def family_issues(text, info):
     paras = [p for p in (text or "").split("\n") if p.strip()]
     if len(M) >= 2:
         mr = "|".join(re.escape(x) for x in sorted(M, key=len, reverse=True))
+        allr = "|".join(re.escape(x) for x in sorted([n for n in info if n and len(n) >= 2], key=len, reverse=True))
         for p in paras:
             for mm in re.finditer(r"(?:อม|เลีย|ดูด|ชัก|จับ|ลูบ)[\u0E01-\u0E4E]{0,4}(?:ควย|หัวควย)(?:ของ)?(%s)" % mr, p):
-                actor = re.match(r"\s*(%s)" % mr, p)
-                if (actor and actor.group(1) != mm.group(1)) or (not actor and re.search(r"(?:%s)[^\n]{0,25}(?:อม|เลีย|ดูด)" % mr, p)):
+                # actor = the nearest character name BEFORE the act verb (29 Oct: a man named earlier in the paragraph made "ลลิตา...อมควยของธนา" a false 'man on man')
+                obj_mark = r"(?:หี|นม|ปาก|ก้น|หน้าอก|ต้นขา|สะโพก|ขา|แก้ม|ไหล่|หลัง|ท้อง|เอว|คอ|ใบหน้า|ผม|ให้|กับ|ที่|จาก|ของ|ถึง|ข้าง|ใกล้|หา|มอง|เห็น|เรียก|ดึง|ดัน|จูบ|กอด)$"   # a name right after these is the object, not the doer
+                prev = [x.group(0) for x in re.finditer(allr, p[:mm.start()]) if not re.search(obj_mark, p[max(0, x.start() - 5):x.start()])] if allr else []
+                actor = prev[-1] if prev else None
+                if actor and actor in M and actor != mm.group(1):
                     out.append("ชายกับชาย: " + p[max(0, mm.start() - 20):mm.end() + 5])
                     break
         for p in paras:
