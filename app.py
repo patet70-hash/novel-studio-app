@@ -1069,6 +1069,11 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         rw = random.Random(zlib.crc32(("%s|%s|%d|%d|want" % (b, cid, sc, salt)).encode("utf-8")))
         cast = men + women
         want = rw.choice(cast) if rw.random() < 0.4 else None
+        fw = os.environ.get("NOVEL_FORCEWANT", "")   # experiment switch: W = the woman, M = the first man is always left wanting more
+        if fw == "W" and women:
+            want = women[0]
+        elif fw == "M" and men:
+            want = men[0]
     return parts
 
 
