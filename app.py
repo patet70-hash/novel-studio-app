@@ -1170,7 +1170,7 @@ def kin_line(info, present, kin=None):
 
 
 LEN_SCALE = float(os.environ.get("NOVEL_LENSCALE", "0.9"))  # R21 switch (default unchanged 0.9); chapters came out at ~110% of target (ch03-08: 5,191 / 5,286 / 6,011 / 5,980 / 5,872 / 5,858 words for 5,000): ask for 10% less
-G_LEN = float(os.environ.get("NOVEL_GLEN", "0.8"))  # R50 switch: extra length factor for group (2 men + 1 woman) parts
+G_LEN = float(os.environ.get("NOVEL_GLEN", "1.0"))  # R50 switch: extra length factor for group (2 men + 1 woman) parts
 
 
 def part_message(b, parts, i, first_empty, names, avoid=None):
@@ -1411,6 +1411,7 @@ def fix_particles(text, info, rough=False):
     lines = []
     # R35 (29 Oct): a part where a man says กู / มึง is a rough scene: his polite ครับ in the same part (e.g. "ท่านี้เสียวกว่าไหมครับ") is dropped
     rough_scene = bool(re.search(r"(?<![ก-ฮ])กู(?!เก|รู)|มึง", text))
+    sexy_part = len(re.findall(r"ควย|หี(?![ก-ฮ])|เย็ด|น้ำเงี่ยน|น้ำเชื้อ|หัวนม", text)) >= 3   # R50: a clearly sexual part (self-name rule also for plain lines like "ก้องก็อยากเล่นด้วย")
     for ln in text.split("\n"):
         m = QUOTE_RE.match(ln.strip())
         if m:
@@ -1430,13 +1431,13 @@ def fix_particles(text, info, rough=False):
                     sp = "M"
                 elif re.search(r"(?<!ดิ)ฉัน(?![ทใ])", q):
                     sp = "F"   # an untagged ฉัน is treated as a woman (หนู to elders/family, else ชั้น below)
-            if spn and sp in ("M", "F") and spn in q and re.search(r"ควย|ดุ้น|หี(?![ก-ฮ])|แตก|เย็ด|ดูด|อม|เลีย|น้ำ", q):
+            if spn and sp in ("M", "F") and spn in q and (sexy_part or re.search(r"ควย|ดุ้น|หี(?![ก-ฮ])|แตก|เย็ด|ดูด|อม|เลีย|น้ำ", q)):
                 # R49 (29 Oct): a speaker never names himself/herself in bed ("ดูดควยก้องให้หมด" said by ก้อง): the name becomes ผม / กู / ชั้น, a leading self-call is dropped
                 me = "ชั้น" if sp == "F" else ("กู" if (rough_scene or re.search(r"มึง|(?<![ก-ฮ])กู(?!เก|รู)|ดูด|กลืน|กิน|อม|ให้หมด|แรงๆ|สั่ง", q)) else "ผม")   # user 29 Oct: a man's dirty order in bed is กู ("ดูดควยกูแรงๆ", "กินน้ำควยกูให้หมด"), not ผม
                 nm_ = re.escape(spn)
                 q = re.sub(r"(ควย|ดุ้น|หี|น้ำเงี่ยน|น้ำควย|น้ำเชื้อ|น้ำหี|ปาก|ลิ้น|นม|ตัว)(?:ของ)?" + nm_, lambda mm: mm.group(1) + me, q)
                 q = re.sub(r"ของ" + nm_, "ของ" + me, q)
-                q = re.sub(r"(?<![ก-ฮ])" + nm_ + r"(?=\s*(?:จะ|อยาก|กำลัง|ชอบ|ต้องการ|ไม่ไหว|ขอ))", me, q)
+                q = re.sub(r"(?<![ก-ฮ])" + nm_ + r"(?=\s*(?:จะ|ก็|อยาก|กำลัง|ชอบ|ต้องการ|ไม่ไหว|ขอ))", me, q)
                 q = re.sub(r"^([“\"])" + nm_ + r"[\s.…,!]*(?=[ก-ฮเแโใไ])", r"\1", q)
             HAIR = r"(?![ก-ฮ]*(?:ยาว|สั้น|หอม|เปียก|ดำ|ขาว|หงอก|ร่วง))"
             if sp in ("M", "F") and re.search(r"ลูก(?![ก-ฮ]|ค้า|น้อง|พี่)|ลูก(?=นะ|สิ|เถอะ|ค่ะ|คะ|ครับ|จ้ะ|จ๊ะ|ไหม|เหรอ|ล่ะ|เลย|รัก|คนนี้|คนดี)", q) and not re.search(r"ลูกค้า|ลูกน้อง|ลูกพี่", q):
