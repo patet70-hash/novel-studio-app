@@ -573,7 +573,49 @@ def anatomy_line(cast_info):
     return s
 
 
-LEN_SCALE = 0.9   # chapters came out at ~110% of target (ch03-08: 5,191 / 5,286 / 6,011 / 5,980 / 5,872 / 5,858 words for 5,000): ask for 10% less
+UNTAG_RUN = 8   # this many (or more) consecutive spoken lines with no narration or speaker tag between them = nobody can tell who talks (ch01 ending: ~100 such lines)
+_PURE_Q = re.compile(r"^\s*[“\"][^”\"\n]+[”\"][\s.!?…]*$")
+
+
+def untagged_dialogue(text, run=UNTAG_RUN):
+    """number of spoken lines that sit in runs of at least `run` bare quoted lines (a quote alone on its line: no tag, no narration)."""
+    n = cur = 0
+    for ln in (text or "").split("\n"):
+        if not ln.strip():
+            continue
+        if _PURE_Q.match(ln):
+            cur += 1
+        else:
+            if cur >= run:
+                n += cur
+            cur = 0
+    if cur >= run:
+        n += cur
+    return n
+
+
+def untag_n(t):
+    return untagged_dialogue(split_dialogue(t or ""))
+
+
+def kin_line(info, present):
+    """family facts taken from the characters' roles in the setup (father, children, stepmother, biological mother) so the model stops swapping พ่อ/พ่อเลี้ยง/แม่/ลูกสาว; empty when none of them is in this part."""
+    role = lambda n: (info.get(n) or {}).get("role", "")
+    fathers = [n for n in info if re.search(r"father", role(n), re.I) and not re.search(r"step", role(n), re.I)]
+    kids = [n for n in info if re.match(r"\s*(daughter|son)\b", role(n), re.I)]
+    step = [n for n in info if re.search(r"stepmother", role(n), re.I)]
+    bio = [n for n in info if re.search(r"biological mother", role(n), re.I)]
+    fam = set(fathers + kids + step + bio)
+    if not fam & set(present) or not (fathers and kids):
+        return ""
+    s = "KINSHIP (obey strictly): " + "/".join(fathers) + " is the REAL father (never พ่อเลี้ยง) of " + ", ".join(kids) + ". The children are siblings: they call each other by name or พี่/น้อง and NEVER ลูก/ลูกสาว/ลูกชาย (only a parent calls a child ลูก). The children call the father พ่อ."
+    if step:
+        s += " " + "/".join(step) + " is the stepmother (the father's second wife): the children call her คุณ" + step[0] + " or คุณแม่" + step[0] + ", never a bare แม่" + ((" (their real mother is " + "/".join(bio) + ")") if bio else "") + "."
+    s += " Do not swap these relations in the middle of the chapter."
+    return s
+
+
+LEN_SCALE = 0.9  # chapters came out at ~110% of target (ch03-08: 5,191 / 5,286 / 6,011 / 5,980 / 5,872 / 5,858 words for 5,000): ask for 10% less
 
 
 def part_message(b, parts, i, first_empty, names, avoid=None):
@@ -600,6 +642,10 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
         lines.append("CAST OF THIS PART (only these characters may appear or speak, no one else enters; gender and age are given: speech must match them): " + ", ".join(dict.fromkeys(cast)))
     if al:
         lines.append(al)
+    kl = kin_line(info, [n.split(" (")[0] for n in cast])
+    if kl:
+        lines.append(kl)
+    lines.append("SPEAKERS: every spoken line carries a speaker tag or sits right next to a narration beat naming who speaks; never write more than %d quoted lines in a row without a short action or tag line between them (even in the peak)." % (UNTAG_RUN - 4))
     hh = heat_hint(p)
     if hh:
         lines.append(hh)
@@ -623,7 +669,8 @@ PLAIN_WORDS = [("อวัยวะเพศ", "ของลับ"), ("อว�
 
 
 TYPO_FIX = [("พึมพ่า", "พึมพำ"), ("พึมพ้ำ", "พึมพำ"), ("พึมพร", "พึมพำ"), ("หนุกมาก", "สนุกมาก"), ("เปียกชับ", "เปียกชื้น"), ("กระแทควย", "กระแทกควย"), ("เยียดให้", "เย็ดให้"), ("ริมฝีริมฝีปาก", "ริมฝีปาก")]
-TYPO_RE = re.compile(r"แน่วแน่วนิยม|ซเฟีย|โนหัว|ขมับไว้รอบ|เข\s*ของ|[\u0E48-\u0E4B]{2}|\u0E31{2}")   # garbles seen in ch01-08 that no fixed replacement can repair: reported by the check
+LATIN_IN_THAI = "(?<=[\\u0E00-\\u0E7F])[a-z]{1,8}(?=[\\u0E00-\\u0E7F\\s\\u201c\\u201d\"!?.,]|$)"   # lowercase Latin letters glued to Thai text (น้ำควyli): never legitimate in this story
+TYPO_RE = re.compile(LATIN_IN_THAI + r"|กรมถา|หันมมอง|ลูกสะไภ้|แน่วแน่วนิยม|(?<!โ)ซเฟีย|โนหัว|ขมับไว้รอบ|เข\s*ของ|[\u0E48-\u0E4B]{2}|\u0E31{2}")   # garbles seen in ch01-08 that no fixed replacement can repair: reported by the check
 
 
 def plain_words(t):
@@ -633,6 +680,8 @@ def plain_words(t):
     t = re.sub(r"([\u0E48-\u0E4B])\1+", r"\1", t)   # doubled tone marks (น้้ำ)
     for a, b in TYPO_FIX:
         t = t.replace(a, b)
+    t = re.sub(r"(?<!โ)ซเฟีย", "โซเฟีย", t)
+    t = t.replace("กรมถา", "กรมท่า").replace("หันมมอง", "หันมอง").replace("ลูกสะไภ้", "ลูกสะใภ้")
     t = re.sub(r"\b[Mm]issionary\b", "ท่ามิชชันนารี", t)
     t = re.sub(r"\b[Oo]ral\b", "อม", t)
     return t
@@ -1019,6 +1068,7 @@ def climax_leftovers(t):
 def clean_part(t):
     t = re.sub(r"[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]+", "", t.strip())   # stray Chinese characters the model sometimes emits inside Thai text
     t = re.sub(r"[\u0400-\u052F\u0590-\u06FF\u0900-\u0DFF\u0E80-\u0EFF\u1000-\u109F\uFB1D-\uFDFF\uFE70-\uFEFF\u3040-\u30FF\uAC00-\uD7AF]+", "", t)   # stray Cyrillic / Hebrew / Arabic / Indic / Lao / Burmese / Kana / Hangul
+    t = re.sub(LATIN_IN_THAI, "", t)   # stray Latin letters inside Thai words
     m = re.search(r"```(?:draft|text|markdown)?\s*\n([\s\S]*?)(```|$)", t)
     if m and not re.search(r"```edit", t):
         t = m.group(1).strip()
@@ -1113,6 +1163,11 @@ def check_text(b, text, target=0):
     an = anatomy_issues(body, char_info(b))
     if an:
         issues.append("กายวิภาคผิดเพศ %d จุด (ผู้หญิงมี ควย / ผู้ชายมี หี)" % an)
+    ut = untagged_dialogue(body)
+    if ut:
+        issues.append("บทพูดล้วนไม่มีผู้พูด/บรรยายคั่น %d บรรทัด (ติดกัน ≥%d บรรทัด) อ่านไม่รู้ว่าใครพูด" % (ut, UNTAG_RUN))
+    if re.search(r"พ่อเลี้ยง", body) and not re.search(r"stepfather", " ".join(v.get("role", "") for v in char_info(b).values()), re.I):
+        issues.append("พบคำว่า “พ่อเลี้ยง” %d ครั้ง ทั้งที่ตัวละครพ่อเป็นพ่อแท้ตามตารางตัวละคร" % body.count("พ่อเลี้ยง"))
     if target and w > target * 1.2:
         issues.append("ความยาว %d คำ เกินเป้า %d คำ (%d%%)" % (w, target, w * 100 // target))
     rep = overused(body, names)
@@ -1266,13 +1321,13 @@ CALM_DENS_MAX = 3.5   # an ordinary (non-sexual) scene may not exceed this many 
 DUP_PART_MAX = 0.05   # at most this share of a part's long paragraphs may repeat word for word
 
 
-def part_score(t, need_dlg, need_sex, need_calm=False, existing="", anat=False):
+def part_score(t, need_dlg, need_sex, need_calm=False, existing="", anat=False, untag=False):
     """1.0 each for a satisfied check, proportional when short; the sum is used to pick the better of two versions."""
     a = min(quote_share(t) / DLG_MIN, 1.0) if need_dlg else 1.0
     b = min(sex_density(t) / SEX_DENS_MIN, 1.0) if need_sex else 1.0
     c = min(CALM_DENS_MAX / max(sex_density(t), 0.01), 1.0) if need_calm else 1.0
     d = 1.0 - min(1.0, dup_ratio(t, existing) / 0.5)
-    return a + b + c + d - (0.5 if anat else 0.0)
+    return a + b + c + d - (0.5 if anat else 0.0) - (0.5 if untag else 0.0)
 
 
 def dup_ratio(t, existing=""):
@@ -1321,6 +1376,8 @@ def aw_run(b, cid, key):
                         why.append("it gave a woman a ควย or a man a หี: women have only หี, เม็ดแตด and นม; men have ควย; no strap-ons; rewrite those acts correctly")
                     if dup_ratio(cand[1], cur0) > DUP_PART_MAX:
                         why.append("it repeated whole paragraphs and lines that were already written: every paragraph must be new, with new body movements, new words and new events")
+                    if untag_n(cand[1]):
+                        why.append("it had a long run of bare quoted lines with no speaker or action between them: after every 2-3 quoted lines add a short action beat or tag that names who is speaking and what the bodies are doing, so the reader always knows who talks")
                     m = msg + "\nREWRITE: your previous version was not acceptable: " + "; and ".join(why or ["write it more vividly"]) + ". Write the part again, keeping the same events."
                 elif attempt == 0:
                     m = msg
@@ -1346,12 +1403,14 @@ def aw_run(b, cid, key):
                 if ch0.get("finish_reason") == "length":
                     t = trim_to_paragraph(t)
                 if t and not t.lstrip().startswith("{") and "```" not in t and len(t) > 200:
+                    untag_t = untag_n(t)
                     if attempt == 0:   # experiment instrumentation: how much of the model's FIRST answer repeats what is already in the chapter
                         job.setdefault("raw_dup", []).append(round(dup_ratio(t, cur0), 3))
                         job.setdefault("raw_anat", []).append(anatomy_issues(t, info0))
-                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)))
+                        job.setdefault("raw_untag", []).append(untag_t)
+                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)), bool(untag_t))
                     ok_t = ((not need_dlg or quote_share(t) >= DLG_MIN) and (not need_sex or sex_density(t) >= SEX_DENS_MIN)
-                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0))
+                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0) and not untag_t)
                     if cand is not None:
                         job["retries"] = job.get("retries", 0) + 1
                         if sc_t >= cand[0]:
