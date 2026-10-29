@@ -1567,7 +1567,7 @@ def thin_owner(text):
         w = m.group(1)
         cnt[w] = cnt.get(w, 0) + 1
         return m.group(0) if (cnt[w] - 1) % 3 == 0 else w
-    return re.sub(r"(ควย|หน้าอก|ริมฝีปาก|มือ|ต้นขา|ลำตัว|สะโพก|ร่างกาย|ร่าง)ของ(?:เขา|เธอ)(?!วง|เอง)", rep, text)
+    return re.sub(r"(ควย|หน้าอก|ริมฝีปาก|มือ|ต้นขา|ลำตัว|สะโพก|ร่างกาย|ร่าง|ปลายนิ้ว|ปลายลิ้น|หัวนม|ลิ้น|นิ้ว)ของ(?:เขา|เธอ)(?!วง|เอง)", rep, text)
 
 
 def thin_tagverb(text, verb="พึมพำ", keep=1):
