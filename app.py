@@ -681,10 +681,14 @@ def posture_issues(text):
             out.append("ควยอยู่ทั้งในปากและในหีพร้อมกัน: " + lines[i][:40])
         if bj and re.search(r"นิ้ว[^\n]{0,8}(?:เข้า|ใน|ใส่)[^\n]{0,6}ปาก", ln):
             out.append("นิ้วกับควยอยู่ในปากพร้อมกัน: " + lines[i][:40])
+        if re.search(r"พาด(?:บน)?(?:บ่า|ไหล่)[^\n]{0,30}(?:จากด้านหลัง|คว่ำ|คุกเข่า|ท่าหมา)|(?:จากด้านหลัง|คว่ำ|คุกเข่า|ท่าหมา)[^\n]{0,30}พาด(?:บน)?(?:บ่า|ไหล่)", ln):
+            out.append("ท่าขัดกันเอง (ขาพาดบ่า แต่เข้าจากด้านหลัง/คว่ำ): " + lines[i][:40])
+        if pen and re.search(r"คร่อม[^\n]{0,6}หน้าอก", ln):
+            out.append("คร่อมหน้าอกแต่ควยอยู่ในหี (เป็นไปไม่ได้): " + lines[i][:40])
         a = "BJ" if bj else "PEN" if pen else "CUN" if cun else None
         if a:
             acts.append((i, a))
-        if _CUM.search(ln):
+        if _CUM.search(ln) or any(re.search(r"กู|มึง|ผม", q) and re.search(r"แตกแล้ว|แตกใน|แตกใส่|ปล่อยใน|กูจะแตก", q) for q in re.findall(r"\u201c[^\u201d]*\u201d?", lines[i])):
             cum_idx.append(i)
     for (i, a), (j, b) in zip(acts, acts[1:]):
         if a != b and not any(_TRANS.search(x) for x in nar[i:j + 1]) and not (a == "BJ" and b == "BJ"):
@@ -815,7 +819,7 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
 PLAIN_WORDS = [("อวัยวะเพศ", "ของลับ"), ("อวัยวะสืบพันธุ์", "ของลับ"), ("องคชาต", "ควย"), ("ช่องคลอด", "หี"), ("น้ำอสุจิ", "น้ำเชื้อ"), ("เสร็จข้างใน", "แตกใน"), ("เสร็จข้างนอก", "แตกข้างนอก"), ("เสร็จที่หน้า", "แตกใส่หน้า"), ("เสร็จในปาก", "แตกในปาก"), ("เสร็จในหี", "แตกในหี"), ("ถึงจุดสุดยอด", "แตก"), ("น้ำหล่อลื่น", "น้ำหี"), ("สารคัดหลั่ง", "น้ำหี")]
 
 
-TYPO_FIX = [("พึมพ่า", "พึมพำ"), ("พึมพ้ำ", "พึมพำ"), ("พึมพร", "พึมพำ"), ("หนุกมาก", "สนุกมาก"), ("เปียกชับ", "เปียกชื้น"), ("กระแทควย", "กระแทกควย"), ("เยียดให้", "เย็ดให้"), ("ริมฝีริมฝีปาก", "ริมฝีปาก")]
+TYPO_FIX = [("พึมพ่า", "พึมพำ"), ("พึมพ้ำ", "พึมพำ"), ("พึมพร", "พึมพำ"), ("หนุกมาก", "สนุกมาก"), ("เปียกชับ", "เปียกชื้น"), ("กระแทควย", "กระแทกควย"), ("เยียดให้", "เย็ดให้"), ("ริมฝีริมฝีปาก", "ริมฝีปาก"), ("แรงตดของ", "แรงกระแทกของ"), ("การตดจน", "การกระแทกจน"), ("ขมับหี", "ขมิบหี"), ("อ่อนโยล", "อ่อนโยน")]   # R32 additions seen in r32-r34
 LATIN_IN_THAI = "(?<=[\\u0E00-\\u0E7F])[a-z]{1,8}(?=[\\u0E00-\\u0E7F\\s\\u201c\\u201d\"!?.,]|$)"   # lowercase Latin letters glued to Thai text (น้ำควyli): never legitimate in this story
 TYPO_RE = re.compile(LATIN_IN_THAI + r"|กรมถา|หันมมอง|ลูกสะไภ้|แน่วแน่วนิยม|(?<!โ)ซเฟีย|โนหัว|ขมับไว้รอบ|เข\s*ของ|[\u0E48-\u0E4B]{2}|\u0E31{2}")   # garbles seen in ch01-08 that no fixed replacement can repair: reported by the check
 
@@ -959,7 +963,7 @@ def elder_listener(q, spn, info):
     own = ((info.get(spn) or {}).get("role") or "") if spn else ""
     if re.search(r"ลูก|หลาน", q) or re.search(r"พ่อ|แม่|ป๊า|ม๊า|ปู่|ย่า|ตา|ยาย", own):
         return False
-    return re.search(r"พ่อ|แม่|ป๊า|ม๊า|ป้า|ลุง|(?<!ห)น้า|ปู่|(?<!อ)ย่า|ยาย|คุณพ่อ|คุณแม่|ท่าน", q) is not None   # R32: "อย่า" contains ย่า and "หน้า" contains น้า: they made every "อย่า…" / "หน้าอก" line count as talk to an elder (polite ครับ/ค่ะ added)
+    return re.search(r"พ่อ|แม่|ป๊า|ม๊า|ป้า|ลุง|(?<!ห)น้า|ปู่|(?<!อ)ย่า|ยาย|คุณพ่อ|คุณแม่|ท่าน(?![ีั]|ไหน)", q) is not None   # R32: "อย่า" contains ย่า and "หน้า" contains น้า: they made every "อย่า…" / "หน้าอก" line count as talk to an elder (polite ครับ/ค่ะ added)
 
 
 def tag_speaker(tag, info):
@@ -981,6 +985,8 @@ def tag_speaker(tag, info):
 def fix_particles(text, info, rough=False):
     """Make ครับ / ค่ะ agree with the gender of the speaker named in the tag after the quote."""
     lines = []
+    # R35 (29 Oct): a part where a man says กู / มึง is a rough scene: his polite ครับ in the same part (e.g. "ท่านี้เสียวกว่าไหมครับ") is dropped
+    rough_scene = bool(re.search(r"(?<![ก-ฮ])กู(?!เก|รู)|มึง", text))
     for ln in text.split("\n"):
         m = QUOTE_RE.match(ln.strip())
         if m:
@@ -1025,6 +1031,8 @@ def fix_particles(text, info, rough=False):
                 q = re.sub(r"นะครับ", "นะ", q).replace("ครับ", "")
             if sp == "M":   # R23 (29 Oct): a man never says ชั้น (women's pronoun): ผม, or กู in the rough register
                 q = re.sub(r"(?<![ก-ฮ])ชั้น(?!วาง|ที่|หนึ่ง|สอง|สาม|บน|ล่าง|ใน|เรียน|ปี|ประถม|มัธยม|เชิง|ๆ)", "กู" if re.search(r"มึง|(?<![ก-ฮ])กู(?!เก|รู)", q) else "ผม", q)
+            if sp == "M" and rough_scene and "ครับ" in q and not elder_listener(q, spn, info):
+                q = re.sub(r"นะครับ", "นะ", q).replace("ครับ", "")
             if sp == "M" and "ครับ" in q and re.search(r"อย่า|ห้าม|ให้หมด|ซะ|สัส|เหี้ย|ชิบหาย|ควย|หี(?![ก-ฮ])|เย็ด|กลืน|ดูด|อ้าปาก|แตก", q):
                 # R32 (29 Oct): a man's order / dirty talk in bed is never polite ("อย่าให้เล็ดครับ"): drop ครับ
                 q = re.sub(r"นะครับ", "นะ", q).replace("ครับ", "")
