@@ -1395,6 +1395,15 @@ def tag_speaker(tag, info):
     return best[1] if best else None
 
 
+def thin_owner(text):
+    """R51 (29 Oct): "ควยของเขา" came out 9-16 times per chapter: in one part keep the 1st and every 3rd, the others become plain "ควย" (the man is named in the same paragraph)."""
+    n = [0]
+    def rep(m):
+        n[0] += 1
+        return m.group(0) if (n[0] - 1) % 3 == 0 else "ควย"
+    return re.sub(r"ควยของ(?:เขา|เธอ)(?![ก-ฮ])", rep, text)
+
+
 def fix_swallow(text):
     """R50 (29 Oct, user): "ให้หมด" goes with a liquid, never with a body part: you cannot suck a cock / eat a pussy "until it is all gone".
     ดูดควย…ให้หมด -> ดูดควย…แรงๆ ; อมควย…ให้หมด -> อมควย…ให้ลึก ; เลีย/กินหี…ให้หมด -> …แรงๆ. A phrase with น้ำ (น้ำควย, น้ำเชื้อ, น้ำหี) is left alone."""
@@ -2187,7 +2196,7 @@ def aw_run(b, cid, key):
                 return
             cur = read(fp)
             part = drop_dup_paragraphs(fix_name_typos(part, names), cur)
-            part = fix_swallow(fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak")))
+            part = thin_owner(fix_swallow(fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak"))))
             tail = cur.rstrip()[-60:]
             if tail and part.startswith(tail[-40:]):
                 part = part[len(tail[-40:]):].lstrip()
