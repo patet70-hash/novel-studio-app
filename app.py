@@ -2760,9 +2760,10 @@ def aw_run(b, cid, key):
             need_calm = not need_sex
             cur0 = read(fp)
             info0 = char_info(b)
-            for attempt in range(3):
-                if attempt == 2 and cand is None:
-                    break   # the third call exists only for the spoken-line rewrite
+            maxa = 4 if (parts[i].get("pose") or {}).get("g") else 3   # R78: parts of 2/3-men scenes get one more rewrite (r76-dp: the double and the finish places were still wrong after 3)
+            for attempt in range(maxa):
+                if attempt >= 2 and cand is None:
+                    break   # the later calls exist only for rewrites
                 if cand is not None:
                     why = []
                     if need_dlg and quote_share(cand[1]) < DLG_MIN:
@@ -2778,7 +2779,7 @@ def aw_run(b, cid, key):
                     if family_issues(cand[1], info0):
                         why.append("it broke a story rule: " + " | ".join(family_issues(cand[1], info0)[:3]) + ". Rules: nobody can lick, suck or touch their own body parts; a woman has no น้ำเชื้อ (only น้ำหี / น้ำเงี่ยน); never write several paragraphs that start with the same words (each paragraph must move the scene forward); the men NEVER touch, suck or lick each other (every sexual act is man-with-woman; two men may be with the same woman at the same time, but their bodies never touch each other); the daughter is the husband's real daughter, never บุญธรรม")
                     if posture_issues(cand[1], _is_group(parts[i])) or plan_issues(cand[1], parts[i]):
-                        why.append("its body logic was impossible or it ignored the POSITION PLAN: " + " | ".join((posture_issues(cand[1], _is_group(parts[i])) + plan_issues(cand[1], parts[i]))[:3]) + ". Rules: one cock is in ONE place at a time (mouth OR pussy OR hand); to switch, first write the man pulling out or the couple changing position (e.g. ดึงควยออก, พลิกตัว, เปลี่ยนท่า) and the new position; nobody has two things in the mouth; the man comes only at a HIS CLIMAX step of the plan")
+                        why.append("its body logic was impossible or it ignored the POSITION PLAN: " + " | ".join((plan_issues(cand[1], parts[i]) + posture_issues(cand[1], _is_group(parts[i])))[:4]) + ". Rules: one cock is in ONE place at a time (mouth OR pussy OR hand); to switch, first write the man pulling out or the couple changing position (e.g. ดึงควยออก, พลิกตัว, เปลี่ยนท่า) and the new position; nobody has two things in the mouth; the man comes only at a HIS CLIMAX step of the plan")
                     if formula_heavy(cand[1]):
                         why.append("most quoted lines had the same shape 'short phrase... short phrase': vary the dialogue: full sentences, questions, commands, names, one-word cries, interrupted lines, and mix action beats between the lines")
                     if part_too_long(cand[1], parts[i]):
@@ -2822,14 +2823,14 @@ def aw_run(b, cid, key):
                         job.setdefault("raw_dup", []).append(round(dup_ratio(t, cur0), 3))
                         job.setdefault("raw_anat", []).append(anatomy_issues(t, info0))
                         job.setdefault("raw_untag", []).append(untag_t)
-                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)), bool(untag_t) or fh_t or bool(fam_t) or bool(pos_t) or part_too_long(t, parts[i]))
+                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)), bool(untag_t) or fh_t or bool(fam_t) or bool(pos_t) or part_too_long(t, parts[i])) - min(1.2, 0.3 * len(pos_t))   # R78: the version with fewer plan problems wins when none is clean
                     ok_t = ((not need_dlg or quote_share(t) >= DLG_MIN) and (not need_sex or sex_density(t) >= SEX_DENS_MIN)
                             and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0) and not untag_t and not fh_t and not fam_t and not pos_t and not part_too_long(t, parts[i]))
                     if cand is not None:
                         job["retries"] = job.get("retries", 0) + 1
                         if sc_t >= cand[0]:
                             cand = (sc_t, t)
-                        if ok_t or attempt >= 2:
+                        if ok_t or attempt >= maxa - 1:
                             part = cand[1]
                             break
                         continue
