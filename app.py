@@ -712,7 +712,7 @@ def kin_line(info, present, kin=None):
     return s
 
 
-LEN_SCALE = 0.9  # chapters came out at ~110% of target (ch03-08: 5,191 / 5,286 / 6,011 / 5,980 / 5,872 / 5,858 words for 5,000): ask for 10% less
+LEN_SCALE = float(os.environ.get("NOVEL_LENSCALE", "0.9"))  # R21 switch (default unchanged 0.9); chapters came out at ~110% of target (ch03-08: 5,191 / 5,286 / 6,011 / 5,980 / 5,872 / 5,858 words for 5,000): ask for 10% less
 
 
 def part_message(b, parts, i, first_empty, names, avoid=None):
