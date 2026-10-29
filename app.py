@@ -1495,12 +1495,14 @@ def tag_speaker(tag, info):
 
 
 def thin_owner(text):
-    """R51 (29 Oct): "ควยของเขา" came out 9-16 times per chapter: in one part keep the 1st and every 3rd, the others become plain "ควย" (the man is named in the same paragraph)."""
-    n = [0]
+    """R51 (29 Oct): "ควยของเขา" came out 9-16 times per chapter: in one part keep the 1st and every 3rd, the others become plain "ควย" (the man is named in the same paragraph).
+    R56: the same for หน้าอก / ริมฝีปาก / มือ / ต้นขา / ลำตัว / สะโพก ของเขา|เธอ (R55: หน้าอกของ x9, ริมฝีปากของ x8)."""
+    cnt = {}
     def rep(m):
-        n[0] += 1
-        return m.group(0) if (n[0] - 1) % 3 == 0 else "ควย"
-    return re.sub(r"ควยของ(?:เขา|เธอ)(?![ก-ฮ])", rep, text)
+        w = m.group(1)
+        cnt[w] = cnt.get(w, 0) + 1
+        return m.group(0) if (cnt[w] - 1) % 3 == 0 else w
+    return re.sub(r"(ควย|หน้าอก|ริมฝีปาก|มือ|ต้นขา|ลำตัว|สะโพก)ของ(?:เขา|เธอ)(?!วง|เอง)", rep, text)
 
 
 def fix_swallow(text):
