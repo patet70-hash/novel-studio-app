@@ -491,8 +491,14 @@ def name_table(b):
 SEX_SHARE = 0.75   # sexual scenes get this share of the words so that, with the warm-up of each sex scene counted as sexual, the chapter reaches 60-70% sexual content
 
 
+STRONG_SEX = re.compile(r"เย็ด|ควย|หี(?!บ)|เซ็กส์|เซ็กซ์|เสพสม|ร่วมรัก|น้ำแตก|แตกใน|แตกใส่|แตกบน|น้ำเชื้อ|น้ำควย|น้ำเงี่ยน|ขย่ม|สอดใส่|อมควย|เลียหี")
+
+
 def is_sexual_text(txt):
-    return sum(1 for w in SEX_WORDS if w in (txt or "")) >= 2
+    """R63 (29 Oct, R62: scene 1 'ก้องเย็ดลลิตา… จนน้ำแตกบนก้น' had only ONE of the SEX_WORDS, so it was treated as an ordinary scene: 750 words, no
+    sex-content rule, no pose plan, and it came out with no sex at all): one strong sexual word is enough, otherwise two of the weaker words."""
+    t = txt or ""
+    return bool(STRONG_SEX.search(t)) or sum(1 for w in SEX_WORDS if w in t) >= 2
 
 
 def rebalance_sex_share(scenes, target):
@@ -558,7 +564,7 @@ ANGER_WORDS = ("โกรธ", "ทะเลาะ", "ตะคอก", "โม�
 def heat_level(p):
     """'peak' (rough men) for the late beats of a sexual scene or an angry scene, else ''."""
     txt = p.get("text") or ""
-    sexual = sum(1 for w in SEX_WORDS if w in txt) >= 2
+    sexual = is_sexual_text(txt)
     if sexual:
         n, k = p.get("beats", 1), p.get("beat", 1)
         return "peak" if n > 1 and (k - 1.0) / (n - 1) >= 0.67 else ""
@@ -583,7 +589,7 @@ def dialogue_hint(p):
     txt = p.get("text") or ""
     n, k = p.get("beats", 1), p.get("beat", 1)
     words = int(p.get("words") or 1000)
-    sexual = sum(1 for w in SEX_WORDS if w in txt) >= 2
+    sexual = is_sexual_text(txt)
     f = (k - 1.0) / (n - 1) if n > 1 else 0.5
     extra = ""
     if sexual and f >= 0.67:
@@ -615,7 +621,7 @@ BODY_LOGIC = _BL if BODY_LOGIC_ON else ""
 def heat_hint(p):
     """Register instruction for one part, from the scene plan and the beat's position in the scene (sex scenes heat up beat by beat)."""
     txt = p.get("text") or ""
-    sexual = sum(1 for w in SEX_WORDS if w in txt) >= 2
+    sexual = is_sexual_text(txt)
     angry = any(w in txt for w in ANGER_WORDS)
     if not sexual and not angry:
         return ""
