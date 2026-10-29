@@ -669,7 +669,11 @@ _CUM = re.compile(r"น้ำเชื้อ[^\n”]{0,4}(?:พุ่ง|ไห�
 _TRANS = re.compile(r"เปลี่ยนท่า|พลิก|ดึง[^\n”]{0,6}ออก|ถอน|ชัก[^\n”]{0,4}ออก|จัดท่า|จับ[^\n”]{0,8}(?:นอน|คว่ำ|หงาย|ตะแคง|ขึ้น|ยก)|ขึ้นคร่อม|คุกเข่า|ลุก|ผลัก|ยันตัว|นอนลง|นั่งลง|ยืน|ถอด|ปลด|ยก|ดัน|อุ้ม|หันหลัง|โน้มตัว|นอนหงาย|คว่ำ|เสียบ|สอดเข้า|ดึงตัว")
 
 
-def posture_issues(text):
+def _is_group(part):
+    return bool(((part or {}).get("pose") or {}).get("g"))
+
+
+def posture_issues(text, multi=False):
     """R32 (29 Oct): body-logic problems a reader notices at once: one cock in mouth and pussy at the same moment, fingers and cock in the
     mouth together, a jump between acts (blowjob / licking / penetration) with no pulling out or change of position, and the man coming
     twice. Only narration lines count (quoted lines are talk). Returns short Thai descriptions (empty = clean)."""
@@ -680,7 +684,7 @@ def posture_issues(text):
     cum_idx = []
     for i, ln in enumerate(nar):
         bj, pen, cun = bool(_MOUTH_COCK.search(ln)), bool(_PEN_VAG.search(ln)), bool(_CUN.search(ln))
-        if bj and pen and not re.search(r"ดึง|ถอน|ออก|ก่อนจะ|เปลี่ยน|พลิก", ln):
+        if bj and pen and not multi and not re.search(r"ดึง|ถอน|ออก|ก่อนจะ|เปลี่ยน|พลิก", ln):
             out.append("ควยอยู่ทั้งในปากและในหีพร้อมกัน: " + lines[i][:40])
         if bj and re.search(r"นิ้ว[^\n]{0,8}(?:เข้า|ใน|ใส่)[^\n]{0,6}ปาก", ln):
             out.append("นิ้วกับควยอยู่ในปากพร้อมกัน: " + lines[i][:40])
@@ -694,7 +698,7 @@ def posture_issues(text):
         if _CUM.search(ln) or any(re.search(r"กู|มึง|ผม", q) and re.search(r"แตกแล้ว|แตกใน|แตกใส่|ปล่อยใน|กูจะแตก", q) for q in re.findall(r"\u201c[^\u201d]*\u201d?", lines[i])):
             cum_idx.append(i)
     for (i, a), (j, b) in zip(acts, acts[1:]):
-        if a != b and not any(_TRANS.search(x) for x in nar[i:j + 1]) and not (a == "BJ" and b == "BJ"):
+        if not multi and a != b and not any(_TRANS.search(x) for x in nar[i:j + 1]) and not (a == "BJ" and b == "BJ"):
             out.append("เปลี่ยนจาก %s เป็น %s ทันทีโดยไม่มีช่วงเปลี่ยนท่า/ดึงออก: %s" % (a, b, lines[j][:30]))
             break
     groups, last = 0, -99
@@ -703,7 +707,7 @@ def posture_issues(text):
             groups += 1
         last = i
     rec = bool(re.search(r"อีกรอบ|อีกครั้ง|ยังแข็ง|รอบสอง|รอบที่สอง|แข็งขึ้นอีก|กลับมาแข็ง|แข็งตัวอีก|แข็งอีก|ปลุก", "\n".join(nar)))
-    if groups >= 2 and not rec:
+    if groups >= 2 and not rec and not multi:
         out.append("ผู้ชายแตกซ้ำ %d ครั้งในฉากเดียว" % groups)
     return out
 
@@ -758,7 +762,26 @@ def pose_table():
 
 
 def _pose_kind(t, pid):
-    return (t.get(pid) or {}).get("k", "")
+    return (t.get(pid) or GROUP_TABLE.get(pid) or {}).get("k", "")
+
+
+# R45 (29 Oct): GROUP TABLE for one woman + two men (the men are both with her at the same time but never touch each other). {A} / {B} are the
+# two men's names and {W} the woman's; the same legality rules as the single table (his cock in ONE place, she has a mouth, a pussy and (only in
+# the double step) an anus, two hands). After a man comes he is soft and rests (kisses her, touches her with his hands) while the other continues.
+GROUP_TABLE = {
+    "M1": {"n": "สองคนเล้าโลมเธอ", "k": "warm", "d": "{W} sits or lies on the bed between {A} and {B}: {A} kisses her mouth while {B} kisses her neck, nipples and breasts, clothes come off; no cock touches her yet", "next": ["M2", "M3", "M4", "M5", "M8"]},
+    "M2": {"n": "อมควยคนหนึ่ง มือจับอีกคน", "k": "oral", "d": "{W} kneels between the two standing/kneeling men: {A}'s cock is in her mouth while her hand strokes {B}'s cock, then they swap (one cock in her mouth at a time); nobody is inside her pussy", "next": ["M3", "M4", "M5", "M6", "M8"]},
+    "M3": {"n": "คนหนึ่งเลียหี อีกคนให้เธออม", "k": "oral", "d": "{W} lies on her back: {A} lies between her thighs licking her pussy and clit while {B} kneels by her head and she sucks his cock; {B} is in her mouth only, {A} uses only his tongue and fingers", "next": ["M4", "M5", "M6", "M8", "M9"]},
+    "M4": {"n": "ด็อกกี้ + อมควย", "k": "pen", "d": "{W} is on her hands and knees: {A} kneels behind her with his cock in her pussy, {B} kneels in front of her with his cock in her mouth; the men do not touch each other", "next": ["M5", "M6", "M8", "M7"]},
+    "M5": {"n": "ขึ้นคร่อม + อมควย", "k": "pen", "d": "{A} lies on his back and {W} rides him facing him, his cock in her pussy; {B} kneels beside her head and she sucks his cock (or strokes it with her hand)", "next": ["M4", "M6", "M7", "M9"]},
+    "M6": {"n": "ตะแคง + จับควย", "k": "pen", "d": "{W} lies on her side: {A} lies behind her in spoon position, his cock in her pussy from behind; {B} lies in front of her, kissing her, her hand stroking his cock", "next": ["M4", "M5", "M8"]},
+    "M7": {"n": "double: หี + ทวาร", "k": "pen", "dp": True, "d": "DOUBLE PENETRATION, slow and careful: {A} lies on his back, {W} lies on top of him facing him with her chest on his, his cock in her pussy; {B} kneels behind her and, after gel and slow fingers, eases his cock into her anus; she moans, asks them to go slowly, then they move together; one cock in the pussy, one in the anus, the men do not touch each other", "next": ["M5", "M4"]},
+    "M8": {"n": "มิชชันนารี + มือจับ", "k": "pen", "d": "missionary: {W} on her back, {A} between her legs with his cock in her pussy; {B} kneels beside her head and she strokes his cock with her hand and licks the tip", "next": ["M4", "M5", "M7", "M9"]},
+    "M9": {"n": "นั่งตัก + เล้าโลมจากข้างหลัง", "k": "pen", "d": "{A} sits on the bed edge, {W} sits on his lap facing him with his cock in her pussy; {B} kneels behind her, kisses her neck and plays with her breasts (his cock only rubs her back, it is not inside her)", "next": ["M4", "M5", "M7"]},
+    "FB": {"n": "แตกพร้อมกัน", "k": "finish", "d": "both men come in this step (each in the way given below); make sure {W} has come before or with them", "next": []},
+    "RB": {"n": "ปลุกทั้งสองคน", "k": "recover", "d": "both men have just come and are soft: {W} licks, sucks and strokes {A} and {B} one after the other (one cock in her mouth at a time) while they kiss and touch her, until both are hard again; no penetration in this step", "next": ["M2", "M4", "M5", "M8"]},
+}
+_SOLO_PEN = ["D1", "D2", "D4", "E1", "E2", "D5"]
 
 
 def make_pose_plan(nbeats, rng, table=None):
@@ -817,13 +840,127 @@ def make_pose_plan(nbeats, rng, table=None):
     return out
 
 
+def make_group_plan(nbeats, rng, A, B, table=None):
+    """one scene's chain for one woman and two men A, B (names). Steps: {"id", "w", "who"?, "fin"?}. Shape: warm-up for both, group steps (her
+    climax in one or two), then (3+ beats) the first man comes and rests while the second continues alone, then he comes too; with 5+ beats a
+    recovery of both, another group step and a last common finish. Two beats: warm-up, two group steps, one common finish. Both men always come."""
+    t = table or pose_table()
+    G = GROUP_TABLE
+    n = max(1, int(nbeats))
+    S = max(4, 2 * n)
+    if n < 3:
+        ng, ns, tail = 2, 0, False
+    elif n < 5:
+        ns = 1 if n == 3 else 2
+        ng, tail = S - 3 - ns, False
+    else:
+        ns, tail = 2, True
+        ng = S - 3 - ns - 3
+    first, second = (A, B) if rng.random() < 0.5 else (B, A)
+    chain = [{"id": "M1"}]
+    used = {}
+    prev = ["M1"]
+
+    def add_group():
+        gcount = sum(1 for c in chain if (G.get(c["id"]) or {}).get("k") in ("oral", "pen"))
+        c = [x for x in G[prev[0]].get("next", []) if x in G and G[x]["k"] in ("oral", "pen") and x != prev[0]]
+        if gcount < 2 or used.get("M7", 0):
+            c = [x for x in c if x != "M7"]
+        if not c:
+            c = [x for x in G if G[x]["k"] in ("oral", "pen") and x != "M7" and x != prev[0]]
+        fresh = [x for x in c if used.get(x, 0) == 0] or c
+        p = rng.choice(fresh)
+        used[p] = used.get(p, 0) + 1
+        chain.append({"id": p})
+        prev[0] = p
+
+    fins = [x for x in t if _pose_kind(t, x) == "finish"] or ["F3"]
+    for _ in range(ng):
+        add_group()
+    if n < 3:
+        k = rng.sample(["F1", "F2", "F3"], 2)
+        chain.append({"id": "FB", "fin": {first: k[0], second: k[1]}})
+    else:
+        chain.append({"id": rng.choice(fins), "who": first})
+        sp = None
+        for _ in range(ns):
+            c = [x for x in ((t.get(sp) or {}).get("next", []) if sp else _SOLO_PEN) if x in _SOLO_PEN and x != sp] or _SOLO_PEN
+            sp = rng.choice(c)
+            chain.append({"id": sp, "who": second})
+        chain.append({"id": rng.choice(fins), "who": second})
+        if tail:
+            chain.append({"id": "RB"})
+            prev[0] = "RB"
+            add_group()
+            k = rng.sample(["F1", "F2", "F3"], 2)
+            chain.append({"id": "FB", "fin": {first: k[0], second: k[1]}})
+    act = [i for i, c in enumerate(chain) if i > 0 and _pose_kind(t, c["id"]) in ("oral", "pen")]
+    for i in rng.sample(act, min(len(act), rng.randint(1, 2))):
+        chain[i]["w"] = True
+    if act and not any(c.get("w") for c in chain):
+        chain[act[0]]["w"] = True
+    out, m = [], len(chain)
+    for b in range(n):
+        out.append(chain[(m * b) // n:(m * (b + 1)) // n])
+    return out
+
+
+def pose_block_group(part):
+    pp = part["pose"]
+    t = pose_table()
+    cs = pp.get("cast") or {}
+    A, B, W = cs.get("A", "A"), cs.get("B", "B"), cs.get("W", "she")
+    L = ["POSITION PLAN FOR %s WITH TWO MEN, %s AND %s, AT THE SAME TIME (ground truth: the positions come from a fixed table so the bodies stay in possible places; obey it exactly, in this order, and use NO other position in this part):" % (W, A, B)]
+    if pp.get("carry"):
+        L.append("CARRY-OVER FROM THE LAST SCENE: %s was left wanting more and is still aroused: show it in the first lines of this part (a look, a touch, a request) before STEP 1." % pp["carry"])
+    if pp.get("prev"):
+        pv = t.get(pp["prev"]) or GROUP_TABLE.get(pp["prev"]) or {}
+        L.append("Where the scene stands now: %s." % (pv.get("n", "")))
+    for k, st in enumerate(pp["steps"], 1):
+        pid = st["id"]
+        row = GROUP_TABLE.get(pid) or t.get(pid) or {}
+        kind = row.get("k", "")
+        who = st.get("who")
+        other = (B if who == A else A) if who else ""
+        if pid in GROUP_TABLE:
+            d = row.get("d", "").format(A=A, B=B, W=W)
+            ln = "STEP %d [%s]: %s" % (k, row.get("n", pid), d)
+            if pid == "FB":
+                fin = st.get("fin") or {}
+                parts_ = []
+                for nm, fid in fin.items():
+                    parts_.append("%s: %s" % (nm, (t.get(fid) or {}).get("d", "")))
+                ln += " | " + " ; ".join(parts_)
+        else:
+            d = row.get("d", "")
+            ln = "STEP %d [%s]: ONLY %s is with %s in this step (in the description below 'he' / 'his' means %s)%s: %s" % (
+                k, row.get("n", pid), who or A, W, who or A,
+                ("; " + other + " has already come and rests beside them, kissing her and touching her breasts with his hands, his cock soft and not used") if (who and kind != "finish") or kind == "recover" else "",
+                d)
+        if st.get("w"):
+            ln += " | HER CLIMAX happens in this step: show it plainly; afterwards they simply carry on, she needs no recovery."
+        if kind == "finish" and pid != "FB":
+            ln += " | %s's CLIMAX happens here and only here; %s has come before or with him." % (who or A, W)
+        if kind == "finish" and pid == "FB":
+            ln += " | BOTH MEN'S CLIMAX happens here and only here."
+        if kind == "recover":
+            ln += " | The men stay soft until the end of this step; nobody penetrates anyone in it."
+        L.append(ln)
+    L.append("PLAN RULES: each man's cock is in ONE place at a time; her mouth holds ONE cock at a time, her pussy ONE cock, her anus only in the double-penetration step; the men NEVER touch, kiss, lick or rub each other; a man comes only at his CLIMAX step; after he comes he is soft and rests (he may kiss her and touch her with his hands) until a recovery step; the woman has a pussy only and the men a cock only; keep every paragraph to one position.")
+    return " ".join(L[:1]) + "\n" + "\n".join(L[1:])
+
+
 def pose_block(part):
     """the POSITION PLAN lines for one part (empty when the part has no plan)."""
     pp = (part or {}).get("pose")
     if not pp or not pp.get("steps"):
         return ""
+    if pp.get("g"):
+        return pose_block_group(part)
     t = pose_table()
     L = ["POSITION PLAN (ground truth: the positions below come from a fixed table so the bodies stay in possible places; obey it exactly, in this order, and use NO other position in this part):"]
+    if pp.get("carry"):
+        L.append("CARRY-OVER FROM THE LAST SCENE: %s was left wanting more and is still aroused: show it in the first lines of this part (a look, a touch, a request) before STEP 1." % pp["carry"])
     if pp.get("prev"):
         pv = t.get(pp["prev"]) or {}
         L.append("Where the scene stands now: %s - %s." % (pv.get("n", ""), pv.get("d", "")))
@@ -866,13 +1003,16 @@ def pose_run_salt(b, cid):
 
 
 def _plan_sig(plan):
-    return tuple(s["id"] for bt in plan for s in bt)
+    return tuple(s["id"] + (":" + s["who"] if s.get("who") else "") for bt in plan for s in bt)
 
 
 def attach_pose_plans(b, parts, cid="", salt=0):
-    """put a seeded pose plan on the parts of every sexual scene with exactly one man and one woman (other casts keep the old behaviour).
+    """put a seeded pose plan on the parts of every sexual scene with one man + one woman (single table) or two men + one woman (group table);
+    other casts keep the old behaviour.
     R38 (29 Oct): no two scenes of one chapter get the same chain; while possible they also differ in their first two steps and in the kind of
-    finish of the scene before (strict phase), then only the exact chain is forbidden."""
+    finish of the scene before (strict phase), then only the exact chain is forbidden.
+    R45 (29 Oct): 2 men + 1 woman scenes get a group chain (both men at once, double penetration included); a seeded 'still wants more' flag
+    (a woman or a man left aroused) is carried into the first part of the next planned scene when that person is in it."""
     if not POSES_ON:
         return parts
     import random, zlib
@@ -882,6 +1022,7 @@ def attach_pose_plans(b, parts, cid="", salt=0):
     for p in parts:
         by_scene.setdefault(p["scene"], []).append(p)
     seen, seen_open, last_fin = set(), set(), None
+    want = None
     for sc, ps in sorted(by_scene.items()):
         txt = ps[0]["text"]
         if not is_sexual_text(txt):
@@ -889,12 +1030,13 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         present = [n for n in info if n and n in txt]
         men = [n for n in present if info[n].get("g") == "M"]
         women = [n for n in present if info[n].get("g") == "F"]
-        if len(men) != 1 or len(women) != 1:
+        group = len(men) == 2 and len(women) == 1
+        if not group and (len(men) != 1 or len(women) != 1):
             continue
         pick = None
         for k in range(60):
             rng = random.Random(zlib.crc32(("%s|%s|%d|%d|%d" % (b, cid, sc, salt, k)).encode("utf-8")))
-            plan = make_pose_plan(len(ps), rng, t)
+            plan = make_group_plan(len(ps), rng, men[0], men[1], t) if group else make_pose_plan(len(ps), rng, t)
             sig = _plan_sig(plan)
             if sig in seen:
                 continue
@@ -909,10 +1051,19 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         seen_open.add(sig[:2])
         last_fin = sig[-1]
         prev = None
+        carry = want if (want and want in txt) else None
         for p, steps in zip(ps, plan):
             p["pose"] = {"steps": steps, "prev": prev}
+            if group:
+                p["pose"]["g"] = True
+                p["pose"]["cast"] = {"A": men[0], "B": men[1], "W": women[0]}
+            if carry and p is ps[0]:
+                p["pose"]["carry"] = carry
             if steps:
                 prev = steps[-1]["id"]
+        rw = random.Random(zlib.crc32(("%s|%s|%d|%d|want" % (b, cid, sc, salt)).encode("utf-8")))
+        cast = men + women
+        want = rw.choice(cast) if rw.random() < 0.4 else None
     return parts
 
 
@@ -930,7 +1081,7 @@ def plan_issues(text, part):
         out.append("ผู้ชายแตกทั้งที่แผนของ beat นี้ยังไม่ถึงจุดจบ")
     if has_f and not cum_n:
         out.append("beat นี้ต้องมีการแตกของผู้ชายตามแผน แต่ไม่พบ")
-    if has_f and cum_n:
+    if has_f and cum_n and not pp.get("g"):
         # R40 (29 Oct): the kind of finish must match the plan (R38: said "inside" then came outside; R39: plan outside, written in her mouth)
         fid = [s["id"] for s in pp.get("steps", []) if _pose_kind(t, s["id"]) == "finish"][-1]
         alltxt = text or ""
@@ -1937,9 +2088,9 @@ def aw_run(b, cid, key):
                     if dup_ratio(cand[1], cur0) > DUP_PART_MAX:
                         why.append("it repeated whole paragraphs and lines that were already written: every paragraph must be new, with new body movements, new words and new events")
                     if family_issues(cand[1], info0):
-                        why.append("it broke a story rule: " + " | ".join(family_issues(cand[1], info0)[:3]) + ". Rules: nobody can lick, suck or touch their own body parts; a woman has no น้ำเชื้อ (only น้ำหี / น้ำเงี่ยน); never write several paragraphs that start with the same words (each paragraph must move the scene forward); the men NEVER touch, suck or lick each other (every sexual act is man-with-woman only; the men may watch, wait or talk while a woman is with the other man); the daughter is the husband's real daughter, never บุญธรรม")
-                    if posture_issues(cand[1]) or plan_issues(cand[1], parts[i]):
-                        why.append("its body logic was impossible or it ignored the POSITION PLAN: " + " | ".join((posture_issues(cand[1]) + plan_issues(cand[1], parts[i]))[:3]) + ". Rules: one cock is in ONE place at a time (mouth OR pussy OR hand); to switch, first write the man pulling out or the couple changing position (e.g. ดึงควยออก, พลิกตัว, เปลี่ยนท่า) and the new position; nobody has two things in the mouth; the man comes only at a HIS CLIMAX step of the plan")
+                        why.append("it broke a story rule: " + " | ".join(family_issues(cand[1], info0)[:3]) + ". Rules: nobody can lick, suck or touch their own body parts; a woman has no น้ำเชื้อ (only น้ำหี / น้ำเงี่ยน); never write several paragraphs that start with the same words (each paragraph must move the scene forward); the men NEVER touch, suck or lick each other (every sexual act is man-with-woman; two men may be with the same woman at the same time, but their bodies never touch each other); the daughter is the husband's real daughter, never บุญธรรม")
+                    if posture_issues(cand[1], _is_group(parts[i])) or plan_issues(cand[1], parts[i]):
+                        why.append("its body logic was impossible or it ignored the POSITION PLAN: " + " | ".join((posture_issues(cand[1], _is_group(parts[i])) + plan_issues(cand[1], parts[i]))[:3]) + ". Rules: one cock is in ONE place at a time (mouth OR pussy OR hand); to switch, first write the man pulling out or the couple changing position (e.g. ดึงควยออก, พลิกตัว, เปลี่ยนท่า) and the new position; nobody has two things in the mouth; the man comes only at a HIS CLIMAX step of the plan")
                     if formula_heavy(cand[1]):
                         why.append("most quoted lines had the same shape 'short phrase... short phrase': vary the dialogue: full sentences, questions, commands, names, one-word cries, interrupted lines, and mix action beats between the lines")
                     if untag_n(cand[1]):
@@ -1973,7 +2124,7 @@ def aw_run(b, cid, key):
                     untag_t = untag_n(t)
                     fh_t = formula_heavy(t)
                     fam_t = family_issues(t, info0)
-                    pos_t = posture_issues(t) + plan_issues(t, parts[i])
+                    pos_t = posture_issues(t, _is_group(parts[i])) + plan_issues(t, parts[i])
                     if attempt == 0:
                         job.setdefault("raw_pos", []).append(len(pos_t))   # experiment instrumentation: how much of the model's FIRST answer repeats what is already in the chapter
                         job.setdefault("raw_dup", []).append(round(dup_ratio(t, cur0), 3))
