@@ -1731,7 +1731,7 @@ def unify_register(text, info):
     """R70 (29 Oct, r69-trio): a man who is rough (says กู/มึง at least twice in the chapter) keeps ONE register across parts: his dirty quotes that still say
     ผม (no ครับ-only politeness elsewhere) become กู (R61/R55 only look inside one part, and an early warm-up part has too few sex words to trigger them)."""
     men = {n for n, v in (info or {}).items() if n and v.get("g") == "M"}
-    PRE = r"(?:(?<![ก-ฮ])|(?<=ของ)|(?<=ให้)|(?<=แก่)|(?<=กับ)|(?<=จาก)|(?<=ที่)|(?<=ถึง))"   # "ของกู" / "ให้ผม": the pronoun glued to a preposition still counts
+    PRE = r"(?:(?<![ก-ฮ])|(?<=ของ)|(?<=ให้)|(?<=แก่)|(?<=กับ)|(?<=จาก)|(?<=ที่)|(?<=ถึง)|(?<=ควย)|(?<=ปาก)|(?<=ตัว)|(?<=มือ)|(?<=เอา))"   # "ของกู" / "ให้ผม": the pronoun glued to a preposition still counts
     if not men:
         return text
     rough = {}
@@ -1756,6 +1756,40 @@ def unify_register(text, info):
                 ln = ln.replace(q, q2, 1)
         out.append(ln)
     return "\n".join(out)
+
+
+def chapter_polish(text, info):
+    """R71 (29 Oct, r70-trio): end-of-chapter pass: (1) one register per rough man (unify_register); (2) "พุ่งออกมา" x9: keep every 3rd, rotate the rest;
+    (3) a pussy that overflows "ออกทางปาก" (anatomy nonsense) overflows "ออกมา"; (4) a trailing echo run of one-word lines (>= 8 short quotes at the very end)
+    is cut to its first three lines."""
+    t = unify_register(text, info)
+    alts = ["สาดออกมา", "ทะลักออกมา", "ไหลทะลักออกมา"]
+    n = [0]
+    def rep(m):
+        n[0] += 1
+        return m.group(0) if (n[0] - 1) % 3 == 0 else alts[(n[0] - 2) % len(alts)]
+    t = re.sub(r"พุ่งออกมา", rep, t)
+    t = re.sub(r"(หี[^\n“”]{0,30})ล้นออกทางปาก", r"\1ล้นออกมาไหลเยิ้ม", t)
+    lines = t.split("\n")
+    k = len(lines)
+    run = 0
+    while k > 0:
+        st = lines[k - 1].strip()
+        if not st:
+            k -= 1
+            continue
+        m = QUOTE_RE.match(st)
+        if m and len(re.sub(r"[\s.…!?,“”\"]", "", m.group(0))) <= 12:
+            run += 1
+            k -= 1
+        else:
+            break
+    if run >= 8:
+        body = [i for i in range(k, len(lines)) if lines[i].strip()]
+        keep = body[:3]
+        lines = lines[:k] + [lines[i] for i in keep]
+        t = "\n".join(lines)
+    return t
 
 
 def thin_manner(text):
@@ -2628,7 +2662,7 @@ def aw_run(b, cid, key):
             job["state"] = "done"
         try:
             _cur = read(fp)
-            _uni = unify_register(_cur, char_info(b))
+            _uni = chapter_polish(_cur, char_info(b))
             if _uni != _cur:
                 write(fp, _uni)
         except Exception:
