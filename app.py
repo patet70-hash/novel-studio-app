@@ -1571,7 +1571,7 @@ def fix_particles(text, info, rough=False):
                 q = re.sub(r"ของ" + nm_, "ของ" + me, q)
                 q = re.sub(r"(?<![ก-ฮ])" + nm_ + r"(?=\s*(?:จะ|ก็|อยาก|กำลัง|ชอบ|ต้องการ|ไม่ไหว|ขอ))", me, q)
                 q = re.sub(r"^([“\"])" + nm_ + r"[\s.…,!]*(?=[ก-ฮเแโใไ])", r"\1", q)
-            if sp == "M" and men_n <= 1:
+            if sp == "M" and (men_n <= 1 or re.search(r"ควยกู|ควยผม|ของกู|ของผม|ตอดควย|กูจะ|ผมจะ|กูกำลัง|ผมกำลัง", q)):   # two men: only when he speaks about what her body does to HIM (not to the other man)
                 # R56 (R54/R55): a man talking to her never names her body by her name ("หีของลลิตา…"): หีมึง (rough) / หีของคุณ (polite)
                 for fn in [n for n, v in info.items() if v.get("g") == "F" and n != spn and n in q]:
                     pr = "มึง" if (spn in rough_men or re.search(r"(?<![ก-ฮ])กู(?!เก|รู)|มึง", q)) else "คุณ"
