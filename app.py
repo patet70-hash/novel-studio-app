@@ -948,7 +948,7 @@ def fix_particles(text, info, rough=False):
                 sp = "M" if tg.startswith("เขา") else "F" if tg.startswith("เธอ") else None
             q = m.group(0)
             if sp is None:   # untagged line: infer from the words themselves
-                if re.search(r"ค่ะ|คะ|นะจ๊ะ|จ๋า", q):
+                if re.search(r"ค่ะ|คะ|นะจ๊ะ|จ๋า", q) or re.search(r"(?<![ก-ฮ])ชั้น(?!วาง|ที่|หนึ่ง|สอง|สาม|บน|ล่าง|ใน|เรียน|ปี|ประถม|มัธยม|เชิง|ๆ)", q):   # R19: ชั้น is the women's pronoun (men say ผม/กู): untagged "ชั้น...มึง" is a woman -> มึง becomes คุณ
                     sp = "F"
                 elif re.search(r"ครับ|กู|มึง", q):
                     sp = "M"
@@ -985,7 +985,7 @@ def fix_particles(text, info, rough=False):
             if sp == "F" and re.search(r"กู(?!เก|รู)|มึง", q):   # a woman never says กู / มึง (user rule 29 Oct): ชั้น (หนู to elders/family) and คุณ
                 pl = "หนู" if re.search(r"พ่อ|แม่|ป๊า|ม๊า|พี่|ป้า|ลุง|น้า|(?<![ก-ฮ])อา(?![ก-ฮ])", q) else "ชั้น"
                 q = re.sub(r"กู(?!เก|รู)", pl, q)
-                q = re.sub(r"(?<!หี)(?<!ควย)มึง", "คุณ", q).replace("หีคุณ", "หีของคุณ").replace("ควยคุณ", "ควยของคุณ")
+                q = re.sub(r"มึง", "คุณ", q).replace("หีคุณ", "หีของคุณ").replace("ควยคุณ", "ควยของคุณ")
             if sp == "F" and "ครับ" in q:
                 q = re.sub(r"(นะ|ไหม|มั้ย|หรือ|เหรอ|ล่ะ|หรอ)ครับ", r"\1คะ", q).replace("ครับ", "ค่ะ")
             elif sp == "M" and re.search(r"ค่ะ|คะ", q):
