@@ -1089,7 +1089,7 @@ def pose_block_group3(part):
             ln = "STEP %d [%s]: %s" % (k, row.get("n", pid), row.get("d", "").format(A=r[0], B=r[1], C=r[2], W=W))
             if pid == "FT":
                 fin = st.get("fin") or {}
-                ln += " | " + " ; ".join("%s: %s" % (nm, (t.get(fid) or {}).get("d", "")) for nm, fid in fin.items())
+                ln += " | " + " ; ".join("%s: %s" % (nm, (t.get(fid) or {}).get("d", "")) + ((" (the cum lands on her %s)" % st["place"][nm]) if (st.get("place") or {}).get(nm) else "") for nm, fid in fin.items())
                 pl = {"F3": "is between her legs with his cock in her pussy", "F1": "kneels at her head with his cock at her lips", "F2": "kneels beside her with his cock in his own hand"}
                 ar = [("%s %s" % (nm, pl[fid])) for nm, fid in fin.items() if fid in pl]
                 if len(ar) == 3:
@@ -1142,7 +1142,7 @@ def pose_block_group(part):
                 fin = st.get("fin") or {}
                 parts_ = []
                 for nm, fid in fin.items():
-                    parts_.append("%s: %s" % (nm, (t.get(fid) or {}).get("d", "")))
+                    parts_.append("%s: %s" % (nm, (t.get(fid) or {}).get("d", "")) + ((" (the cum lands on her %s)" % st["place"][nm]) if (st.get("place") or {}).get(nm) else ""))
                 ln += " | " + " ; ".join(parts_)
         else:
             d = row.get("d", "")
@@ -1154,6 +1154,8 @@ def pose_block_group(part):
             ln += " | HER CLIMAX happens in this step: show it plainly; afterwards they simply carry on, she needs no recovery."
         if kind == "finish" and pid != "FB":
             ln += " | %s's CLIMAX happens here and only here; %s has come before or with him." % (who or A, W)
+            if (st.get("place") or {}).get(who or A):
+                ln += " | WHERE HE COMES: the cum lands on her %s (narrate it landing there)." % st["place"][who or A]
         if kind == "finish" and pid == "FB":
             ln += " | BOTH MEN'S CLIMAX happens here and only here."
         if kind == "recover":
@@ -1246,6 +1248,42 @@ def finish_wanted(txt):
     return ""
 
 
+def finish_wanted_men(txt, names):
+    """R75 (29 Oct, r74-mix): in a scene with several men the author names where EACH man comes ('ปกรณ์แตกในปากเธอ ก้องแตกบนหน้าท้องเธอ'):
+    {name: (kind F1/F2/F3, place)} for the men the text names, others free."""
+    out = {}
+    for nm in names:
+        m = re.search(re.escape(nm) + r"\s*(แตก\S{0,16})", txt or "")
+        if not m:
+            continue
+        chunk = m.group(1)
+        for o in names:
+            if o != nm and o in chunk:
+                chunk = chunk[:chunk.index(o)]
+        k = finish_wanted(chunk)
+        if k:
+            out[nm] = (k, finish_place(chunk) if k == "F2" else "")
+    return out
+
+
+def apply_men_finish(plan, wanted):
+    """overwrite the finish kinds of the named men in a group plan (beats -> steps) and remember the place of an outside finish."""
+    for bt in plan:
+        for st in bt:
+            fin = st.get("fin")
+            if isinstance(fin, dict):
+                for nm in list(fin):
+                    if nm in wanted:
+                        fin[nm] = wanted[nm][0]
+                        if wanted[nm][1]:
+                            st.setdefault("place", {})[nm] = wanted[nm][1]
+            elif st.get("who") in wanted and st["id"] in ("F1", "F2", "F3"):
+                st["id"] = wanted[st["who"]][0]
+                if wanted[st["who"]][1]:
+                    st.setdefault("place", {})[st["who"]] = wanted[st["who"]][1]
+    return plan
+
+
 _PLACES = [("ก้น", r"ก้น|ตูด|แก้มก้น"), ("หลัง", r"หลัง"), ("ใบหน้า", r"ใบหน้า|หน้า(?!ท้อง|อก)"), ("หน้าอก", r"หน้าอก|นม|เนินอก"), ("หน้าท้อง", r"ท้อง"), ("ต้นขา", r"ต้นขา")]
 
 
@@ -1256,7 +1294,7 @@ def finish_place(txt):
         return ""
     w = m.group(1)
     for k, rx in _PLACES:
-        if re.fullmatch(rx, w) or re.match(rx, w):
+        if re.search(rx, w):
             return k
     return ""
 
@@ -1314,6 +1352,8 @@ def attach_pose_plans(b, parts, cid="", salt=0):
             pick = plan
             break
         plan = pick or plan
+        if group:
+            plan = apply_men_finish(plan, finish_wanted_men(txt, men))
         sig = _plan_sig(plan)
         seen.add(sig)
         seen_open.add(sig[:2])
@@ -1393,11 +1433,76 @@ def _plan_issues_pose(text, part):
             out.append("แผนให้ผู้ชายแตกข้างในหีเธอ ต้องเขียนให้ชัด")
         elif fid == "F3" and (mouth or (outside and not inside)):
             out.append("แผนให้ผู้ชายแตกข้างในหีเธอ ห้ามแตกนอกหรือในปาก")
+    if pp.get("g"):
+        out += _dp_role_issues(pp, lines)
+    if has_f and cum_n and pp.get("g"):
+        out += _group_finish_issues(t, pp, lines)
     if has_f and cum_n and not pp.get("g") and pp.get("place"):
         rx = dict(_PLACES).get(pp["place"], "")
         near = [ln for ln in lines if _CUM.search(ln)] + [lines[i + 1] for i, ln in enumerate(lines[:-1]) if _CUM.search(ln)]
         if rx and not any(re.search(rx, ln) for ln in near):
             out.append("น้ำเชื้อต้องไปตกที่%s ของเธอตามแผน แต่เขียนไปตกที่อื่น" % pp["place"])
+    return out
+
+
+def _dp_role_issues(pp, lines):
+    """R75 (r73-trio-9: the man who enters her anus was the one who put gel on his own cock while another man 'entered' too): in the double step only the man the
+    plan names for her anus may enter it or be said to enter it, and gel goes on HIS cock only (nobody puts gel on or touches another man's cock)."""
+    anus = others = None
+    for st in pp.get("steps", []):
+        if st.get("id") == "T6" and st.get("r"):
+            anus, others = st["r"][1], [st["r"][0], st["r"][2]]
+        elif st.get("id") == "M7" and pp.get("cast"):
+            anus, others = pp["cast"]["B"], [pp["cast"]["A"]]
+    if not anus:
+        return []
+    names = [anus] + others
+    alltxt = "\n".join(lines)
+    out = []
+    for n_ in others:
+        oth = "|".join(re.escape(x) for x in names if x != n_)
+        gap = r"(?:(?!%s)[^\n]){0,40}" % oth
+        if re.search(re.escape(n_) + gap + r"(?:สอด|ดัน|เสียบ|ยัด|กด|จ่อ|เบียด)" + r"[^\n]{0,30}(?:ทวาร|รูก้น|รูตูด|ก้นเธอ|ก้นของเธอ)", alltxt):
+            out.append("ท่า double: คนที่สอดทวารเธอคือ %s เท่านั้น ห้ามเขียนให้ %s สอดทวาร (%s อยู่ในหี/ที่ปากของเธอ)" % (anus, n_, n_))
+        if re.search(r"เจล[^\n]{0,30}ควย(?:ของ)?" + re.escape(n_) + r"(?![ก-ฮ])", alltxt):
+            out.append("ท่า double: เจลทาที่ควยของ %s เท่านั้น ห้ามทาเจลที่ควยของ %s" % (anus, n_))
+    return out
+
+
+_IN_STRICT = re.compile(r"(?:น้ำเชื้อ|น้ำควย|แตก|พุ่ง|ปล่อย|หลั่ง|ฉีด|สาด)[^\n]{0,25}(?:ในหี|ข้างใน|ในตัวเธอ|เข้าไปในหี|ในช่อง)|แตกใน(?!ปาก)|ออก(?:มา)?จากหี|ไหลออกจากหี")
+_MOUTH_STRICT = re.compile(r"(?:น้ำเชื้อ|น้ำควย|แตก|พุ่ง)[^\n]{0,30}(?:ในปาก|ใส่ปาก|เข้าปาก|ลงคอ)|(?:ในปาก|ใส่ปาก)[^\n]{0,30}(?:น้ำเชื้อ|น้ำควย|แตก|พุ่ง)")
+
+
+def _group_finish_issues(t, pp, lines):
+    """R75: in a part of a 2/3-men scene the kinds of finishes of the plan (mouth / outside / inside, and the named place) must all be shown, and no kind
+    that nobody has planned may appear (r74-mix: planned on the belly, written 'inside her')."""
+    kinds, places = [], []
+    for st in pp.get("steps", []):
+        if _pose_kind(t, st["id"]) != "finish":
+            continue
+        if isinstance(st.get("fin"), dict):
+            kinds += list(st["fin"].values())
+        else:
+            kinds.append(st["id"])
+        places += list((st.get("place") or {}).values())
+    if not kinds:
+        return []
+    alltxt = "\n".join(lines)
+    inside, mouth = _IN_STRICT.search(alltxt), _MOUTH_STRICT.search(alltxt)
+    out = []
+    if "F3" not in kinds and inside:
+        out.append("ในแผนไม่มีผู้ชายคนไหนแตกข้างในหี แต่เขียนว่าน้ำเชื้อแตก/ไหลออกจากในหีเธอ: แก้ให้ไปตกตามแผน (ในปาก หรือข้างนอกบนตัวเธอ)")
+    if "F1" not in kinds and mouth:
+        out.append("ในแผนไม่มีผู้ชายคนไหนแตกในปากเธอ แต่เขียนว่าแตกในปาก: แก้ให้ตรงแผน")
+    if "F3" in kinds and not inside:
+        out.append("แผนให้ผู้ชายคนหนึ่งแตกข้างในหีเธอ ต้องเขียนให้ชัด")
+    if "F1" in kinds and not mouth:
+        out.append("แผนให้ผู้ชายคนหนึ่งแตกในปากเธอ ต้องเขียนให้ชัด")
+    near = [ln for ln in lines if _CUM.search(ln)] + [lines[i + 1] for i, ln in enumerate(lines[:-1]) if _CUM.search(ln)]
+    for pl in places:
+        rx = dict(_PLACES).get(pl, "")
+        if rx and not any(re.search(rx, ln) for ln in near):
+            out.append("น้ำเชื้อของผู้ชายคนหนึ่งต้องไปตกที่%s ของเธอตามแผน แต่เขียนไปตกที่อื่น" % pl)
     return out
 
 
@@ -1758,6 +1863,7 @@ def unify_register(text, info):
     if not men:
         return text
     rough = {}
+    polite = {}
     parsed = []
     for ln in text.split("\n"):
         st = ln.strip()
@@ -1766,7 +1872,10 @@ def unify_register(text, info):
         parsed.append((ln, m, spn))
         if m and spn in men and re.search(PRE + r"กู(?!เก|รู)|มึง", m.group(0)):
             rough[spn] = rough.get(spn, 0) + 1
-    rough = {n for n, c in rough.items() if c >= 2}
+        elif m and spn in men and "ครับ" not in m.group(0) and re.search(PRE + r"ผม", m.group(0)):
+            polite[spn] = polite.get(spn, 0) + 1
+    # R75 (r74-mix: every man mixed ผม and กู, e.g. ก้อง 3/2, ธนา 1/1): rough = two rough quotes, or at least one and not outnumbered by his plain ผม quotes
+    rough = {n for n, c in rough.items() if c >= 2 or c >= polite.get(n, 0)}
     if not rough:
         return text
     HAIR_ = r"(?![ก-ฮ]*(?:ยาว|สั้น|หอม|เปียก|ดำ|ขาว|หงอก|ร่วง))"
@@ -1774,7 +1883,7 @@ def unify_register(text, info):
     for ln, m, spn in parsed:
         if m and spn in rough:
             q = m.group(0)
-            if re.search(r"ควย|หี(?!บ)|เย็ด|น้ำเงี่ยน|น้ำเชื้อ|แตกใน|แตกใส่|ปากมึง|หัวนม", q) and re.search(PRE + r"ผม" + HAIR_, q) and "ครับ" not in q:
+            if re.search(PRE + r"ผม" + HAIR_, q) and "ครับ" not in q:   # R75: every ผม of a rough man, not only the dirty lines
                 q2 = re.sub(PRE + r"ผม" + HAIR_, "กู", q)
                 ln = ln.replace(q, q2, 1)
         out.append(ln)
