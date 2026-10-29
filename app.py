@@ -61,6 +61,7 @@ def outline_text(b, draft=None):
 DRY_LAST_N = int(os.environ.get("NOVEL_DRY_N", "16384"))
 # Root cause of whole-block copies in ch03/05/07 (28 Oct): the DRY repeat penalty looked back only 1024 tokens while the prompt carries the whole chapter so far
 # (up to 20000 chars) and the previous chapter, so the model could replay a paragraph block written >1024 tokens earlier without any penalty.
+TOK_MULT = float(os.environ.get("NOVEL_TOKMULT", "1.15"))   # R16 (29 Oct): clean runs R10/R14/R15 all stopped right before the planned climax -> suspect the max_tokens cap
 DRY_LEN = int(os.environ.get("NOVEL_DRY_LEN", "2"))   # R13/R14 (29 Oct): names/organ words repeat a lot in sex scenes; a short allowed_length may force odd spellings (ธณา, กระแท)
 ANTI_REPEAT = {} if os.environ.get("NOVEL_DRY", "1") == "0" else {"dry_multiplier": 0.8, "dry_base": 1.75, "dry_allowed_length": DRY_LEN, "dry_penalty_last_n": DRY_LAST_N}
 
@@ -1622,12 +1623,13 @@ def aw_run(b, cid, key):
                 body = {"book": b, "scope": cid, "mode": "scene", "messages": [{"role": "user", "content": m}]}
                 msgs = build_messages(body)
                 st = settings()
-                payload = {"messages": msgs, "stream": False, "max_tokens": int(parts[i]["words"] * tpw * 1.15) + 100,
+                payload = {"messages": msgs, "stream": False, "max_tokens": int(parts[i]["words"] * tpw * TOK_MULT) + 100,
                            "temperature": st["temperature"], "chat_template_kwargs": {"enable_thinking": False}}
                 payload.update(ANTI_REPEAT)
                 req = urllib.request.Request(LLM + "/v1/chat/completions", json.dumps(payload).encode(), {"Content-Type": "application/json"})
                 r = json.loads(urllib.request.urlopen(req, timeout=900).read().decode("utf-8"))
                 ch0 = r["choices"][0]
+                job.setdefault("finish", []).append("%s/%s" % (ch0.get("finish_reason"), (r.get("usage") or {}).get("completion_tokens")))   # instrumentation: finish reason + tokens per attempt
                 try:
                     ct = int(r["usage"]["completion_tokens"])
                     wd = max(1, body_words("# x\n" + (ch0["message"].get("content") or "")))
