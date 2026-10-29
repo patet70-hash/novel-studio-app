@@ -1393,6 +1393,17 @@ def tag_speaker(tag, info):
     return best[1] if best else None
 
 
+def fix_swallow(text):
+    """R50 (29 Oct, user): "ให้หมด" goes with a liquid, never with a body part: you cannot suck a cock / eat a pussy "until it is all gone".
+    ดูดควย…ให้หมด -> ดูดควย…แรงๆ ; อมควย…ให้หมด -> อมควย…ให้ลึก ; เลีย/กินหี…ให้หมด -> …แรงๆ. A phrase with น้ำ (น้ำควย, น้ำเชื้อ, น้ำหี) is left alone."""
+    def rep(m):
+        verb, mid = m.group(1), m.group(3)
+        if "น้ำ" in m.group(2) + mid:
+            return m.group(0)
+        return m.group(0)[: m.start(4) - m.start(0)] + ("ให้ลึก" if verb == "อม" else "แรงๆ")
+    return re.sub(r"(ดูด|อม|เลีย|กิน|แดก)((?:ควย|ดุ้น|หี|แตด|เม็ดแตด|นม|หัวนม))([^\s“”\"]{0,10}?)(ให้หมด(?:เลย)?)", rep, text)
+
+
 def fix_particles(text, info, rough=False):
     """Make ครับ / ค่ะ agree with the gender of the speaker named in the tag after the quote."""
     lines = []
@@ -2173,7 +2184,7 @@ def aw_run(b, cid, key):
                 return
             cur = read(fp)
             part = drop_dup_paragraphs(fix_name_typos(part, names), cur)
-            part = fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak"))
+            part = fix_swallow(fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak")))
             tail = cur.rstrip()[-60:]
             if tail and part.startswith(tail[-40:]):
                 part = part[len(tail[-40:]):].lstrip()
