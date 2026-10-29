@@ -894,6 +894,11 @@ def make_group_plan(nbeats, rng, A, B, table=None):
             add_group()
             k = rng.sample(["F1", "F2", "F3"], 2)
             chain.append({"id": "FB", "fin": {first: k[0], second: k[1]}})
+    force = os.environ.get("NOVEL_FORCEPOSE", "")   # experiment switch: put this group pose (e.g. M7) into every group chain, in place of the last group step before the first finish
+    if force in G and force not in [c["id"] for c in chain]:
+        gi = [i for i, c in enumerate(chain) if (G.get(c["id"]) or {}).get("k") in ("oral", "pen")]
+        if gi:
+            chain[gi[-1]] = {"id": force}
     act = [i for i, c in enumerate(chain) if i > 0 and _pose_kind(t, c["id"]) in ("oral", "pen")]
     for i in rng.sample(act, min(len(act), rng.randint(1, 2))):
         chain[i]["w"] = True
