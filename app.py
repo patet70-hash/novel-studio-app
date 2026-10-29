@@ -1617,7 +1617,7 @@ def fix_particles(text, info, rough=False):
                 q = re.sub(r"(?<![ก-ฮ])ผม" + HAIR, "กู", q)
                 q = re.sub(r"นะครับ", "นะ", q).replace("ครับ", "")
             if sp == "M":   # R23 (29 Oct): a man never says ชั้น (women's pronoun): ผม, or กู in the rough register
-                q = re.sub(r"(?:(?<![ก-ฮ])|(?<=ของ)|(?<=ให้)|(?<=กับ)|(?<=ถึง)|(?<=แก่))ชั้น(?!วาง|ที่|หนึ่ง|สอง|สาม|บน|ล่าง|ใน|เรียน|ปี|ประถม|มัธยม|เชิง|ๆ)", "กู" if re.search(r"มึง|(?<![ก-ฮ])กู(?!เก|รู)", q) else "ผม", q)
+                q = re.sub(r"(?:(?<![ก-ฮ])|(?<=ของ)|(?<=ให้)|(?<=กับ)|(?<=ถึง)|(?<=แก่)|(?<=ควย)|(?<=ดุ้น)|(?<=ปาก)|(?<=ลิ้น)|(?<=น้ำ)|(?<=มือ))ชั้น(?!วาง|ที่|หนึ่ง|สอง|สาม|บน|ล่าง|ใน|เรียน|ปี|ประถม|มัธยม|เชิง|ๆ)", "กู" if re.search(r"มึง|(?<![ก-ฮ])กู(?!เก|รู)", q) else "ผม", q)
             if sp == "M" and rough_scene and "ครับ" in q and not elder_listener(q, spn, info):
                 q = re.sub(r"นะครับ", "นะ", q).replace("ครับ", "")
             if sp == "M" and "ครับ" in q and re.search(r"อย่า|ห้าม|ให้หมด|ซะ|สัส|เหี้ย|ชิบหาย|ควย|หี(?![ก-ฮ])|เย็ด|กลืน|ดูด|อ้าปาก|แตก", q):
@@ -1948,6 +1948,10 @@ def family_issues(text, info):
                 if actor and actor in M and actor != mm.group(1):
                     out.append("ชายกับชาย: " + p[max(0, mm.start() - 20):mm.end() + 5])
                     break
+        for p in paras:
+            m = re.search(r"ให้(?:%s)(?:อม|เลีย|ดูด|ชัก|จับ)[\u0E01-\u0E4E]{0,3}(?:ควย|ดุ้น|หัวควย)" % mr, p)   # R58: "ให้ก้องอมควยชั้น" - a man ordering a man to suck
+            if m:
+                out.append("ชายกับชาย (บทพูด): " + p[:50])
         for p in paras:
             m = re.search(r"\u201c(?:พ่อ|พี่)[^\u201d]{0,12}ควย(?:ของ)?(?:พ่อ|พี่)", p)
             if m:
