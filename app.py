@@ -408,8 +408,19 @@ def scene_scope():
     return SCENE_SCOPE[:i] + _LITE_SPEECH + SCENE_SCOPE[j:]
 
 
-def speech_table(cast_info, info):
+def kin_terms(b):
+    """how the children (and the spouses, among themselves) say father / mother in this book: book-dir kin.json {"father": "ป๊า", "mother": "ม๊า"}; default พ่อ / แม่."""
+    try:
+        d = json.loads(read(os.path.join(bdir(b), "kin.json"), "{}") or "{}")
+    except Exception:
+        d = {}
+    return {"father": str(d.get("father") or "พ่อ")[:12], "mother": str(d.get("mother") or "แม่")[:12]}
+
+
+def speech_table(cast_info, info, kin=None):
     """SPEECH TABLE for the characters of one part, derived from gender, age and role in the setup: how each refers to himself/herself and what each calls the others."""
+    kin = kin or {"father": "พ่อ", "mother": "แม่"}
+    FA, MO = kin["father"], kin["mother"]
     role = lambda n: (info.get(n) or {}).get("role", "")
     isfather = lambda n: bool(re.search(r"father", role(n), re.I)) and not re.search(r"step", role(n), re.I)
     iskid = lambda n: bool(re.match(r"\s*(daughter|son)\b", role(n), re.I))
@@ -425,9 +436,9 @@ def speech_table(cast_info, info):
         g = (info.get(n) or {}).get("g", "")
         parent = isfather(n) or bool(re.search(r"biological mother", role(n), re.I))
         if g == "M":
-            me = "ผม" + (" (to his children: พ่อ)" if isfather(n) else "")
+            me = "ผม" + (" (to his children and to his wife: " + FA + ")" if isfather(n) else "")
         elif g == "F":
-            me = "own name / ชั้น (หนู to the father and elders)" + ("; to her children: แม่" if parent else "")
+            me = "own name / ชั้น (หนู to the father and elders)" + ("; to her children and to her husband: " + MO if parent else "")
         else:
             me = "-"
         calls = []
@@ -437,15 +448,15 @@ def speech_table(cast_info, info):
             if isfather(n) and iskid(y):
                 t = y
             elif iskid(n) and isfather(y):
-                t = "พ่อ"
+                t = FA
             elif iskid(n) and isstep(y):
                 t = "คุณ" + y
             elif isstep(n) and iskid(y):
                 t = y
             elif isstep(n) and isfather(y):
-                t = "คุณ" + y
+                t = FA + " (or " + y + " when it could be unclear who is meant)"
             elif isfather(n) and isstep(y):
-                t = y
+                t = MO + " (or " + y + " when it could be unclear who is meant)"
             elif iskid(n) and iskid(y):
                 t = ("พี่" + y) if age(y) > age(n) else y
             elif age(n) and age(y) and age(y) - age(n) >= 8:
@@ -673,21 +684,23 @@ def untag_n(t):
     return untagged_dialogue(split_dialogue(t or ""))
 
 
-def kin_line(info, present):
+def kin_line(info, present, kin=None):
     """family facts taken from the characters' roles in the setup (father, children, stepmother, biological mother) so the model stops swapping พ่อ/พ่อเลี้ยง/แม่/ลูกสาว; empty when none of them is in this part."""
     role = lambda n: (info.get(n) or {}).get("role", "")
     fathers = [n for n in info if re.search(r"father", role(n), re.I) and not re.search(r"step", role(n), re.I)]
     kids = [n for n in info if re.match(r"\s*(daughter|son)\b", role(n), re.I)]
     step = [n for n in info if re.search(r"stepmother", role(n), re.I)]
     bio = [n for n in info if re.search(r"biological mother", role(n), re.I)]
+    kin = kin or {"father": "พ่อ", "mother": "แม่"}
+    FA, MO = kin["father"], kin["mother"]
     fam = set(fathers + kids + step + bio)
     if not fam & set(present) or not (fathers and kids):
         return ""
-    s = "KINSHIP (obey strictly): " + "/".join(fathers) + " is the REAL father (never พ่อเลี้ยง) of " + ", ".join(kids) + ". The children are siblings: they call each other by name or พี่/น้อง and NEVER ลูก/ลูกสาว/ลูกชาย (only a parent calls a child ลูก). The children call the father พ่อ."
+    s = "KINSHIP (obey strictly): " + "/".join(fathers) + " is the REAL father (never พ่อเลี้ยง) of " + ", ".join(kids) + ". The children are siblings: they call each other by name or พี่/น้อง and NEVER ลูก/ลูกสาว/ลูกชาย (only a parent calls a child ลูก). The children call the father " + FA + "."
     if step:
         s += " " + "/".join(step) + " is the stepmother (the father's second wife): the children call her คุณ" + step[0] + " or คุณแม่" + step[0] + ", never a bare แม่" + ((" (their real mother is " + "/".join(bio) + ")") if bio else "") + "."
     if step:
-        s += " " + "/".join(step) + " is the father's WIFE, not his daughter: she never calls him พ่อ or คุณพ่อ and he never asks her to call him พ่อ or calls himself พ่อ to her; she says คุณ or คุณ" + "/".join(fathers) + "; he calls her by her name."
+        s += " " + "/".join(step) + " is the father's WIFE: husband and wife may call each other and themselves " + FA + " / " + MO + " naturally as a family (e.g. " + MO + " จัดการให้นะ, " + FA + " อยากกินข้าว); when a scene has several people and it could be unclear who is addressed (sex scenes with the children present), each calls the other by NAME, while self-reference stays " + FA + " / " + MO + "."
     s += " Do not swap these relations in the middle of the chapter."
     return s
 
@@ -719,11 +732,11 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
         lines.append("CAST OF THIS PART (only these characters may appear or speak, no one else enters; gender and age are given: speech must match them): " + ", ".join(dict.fromkeys(cast)))
     if al:
         lines.append(al)
-    kl = kin_line(info, [n.split(" (")[0] for n in cast])
+    kl = kin_line(info, [n.split(" (")[0] for n in cast], kin_terms(b))
     if kl:
         lines.append(kl)
     if SPEECH_LITE:
-        st = speech_table(ci_list, info)
+        st = speech_table(ci_list, info, kin_terms(b))
         if st:
             lines.append(st)
     lines.append("SPEAKERS: every spoken line carries a speaker tag or sits right next to a narration beat naming who speaks; never write more than %d quoted lines in a row without a short action or tag line between them (even in the peak)." % (UNTAG_RUN - 4))
@@ -891,9 +904,9 @@ def elder_listener(q, spn, info):
             if a is not None and sa is not None and a >= sa + 5:
                 return True
     own = ((info.get(spn) or {}).get("role") or "") if spn else ""
-    if re.search(r"ลูก|หลาน", q) or re.search(r"พ่อ|แม่|ปู่|ย่า|ตา|ยาย", own):
+    if re.search(r"ลูก|หลาน", q) or re.search(r"พ่อ|แม่|ป๊า|ม๊า|ปู่|ย่า|ตา|ยาย", own):
         return False
-    return re.search(r"พ่อ|แม่|ป้า|ลุง|น้า|ปู่|ย่า|ยาย|คุณพ่อ|คุณแม่|ท่าน", q) is not None
+    return re.search(r"พ่อ|แม่|ป๊า|ม๊า|ป้า|ลุง|น้า|ปู่|ย่า|ยาย|คุณพ่อ|คุณแม่|ท่าน", q) is not None
 
 
 def tag_speaker(tag, info):
@@ -942,7 +955,7 @@ def fix_particles(text, info, rough=False):
                 q = re.sub(r"(?<![ก-ฮ])ผม" + HAIR, pw, q)
             if sp == "F":   # a woman never says ผม about herself
                 if re.search(r"(?<![ก-ฮ])ผม" + HAIR, q):
-                    pl = "หนู" if re.search(r"พ่อ|แม่|พี่|ป้า|ลุง|น้า|(?<![ก-ฮ])อา(?![ก-ฮ])", q) else "ชั้น"
+                    pl = "หนู" if re.search(r"พ่อ|แม่|ป๊า|ม๊า|พี่|ป้า|ลุง|น้า|(?<![ก-ฮ])อา(?![ก-ฮ])", q) else "ชั้น"
                     q = re.sub(r"(?<![ก-ฮ])ผม" + HAIR, pl, q)
             if sp == "M" and rough:   # peak of a sex scene / anger: the men are fully rough
                 q = re.sub(r"(?<!ดิ)ฉัน(?![ทใ])", "กู", q).replace("ผม", "กู")
@@ -951,7 +964,7 @@ def fix_particles(text, info, rough=False):
                     q = re.sub(r"เธอ|คุณ", "มึง", q)
             if sp == "F":   # women do not say ฉัน: หนู to elders/family, ชั้น otherwise
                 if re.search(r"(?<!ดิ)ฉัน(?![ทใ])", q):
-                    pl = "หนู" if re.search(r"พ่อ|แม่|พี่|ป้า|ลุง|น้า|(?<![ก-ฮ])อา(?![ก-ฮ])", q) else "ชั้น"
+                    pl = "หนู" if re.search(r"พ่อ|แม่|ป๊า|ม๊า|พี่|ป้า|ลุง|น้า|(?<![ก-ฮ])อา(?![ก-ฮ])", q) else "ชั้น"
                     q = re.sub(r"(?<!ดิ)ฉัน(?![ทใ])", pl, q)
             if sp == "M":
                 q = re.sub(r"(?<!ดิ)ฉัน(?![ทใ])", "ผม" if "กู" not in q else "กู", q)   # a man says ผม, not ฉัน (กู when rough)
@@ -959,7 +972,7 @@ def fix_particles(text, info, rough=False):
                     q = q.replace("ผม", "กู")
                     q = re.sub(r"เธอ|คุณ", "มึง", q)
             if sp == "F" and re.search(r"กู(?!เก|รู)|มึง", q):   # a woman never says กู / มึง (user rule 29 Oct): ชั้น (หนู to elders/family) and คุณ
-                pl = "หนู" if re.search(r"พ่อ|แม่|พี่|ป้า|ลุง|น้า|(?<![ก-ฮ])อา(?![ก-ฮ])", q) else "ชั้น"
+                pl = "หนู" if re.search(r"พ่อ|แม่|ป๊า|ม๊า|พี่|ป้า|ลุง|น้า|(?<![ก-ฮ])อา(?![ก-ฮ])", q) else "ชั้น"
                 q = re.sub(r"กู(?!เก|รู)", pl, q)
                 q = re.sub(r"(?<!หี)(?<!ควย)มึง", "คุณ", q).replace("หีคุณ", "หีของคุณ").replace("ควยคุณ", "ควยของคุณ")
             if sp == "F" and "ครับ" in q:
@@ -1207,7 +1220,7 @@ def overused(body, names, top=5, fill_min=10):
 
 
 def family_issues(text, info):
-    """hard story-rule violations the model keeps making: (a) man-on-man sex acts, (b) the wife calling the husband พ่อ / the husband calling himself พ่อ to her,
+    """hard story-rule violations the model keeps making: (a) man-on-man sex acts, (b) [removed 29 Oct: spouses may call each other พ่อ/แม่/ป๊า/ม๊า],
     (c) a real daughter/son called บุญธรรม (adopted). Returns a list of short Thai descriptions (empty = clean)."""
     out = []
     info = info or {}
@@ -1229,17 +1242,6 @@ def family_issues(text, info):
             m = re.search(r"\u201c(?:พ่อ|พี่)[^\u201d]{0,12}ควย(?:ของ)?(?:พ่อ|พี่)", p)
             if m:
                 out.append("ชายกับชาย (บทพูด): " + p[:50])
-    if fathers and wives:
-        wr = "|".join(re.escape(x) for x in wives)
-        fr = "|".join(re.escape(x) for x in fathers)
-        for p in paras:
-            q = re.findall(r"\u201c([^\u201d]*)\u201d", p)
-            rest = re.sub(r"\u201c[^\u201d]*\u201d", "", p)
-            for t in q:
-                if re.search(r"พ่อ|คุณพ่อ", t) and re.search(wr, rest) and not re.search(fr + "|" + "|".join(re.escape(k) for k in kids), rest):
-                    out.append("ภรรยาเรียกสามีว่าพ่อ: " + t[:40])
-                if re.search(r"(?:ให้|ของ|จะ|กับ|ควย|หน่อย)พ่อ|พ่อ(?:จะ|ขอ|อยาก|หน่อย)", t) and re.search(wr, t) and not re.search("|".join(re.escape(k) for k in kids), t):
-                    out.append("สามีเรียกตัวเองว่าพ่อกับภรรยา: " + t[:40])
     if kids and re.search(r"บุญธรรม", text or "") and not any(re.search(r"adopt", role(n), re.I) for n in info):
         out.append("เรียกลูกแท้ว่าบุญธรรม")
     return out
@@ -1541,7 +1543,7 @@ def aw_run(b, cid, key):
                     if dup_ratio(cand[1], cur0) > DUP_PART_MAX:
                         why.append("it repeated whole paragraphs and lines that were already written: every paragraph must be new, with new body movements, new words and new events")
                     if family_issues(cand[1], info0):
-                        why.append("it broke a story rule: " + " | ".join(family_issues(cand[1], info0)[:3]) + ". Rules: the men NEVER touch, suck or lick each other (every sexual act is man-with-woman only; the men may watch, wait or talk while a woman is with the other man); the wife never calls her husband พ่อ/คุณพ่อ and he never calls himself พ่อ to her (he uses ผม/กู and her name); the daughter is the husband's real daughter, never บุญธรรม")
+                        why.append("it broke a story rule: " + " | ".join(family_issues(cand[1], info0)[:3]) + ". Rules: the men NEVER touch, suck or lick each other (every sexual act is man-with-woman only; the men may watch, wait or talk while a woman is with the other man); the daughter is the husband's real daughter, never บุญธรรม")
                     if formula_heavy(cand[1]):
                         why.append("most quoted lines had the same shape 'short phrase... short phrase': vary the dialogue: full sentences, questions, commands, names, one-word cries, interrupted lines, and mix action beats between the lines")
                     if untag_n(cand[1]):
