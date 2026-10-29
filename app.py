@@ -1515,6 +1515,15 @@ def thin_tagverb(text, verb="พึมพำ", keep=1):
     return re.sub(verb, rep, text)
 
 
+def thin_fluid(text):
+    """R58 (R57: "น้ำเงี่ยน" x8): in one part keep every other "น้ำเงี่ยน", the others become "น้ำหี" (kept for น้ำเงี่ยนของ... too)."""
+    n = [0]
+    def rep(m):
+        n[0] += 1
+        return m.group(0) if n[0] % 2 == 1 else "น้ำหี"
+    return re.sub(r"น้ำเงี่ยน", rep, text)
+
+
 def fix_swallow(text):
     """R50 (29 Oct, user): "ให้หมด" goes with a liquid, never with a body part: you cannot suck a cock / eat a pussy "until it is all gone".
     ดูดควย…ให้หมด -> ดูดควย…แรงๆ ; อมควย…ให้หมด -> อมควย…ให้ลึก ; เลีย/กินหี…ให้หมด -> …แรงๆ. A phrase with น้ำ (น้ำควย, น้ำเชื้อ, น้ำหี) is left alone."""
@@ -2334,7 +2343,7 @@ def aw_run(b, cid, key):
                 return
             cur = read(fp)
             part = drop_dup_paragraphs(fix_name_typos(part, names), cur)
-            part = thin_tagverb(thin_owner(fix_swallow(fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak")))))
+            part = thin_fluid(thin_tagverb(thin_owner(fix_swallow(fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak"))))))
             tail = cur.rstrip()[-60:]
             if tail and part.startswith(tail[-40:]):
                 part = part[len(tail[-40:]):].lstrip()
