@@ -585,6 +585,9 @@ def dialogue_hint(p):
     return ("DIALOGUE SHARE: about %s of this part's text must be spoken lines (quoted): at least %d spoken lines, alternating with narration. Every narration paragraph is at most 3-4 sentences, then somebody speaks. Polite situations (talking to an elder, a boss, a client, a stranger, or in a formal work setting) use full polite sentences ending with ครับ/ค่ะ/คะ; in ordinary calm conversation at least every second line carries a natural ending particle (นะ, สิ, นะครับ, นะคะ, ค่ะ, ครับ, เหรอ, ล่ะ) instead of bare clipped sentences.%s" % (share, lines, extra))
 
 
+BODY_LOGIC = " BODY LOGIC: at any moment only ONE act happens between ONE pair; everyone else watches, waits for a turn, kisses or strokes a partner: never one man doing two women (or a woman doing two men) at the same instant, and every change of position is written as a step (who moves, who lies where) before the next act; a man never touches another man; keep each woman's way of referring to herself the same all through the part."
+
+
 def heat_hint(p):
     """Register instruction for one part, from the scene plan and the beat's position in the scene (sex scenes heat up beat by beat)."""
     txt = p.get("text") or ""
@@ -600,7 +603,7 @@ def heat_hint(p):
                 lvl = "WARM-UP: calm register but already fully sexual (kissing, undressing, stroking, sucking, naming the body parts); no rough language yet"
             else:
                 lvl = "PEAK: the men speak rough (กู for self, มึง or อี+name for the woman, crude exclamations, no ครับ endings); the women stay sweet (own name / ชั้น / หนู) and NEVER say กู or มึง; explicit moaning is fine"
-            return "REGISTER FOR THIS PART (" + lvl + ")." + ("" if lvl.startswith("WARM-UP") else HEAT_BANK)
+            return "REGISTER FOR THIS PART (" + lvl + ")." + BODY_LOGIC + ("" if lvl.startswith("WARM-UP") else HEAT_BANK)
         if f < 0.34:
             lvl = "WARM-UP: calm register (men say ผม, women use their own name and sweet names for him) but already fully sexual: kissing, undressing, stroking, sucking and licking, naming the body parts (นม, หัวนม, ควย, หี) in narration and in the whispers; no long flirting talk and no rough language yet"
         elif f < 0.67:
@@ -609,7 +612,7 @@ def heat_hint(p):
             lvl = "PEAK: the men speak fully rough (กู for self, มึง or อี+name for the woman, crude exclamations, no ครับ/ค่ะ endings); the women keep sweet self-reference (own name / ชั้น / ดิฉัน / หนู, never ฉัน) and NEVER say กู or มึง, even at the peak (explicit moaning is fine: “เย็ดชั้นแรงๆ ค่ะ”); a man who says กู calls her มึง or อี+name, never เธอ/คุณ"
         if n == 1:
             lvl = "HEATED rising to PEAK over this part: start with ผม and sweet talk, then the men turn rough (กู / มึง / อี+name, crude exclamations) as it builds; the women stay sweet (own name / ชั้น / ดิฉัน / หนู, never ฉัน) and never say กู or มึง; whenever a man says กู he calls her มึง or อี+name, never เธอ/คุณ"
-        return "REGISTER FOR THIS PART (" + lvl + ")." + ("" if lvl.startswith("WARM-UP") else HEAT_BANK)
+        return "REGISTER FOR THIS PART (" + lvl + ")." + BODY_LOGIC + ("" if lvl.startswith("WARM-UP") else HEAT_BANK)
     return "REGISTER FOR THIS PART (ANGER: the men's language is raw and rough, กู/มึง and swearing, women's anger sharp but still in their usual self-reference, never กู/มึง)."
 
 
@@ -1235,7 +1238,7 @@ def family_issues(text, info):
             for t in q:
                 if re.search(r"พ่อ|คุณพ่อ", t) and re.search(wr, rest) and not re.search(fr + "|" + "|".join(re.escape(k) for k in kids), rest):
                     out.append("ภรรยาเรียกสามีว่าพ่อ: " + t[:40])
-                if re.search(r"(?:ให้|ของ|จะ|กับ)พ่อ", t) and re.search(fr, rest) and re.search(wr, t) and not re.search("|".join(re.escape(k) for k in kids), t):
+                if re.search(r"(?:ให้|ของ|จะ|กับ|ควย|หน่อย)พ่อ|พ่อ(?:จะ|ขอ|อยาก|หน่อย)", t) and re.search(wr, t) and not re.search("|".join(re.escape(k) for k in kids), t):
                     out.append("สามีเรียกตัวเองว่าพ่อกับภรรยา: " + t[:40])
     if kids and re.search(r"บุญธรรม", text or "") and not any(re.search(r"adopt", role(n), re.I) for n in info):
         out.append("เรียกลูกแท้ว่าบุญธรรม")
