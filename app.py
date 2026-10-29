@@ -516,6 +516,9 @@ def rebalance_sex_share(scenes, target):
 BEAT_W = int(os.environ.get("NOVEL_BEATW", "1300"))   # R22 (29 Oct): NOVEL_BEATW=500 gave the best round so far (scene 1,650 -> 1,407 words, clean order of positions, finish=stop everywhere); the code default stays 1300 (t13 fixtures assume it), the pod sets 500 by env
 
 
+BEAT_TOL = float(os.environ.get("NOVEL_BEATTOL", "0"))   # default 0 = unchanged; the pod sets 0.25
+
+
 def plan_scenes(summary, target):
     """split a chapter summary written as 'ฉากที่ 1 (ประมาณ 25%) ...' into scenes; otherwise cut by target length."""
     target = int(target or 0) or 3000
@@ -540,7 +543,7 @@ def plan_scenes(summary, target):
         scenes = [{"text": summary, "words": int(target / n), "slice": (i + 1, n)} for i in range(n)]
     parts = []
     for si, sc in enumerate(scenes):
-        m = max(1, -(-sc["words"] // BEAT_W))
+        m = max(1, -(-int(sc["words"] - BEAT_TOL * BEAT_W) // BEAT_W))   # R43 (29 Oct): beats under ~500 words come out at ~540 anyway (R42: 8 beats of 350 -> 4,321 words for 3,000): tolerate BEAT_TOL of a beat before adding another one
         for k in range(m):
             parts.append({"text": sc["text"], "words": int(sc["words"] / m), "scene": si + 1, "scenes": len(scenes),
                           "beat": k + 1, "beats": m, "slice": sc.get("slice")})
