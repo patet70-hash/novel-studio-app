@@ -1473,9 +1473,14 @@ def _early_climax_issues(t, pp, text):
         if not m:
             continue
         who = [x for x in men if ln.strip()[m.end():].strip().startswith(x)]
-        if len(who) != 1 or who[0] in own:
+        if len(who) != 1:
             continue
         q = _NOT_YET.sub("", m.group(0))
+        if re.search(r"แตก(?:ใน)?(?:ก้น|ทวาร|ตูด)", q):
+            out.append("ไม่มีผู้ชายคนไหนแตกในก้น/ทวารเธอตามแผน: ห้ามให้ผู้ชายพูดว่าแตกในก้น (แตกได้แค่ตามแผนของเขา: ปาก ข้างนอกตัว หรือในหี)")
+            break
+        if who[0] in own:
+            continue
         if _DONE_CUM.search(q):
             out.append("%s พูดว่าแตกแล้ว แต่ในช่วงนี้ตามแผนยังไม่ถึงตาที่เขาแตก (คนที่แตกในช่วงนี้คือ %s): ให้ %s ยังไม่แตก ห้ามพูดว่าแตก" % (who[0], ", ".join(sorted(own)) or "ไม่มี", who[0]))
             break
@@ -1506,6 +1511,7 @@ def _dp_role_issues(pp, lines):
     return out
 
 
+_ANAL_CUM = re.compile(r"(?:น้ำเชื้อ|น้ำควย|แตก|พุ่ง|ปล่อย|หลั่ง|ฉีด|สาด)[^\n]{0,25}(?:ในทวาร|ในรูทวาร|ในรูก้น|ในก้น|เข้าทวาร|ในตูด)|แตก(?:ใน)?(?:ก้น|ทวาร|ตูด)")
 _IN_STRICT = re.compile(r"(?:น้ำเชื้อ|น้ำควย|แตก|พุ่ง|ปล่อย|หลั่ง|ฉีด|สาด)[^\n]{0,25}(?:ในหี|ข้างใน|ในตัวเธอ|เข้าไปในหี|ในช่อง)|แตกใน(?!ปาก)|ออก(?:มา)?จากหี|ไหลออกจากหี")
 _MOUTH_STRICT = re.compile(r"(?:น้ำเชื้อ|น้ำควย|แตก|พุ่ง)[^\n]{0,30}(?:ในปาก|ใส่ปาก|เข้าปาก|ลงคอ)|(?:ในปาก|ใส่ปาก)[^\n]{0,30}(?:น้ำเชื้อ|น้ำควย|แตก|พุ่ง)")
 
@@ -1535,6 +1541,8 @@ def _group_finish_issues(t, pp, lines):
         out.append("แผนให้ผู้ชายคนหนึ่งแตกข้างในหีเธอ ต้องเขียนให้ชัด")
     if "F1" in kinds and not mouth:
         out.append("แผนให้ผู้ชายคนหนึ่งแตกในปากเธอ ต้องเขียนให้ชัด")
+    if _ANAL_CUM.search(alltxt):
+        out.append("ไม่มีผู้ชายคนไหนแตกในทวาร/ในก้นเธอตามแผน (ทวารใช้แค่ในท่า double ส่วนการแตกต้องเป็นปาก ข้างนอกตัว หรือในหี): ห้ามเขียนว่าน้ำเชื้อออกมาในทวาร")
     near = [ln for ln in lines if _CUM.search(ln)] + [lines[i + 1] for i, ln in enumerate(lines[:-1]) if _CUM.search(ln)]
     for pl in places:
         rx = dict(_PLACES).get(pl, "")
