@@ -1085,6 +1085,18 @@ def _plan_sig(plan):
     return tuple(s["id"] + (":" + s["who"] if s.get("who") else "") for bt in plan for s in bt)
 
 
+def finish_wanted(txt):
+    """R63 (29 Oct, R62): where the author says he comes ('แตกในปาก', 'แตกบนก้น', 'แตกใน…หี') decides the finish step of the plan (F1 mouth / F2 outside / F3 inside); '' = free."""
+    t = txt or ""
+    if re.search(r"แตก(?:ใน)?ปาก|ใส่ปาก|เข้าปาก|น้ำแตกที่ปาก|ลงคอ", t):
+        return "F1"
+    if re.search(r"แตกใน(?!ปาก)|ข้างในหี|ปล่อยใน|หลั่งใน|ฝังน้ำ|แตกข้างใน|น้ำแตกในหี", t):
+        return "F3"
+    if re.search(r"แตก(?:บน|ใส่|ที่|ลง)(?:ก้น|หลัง|หน้าท้อง|ท้อง|นม|หน้าอก|หน้า|ตัว|ต้นขา|ใบหน้า|แผ่นหลัง|ตูด)|แตกนอก|แตกข้างนอก|น้ำแตกบน|น้ำแตกที่", t):
+        return "F2"
+    return ""
+
+
 def attach_pose_plans(b, parts, cid="", salt=0):
     """put a seeded pose plan on the parts of every sexual scene with one man + one woman (single table) or two men + one woman (group table);
     other casts keep the old behaviour.
@@ -1113,6 +1125,7 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         if not group and (len(men) != 1 or len(women) != 1):
             continue
         quick = (not group) and bool(QUICKIE_RE.search(txt))
+        want_fin = finish_wanted(txt)
         pick = None
         for k in range(60):
             rng = random.Random(zlib.crc32(("%s|%s|%d|%d|%d" % (b, cid, sc, salt, k)).encode("utf-8")))
@@ -1123,6 +1136,8 @@ def attach_pose_plans(b, parts, cid="", salt=0):
             else:
                 plan = make_pose_plan(len(ps), rng, t)
             sig = _plan_sig(plan)
+            if want_fin and not group and k < 50 and sig[-1].split(":")[0] != want_fin:
+                continue   # R63: the author named the place he comes: keep drawing seeds until the plan ends there (fallback after 50 draws)
             if sig in seen:
                 continue
             if k < 40 and (sig[:2] in seen_open or (last_fin and sig[-1] == last_fin and len(t) > 12)):
@@ -1656,8 +1671,8 @@ def fix_particles(text, info, rough=False):
                 pl = "หนู" if re.search(r"พ่อ|แม่|ป๊า|ม๊า|พี่|ป้า|ลุง|น้า|(?<![ก-ฮ])อา(?![ก-ฮ])", q) else "ชั้น"
                 q = re.sub(r"กู(?!เก|รู)", pl, q)
                 q = re.sub(r"มึง", "คุณ", q).replace("หีคุณ", "หีของคุณ").replace("ควยคุณ", "ควยของคุณ")
-            if sp == "F" and re.search(r"(ควย|น้ำควย|ดุ้น)เธอ", q):   # R25 (29 Oct): she says ควยคุณ to him, never ควยเธอ (seen in R19/R23/R24)
-                q = re.sub(r"(ควย|น้ำควย|ดุ้น)เธอ", r"\1ของคุณ", q)
+            if sp == "F" and re.search(r"(ควย|น้ำควย|ดุ้น)(?:ของ)?เธอ", q):   # R25 (29 Oct): she says ควยคุณ to him, never ควยเธอ (seen in R19/R23/R24)
+                q = re.sub(r"(ควย|น้ำควย|ดุ้น)(?:ของ)?เธอ", r"\1ของคุณ", q)
             if sp == "F" and "ครับ" in q:
                 q = re.sub(r"(นะ|ไหม|มั้ย|หรือ|เหรอ|ล่ะ|หรอ)ครับ", r"\1คะ", q).replace("ครับ", "ค่ะ")
             elif sp == "M" and re.search(r"ค่ะ|คะ", q):
