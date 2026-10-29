@@ -1221,6 +1221,53 @@ def overused(body, names, top=5, fill_min=10):
     return out[:top]
 
 
+def prefix_runs(text, k=9, minrun=4):
+    """number of runs of >= minrun consecutive narration paragraphs that start with the same k characters ("เขาลากควย..." repeated with tiny changes)."""
+    ps = [p.strip() for p in (text or "").split("\n") if p.strip() and not p.startswith("#")]
+    n = i = 0
+    while i < len(ps):
+        j = i
+        if not QUOTE_RE.match(ps[i]) and k <= len(ps[i]) <= 70:
+            while j + 1 < len(ps) and not QUOTE_RE.match(ps[j + 1]) and len(ps[j + 1]) <= 70 and ps[j + 1][:k] == ps[i][:k]:
+                j += 1
+            if j - i + 1 >= minrun:
+                n += 1
+        i = j + 1
+    return n
+
+
+def collapse_prefix_runs(text, k=8, minrun=3):
+    """keep only the longest paragraph of each prefix run."""
+    ps = (text or "").split("\n")
+    out, i = [], 0
+    nz = [x for x in range(len(ps)) if ps[x].strip()]
+    keep = set(nz)
+    pos = 0
+    while pos < len(nz):
+        a = nz[pos]
+        t = ps[a].strip()
+        run = [a]
+        if not QUOTE_RE.match(t) and not t.startswith("#") and len(t) >= k:
+            q = pos
+            while q + 1 < len(nz) and not QUOTE_RE.match(ps[nz[q + 1]].strip()) and ps[nz[q + 1]].strip()[:k] == t[:k]:
+                q += 1
+                run.append(nz[q])
+            pos = q + 1
+        else:
+            pos += 1
+        if len(run) >= minrun:
+            best = max(run, key=lambda x: len(ps[x].strip()))
+            for x in run:
+                if x != best:
+                    keep.discard(x)
+    res = []
+    for x, line in enumerate(ps):
+        if line.strip() and x not in keep:
+            continue
+        res.append(line)
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(res))
+
+
 def family_issues(text, info):
     """hard story-rule violations the model keeps making: (a) man-on-man sex acts, (b) [removed 29 Oct: spouses may call each other พ่อ/แม่/ป๊า/ม๊า],
     (c) a real daughter/son called บุญธรรม (adopted). Returns a list of short Thai descriptions (empty = clean)."""
@@ -1244,6 +1291,14 @@ def family_issues(text, info):
             m = re.search(r"\u201c(?:พ่อ|พี่)[^\u201d]{0,12}ควย(?:ของ)?(?:พ่อ|พี่)", p)
             if m:
                 out.append("ชายกับชาย (บทพูด): " + p[:50])
+    if re.search(r"(?:เลีย|อม|ดูด)[\u0E01-\u0E4E]{0,3}(?:หี|ควย|นม|หัวนม|เม็ดแตด)(?:ของ)?(?:ตัวเอง|เธอเอง|เขาเอง)|(?:หี|นม|เม็ดแตด|ควย)ของ(?:ตัวเอง|เธอเอง|เขาเอง)|หว่างขาของเธอ?เอง|หว่างขาของเธองเอง", text or ""):
+        out.append("ทำกับร่างกายตัวเองไม่ได้ (เลีย/อมของตัวเอง)")
+    F2 = [n for n, v in info.items() if n and v.get("g") == "F"]
+    fr2 = "|".join(re.escape(x) for x in sorted(F2, key=len, reverse=True))
+    if re.search(r"น้ำเชื้อของเธอ" + (r"|น้ำเชื้อของ(?:%s)|(?:%s)(?:ปล่อย|พุ่ง|หลั่ง|แตก)[^\n\u201c\u201d]{0,6}น้ำเชื้อ" % (fr2, fr2) if fr2 else ""), text or ""):
+        out.append("ผู้หญิงมีน้ำเชื้อ (ผู้หญิงมีแต่ น้ำหี/น้ำเงี่ยน)")
+    if prefix_runs(text):
+        out.append("ย่อหน้าบรรยายขึ้นต้นเหมือนกันติดกัน ≥4 ย่อหน้า (ซ้ำ/วน)")
     if kids and re.search(r"บุญธรรม", text or "") and not any(re.search(r"adopt", role(n), re.I) for n in info):
         out.append("เรียกลูกแท้ว่าบุญธรรม")
     return out
@@ -1545,7 +1600,7 @@ def aw_run(b, cid, key):
                     if dup_ratio(cand[1], cur0) > DUP_PART_MAX:
                         why.append("it repeated whole paragraphs and lines that were already written: every paragraph must be new, with new body movements, new words and new events")
                     if family_issues(cand[1], info0):
-                        why.append("it broke a story rule: " + " | ".join(family_issues(cand[1], info0)[:3]) + ". Rules: the men NEVER touch, suck or lick each other (every sexual act is man-with-woman only; the men may watch, wait or talk while a woman is with the other man); the daughter is the husband's real daughter, never บุญธรรม")
+                        why.append("it broke a story rule: " + " | ".join(family_issues(cand[1], info0)[:3]) + ". Rules: nobody can lick, suck or touch their own body parts; a woman has no น้ำเชื้อ (only น้ำหี / น้ำเงี่ยน); never write several paragraphs that start with the same words (each paragraph must move the scene forward); the men NEVER touch, suck or lick each other (every sexual act is man-with-woman only; the men may watch, wait or talk while a woman is with the other man); the daughter is the husband's real daughter, never บุญธรรม")
                     if formula_heavy(cand[1]):
                         why.append("most quoted lines had the same shape 'short phrase... short phrase': vary the dialogue: full sentences, questions, commands, names, one-word cries, interrupted lines, and mix action beats between the lines")
                     if untag_n(cand[1]):
