@@ -61,7 +61,7 @@ def outline_text(b, draft=None):
 DRY_LAST_N = int(os.environ.get("NOVEL_DRY_N", "16384"))
 # Root cause of whole-block copies in ch03/05/07 (28 Oct): the DRY repeat penalty looked back only 1024 tokens while the prompt carries the whole chapter so far
 # (up to 20000 chars) and the previous chapter, so the model could replay a paragraph block written >1024 tokens earlier without any penalty.
-TOK_MULT = float(os.environ.get("NOVEL_TOKMULT", "1.15"))   # R16 (29 Oct): clean runs R10/R14/R15 all stopped right before the planned climax -> suspect the max_tokens cap
+TOK_MULT = float(os.environ.get("NOVEL_TOKMULT", "2.0"))   # R16 (29 Oct): clean runs R10/R14/R15 all stopped right before the planned climax -> suspect the max_tokens cap
 DRY_LEN = int(os.environ.get("NOVEL_DRY_LEN", "2"))   # R13/R14 (29 Oct): names/organ words repeat a lot in sex scenes; a short allowed_length may force odd spellings (ธณา, กระแท)
 ANTI_REPEAT = {} if os.environ.get("NOVEL_DRY", "1") == "0" else {"dry_multiplier": 0.8, "dry_base": 1.75, "dry_allowed_length": DRY_LEN, "dry_penalty_last_n": DRY_LAST_N}
 
@@ -973,6 +973,10 @@ def fix_particles(text, info, rough=False):
                 if re.search(r"(?<!ดิ)ฉัน(?![ทใ])", q):
                     pl = "หนู" if re.search(r"พ่อ|แม่|ป๊า|ม๊า|พี่|ป้า|ลุง|น้า|(?<![ก-ฮ])อา(?![ก-ฮ])", q) else "ชั้น"
                     q = re.sub(r"(?<!ดิ)ฉัน(?![ทใ])", pl, q)
+            if sp == "M" and re.search(r"มึง|(?<![ก-ฮ])กู(?!เก|รู)", q) and re.search(r"(?<![ก-ฮ])ผม" + HAIR, q):
+                # R18 (29 Oct): mixed register inside one quote (ผม...มึง): a man who says มึง is rough, so ผม -> กู and ครับ is dropped
+                q = re.sub(r"(?<![ก-ฮ])ผม" + HAIR, "กู", q)
+                q = re.sub(r"นะครับ", "นะ", q).replace("ครับ", "")
             if sp == "M":
                 q = re.sub(r"(?<!ดิ)ฉัน(?![ทใ])", "ผม" if "กู" not in q else "กู", q)   # a man says ผม, not ฉัน (กู when rough)
                 if "กู" in q:   # rough register: ผม->กู, and he addresses her มึง, not เธอ/คุณ
