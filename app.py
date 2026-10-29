@@ -784,7 +784,7 @@ def make_pose_plan(nbeats, rng, table=None):
             if not cands:
                 cands = [x for x in t if _pose_kind(t, x) == "pen"]
             # late in a segment prefer penetration; avoid repeating a step used before
-            late = j >= max(1, ln - 2)
+            late = j == ln - 1 and j >= 1   # R38: only the last core step of a segment is steered to penetration (the earlier ones may be oral/warm), so openings differ more
             pool = [x for x in cands if _pose_kind(t, x) == "pen"] if late and any(_pose_kind(t, x) == "pen" for x in cands) else cands
             fresh = [x for x in pool if used.get(x, 0) == 0] or pool
             pick = rng.choice(fresh)
@@ -850,16 +850,36 @@ def pose_block(part):
     return " ".join(L[:1]) + "\n" + "\n".join(L[1:])
 
 
-def attach_pose_plans(b, parts, cid=""):
-    """put a seeded pose plan on the parts of every sexual scene with exactly one man and one woman (other casts keep the old behaviour)."""
+def pose_run_salt(b, cid):
+    """number of times this chapter has been written (persisted in the book folder): a rewrite gets a new seed, so it gets a new chain of positions."""
+    try:
+        fp = os.path.join(bdir(b), "pose_runs.json")
+        d = json.loads(read(fp, "{}") or "{}")
+        d[cid] = int(d.get(cid, 0)) + 1
+        write(fp, json.dumps(d))
+        return d[cid]
+    except Exception:
+        return 0
+
+
+def _plan_sig(plan):
+    return tuple(s["id"] for bt in plan for s in bt)
+
+
+def attach_pose_plans(b, parts, cid="", salt=0):
+    """put a seeded pose plan on the parts of every sexual scene with exactly one man and one woman (other casts keep the old behaviour).
+    R38 (29 Oct): no two scenes of one chapter get the same chain; while possible they also differ in their first two steps and in the kind of
+    finish of the scene before (strict phase), then only the exact chain is forbidden."""
     if not POSES_ON:
         return parts
     import random, zlib
     info = char_info(b)
+    t = pose_table()
     by_scene = {}
     for p in parts:
         by_scene.setdefault(p["scene"], []).append(p)
-    for sc, ps in by_scene.items():
+    seen, seen_open, last_fin = set(), set(), None
+    for sc, ps in sorted(by_scene.items()):
         txt = ps[0]["text"]
         if not is_sexual_text(txt):
             continue
@@ -868,8 +888,23 @@ def attach_pose_plans(b, parts, cid=""):
         women = [n for n in present if info[n].get("g") == "F"]
         if len(men) != 1 or len(women) != 1:
             continue
-        rng = random.Random(zlib.crc32(("%s|%s|%d" % (b, cid, sc)).encode("utf-8")))
-        plan = make_pose_plan(len(ps), rng)
+        pick = None
+        for k in range(60):
+            rng = random.Random(zlib.crc32(("%s|%s|%d|%d|%d" % (b, cid, sc, salt, k)).encode("utf-8")))
+            plan = make_pose_plan(len(ps), rng, t)
+            sig = _plan_sig(plan)
+            if sig in seen:
+                continue
+            if k < 40 and (sig[:2] in seen_open or (last_fin and sig[-1] == last_fin and len(t) > 12)):
+                pick = pick or plan   # remember a merely-unique fallback
+                continue
+            pick = plan
+            break
+        plan = pick or plan
+        sig = _plan_sig(plan)
+        seen.add(sig)
+        seen_open.add(sig[:2])
+        last_fin = sig[-1]
         prev = None
         for p, steps in zip(ps, plan):
             p["pose"] = {"steps": steps, "prev": prev}
@@ -1849,7 +1884,7 @@ def aw_run(b, cid, key):
         o = outline(b).get(cid, {})
         text0 = read(fp)
         first_empty = body_words(text0) < 60
-        parts = attach_pose_plans(b, plan_scenes(o.get("summary", ""), o.get("target", 0)), cid)
+        parts = attach_pose_plans(b, plan_scenes(o.get("summary", ""), o.get("target", 0)), cid, pose_run_salt(b, cid) if POSES_ON else 0)
         names = name_table(b)
         tpw = 1.3   # tokens per Thai "word" (body_words unit); recalibrated from the model's own usage numbers after each part
         job.update({"n": len(parts), "i": 0, "state": "running"})
