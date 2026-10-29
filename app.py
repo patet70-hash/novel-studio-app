@@ -1034,7 +1034,7 @@ def make_group3_plan(nbeats, rng, men, table=None):
         prev[0] = pk
 
     fins = [x for x in t if _pose_kind(t, x) == "finish"] or ["F3"]
-    ngr = 2 if n != 3 else 1
+    ngr = 2 if n < 3 else (1 if n == 3 else 3)   # R72: 4+ beats get three trio steps so the double-penetration pose (needs two oral/pen steps before it) can actually come up
     for _ in range(ngr):
         add_trio()
     if n < 3:
@@ -1706,15 +1706,36 @@ def tag_speaker(tag, info):
     return best[1] if best else None
 
 
-def thin_owner(text):
+def thin_owner(text, names=None):
     """R51 (29 Oct): "ควยของเขา" came out 9-16 times per chapter: in one part keep the 1st and every 3rd, the others become plain "ควย" (the man is named in the same paragraph).
-    R56: the same for หน้าอก / ริมฝีปาก / มือ / ต้นขา / ลำตัว / สะโพก ของเขา|เธอ (R55: หน้าอกของ x9, ริมฝีปากของ x8)."""
+    R56: the same for หน้าอก / ริมฝีปาก / มือ / ต้นขา / ลำตัว / สะโพก ของเขา|เธอ (R55: หน้าอกของ x9, ริมฝีปากของ x8).
+    R72 (r71-trio: "ควยของปกรณ์" x8): the same for "<noun>ของ<name>" when that name appears in the 80 characters before it (the owner has just been named)."""
     cnt = {}
     def rep(m):
         w = m.group(1)
         cnt[w] = cnt.get(w, 0) + 1
         return m.group(0) if (cnt[w] - 1) % 3 == 0 else w
-    return re.sub(r"(ควย|หน้าอก|ริมฝีปาก|มือ|ต้นขา|ลำตัว|สะโพก|ร่างกาย|ร่าง|ปลายนิ้ว|ปลายลิ้น|หัวนม|ลิ้น|นิ้ว)ของ(?:เขา|เธอ)(?!วง|เอง)", rep, text)
+    NOUNS = r"(ควย|หน้าอก|ริมฝีปาก|มือ|ต้นขา|ลำตัว|สะโพก|ร่างกาย|ร่าง|ปลายนิ้ว|ปลายลิ้น|หัวนม|ลิ้น|นิ้ว)"
+    text = re.sub(NOUNS + r"ของ(?:เขา|เธอ)(?!วง|เอง)", rep, text)
+    nm = [x for x in (names or []) if x]
+    if nm:
+        alt = "|".join(re.escape(x) for x in sorted(nm, key=len, reverse=True))
+        cn = {}
+        def rep2(m):
+            w, who = m.group(1), m.group(2)
+            if who not in text[max(0, m.start() - 80):m.start()]:
+                return m.group(0)
+            cn[(w, who)] = cn.get((w, who), 0) + 1
+            return m.group(0) if (cn[(w, who)] - 1) % 3 == 0 else w
+        text = re.sub(NOUNS + r"ของ(" + alt + r")", rep2, text)
+    return text
+
+
+def _thin_owner_n(b, t):
+    try:
+        return thin_owner(t, [n for n in char_info(b) if n])
+    except Exception:
+        return thin_owner(t)
 
 
 def thin_tagverb(text, verb="พึมพำ", keep=1):
@@ -2533,7 +2554,7 @@ def dup_ratio(t, existing=""):
     return sum(sc) / float(len(sc)) if sc else 0.0
 
 
-LONG_FACTOR = 1.3   # R68: a part longer than this x its planned words is rewritten (R66: 3,779 words for a 3,000-word chapter). Measured against the plan, not the prompt's scaled ask: the pod asks for 0.6x on purpose because the model overshoots
+LONG_FACTOR = 1.2   # R68: a part longer than this x its planned words is rewritten (R66: 3,779 words for a 3,000-word chapter). Measured against the plan, not the prompt's scaled ask: the pod asks for 0.6x on purpose because the model overshoots
 
 
 def part_too_long(t, p):
@@ -2651,7 +2672,7 @@ def aw_run(b, cid, key):
                 return
             cur = read(fp)
             part = drop_dup_paragraphs(fix_name_typos(part, names), cur)
-            part = thin_manner(thin_fluid(thin_tagverb(thin_owner(fix_swallow(fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak")))))))
+            part = thin_manner(thin_fluid(thin_tagverb(_thin_owner_n(b, fix_swallow(fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak")))))))
             tail = cur.rstrip()[-60:]
             if tail and part.startswith(tail[-40:]):
                 part = part[len(tail[-40:]):].lstrip()
