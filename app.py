@@ -1435,6 +1435,7 @@ def _plan_issues_pose(text, part):
             out.append("แผนให้ผู้ชายแตกข้างในหีเธอ ห้ามแตกนอกหรือในปาก")
     if pp.get("g"):
         out += _dp_role_issues(pp, lines)
+        out += _early_climax_issues(t, pp, text)
     if has_f and cum_n and pp.get("g"):
         out += _group_finish_issues(t, pp, lines)
     if has_f and cum_n and not pp.get("g") and pp.get("place"):
@@ -1442,6 +1443,42 @@ def _plan_issues_pose(text, part):
         near = [ln for ln in lines if _CUM.search(ln)] + [lines[i + 1] for i, ln in enumerate(lines[:-1]) if _CUM.search(ln)]
         if rx and not any(re.search(rx, ln) for ln in near):
             out.append("น้ำเชื้อต้องไปตกที่%s ของเธอตามแผน แต่เขียนไปตกที่อื่น" % pp["place"])
+    return out
+
+
+_DONE_CUM = re.compile(r"แตกแล้ว|แตกใน|แตกใส่|แตกบน|แตกที่|กูแตก|ผมแตก|น้ำ(?:เชื้อ|ควย)กู(?:พุ่ง|ไหล|ออก)")
+_NOT_YET = re.compile(r"(?:จะ|ใกล้จะ|ใกล้|ขอ|อยาก|ให้|อย่า|ห้าม|ไม่ให้)\s*แตก|แตกพร้อม")
+
+
+def _early_climax_issues(t, pp, text):
+    """R75 (r75-men scene 2: ก้อง shouts 'แตกในปากมึงแล้ว' in the beat where only ปกรณ์ comes, and comes again later): in a part of a 2/3-men scene a man says he HAS
+    come only in a part whose plan has his own finish step (the narration check cannot see what a man shouts)."""
+    cast = pp.get("cast") or {}
+    men = cast.get("men") or [x for x in (cast.get("A"), cast.get("B")) if x]
+    if not men:
+        return []
+    own = set()
+    for st in pp.get("steps", []):
+        if _pose_kind(t, st["id"]) != "finish":
+            continue
+        if isinstance(st.get("fin"), dict):
+            own |= set(st["fin"])
+        elif st.get("who"):
+            own.add(st["who"])
+        else:
+            own |= set(st.get("r") or [])
+    out = []
+    for ln in (text or "").split("\n"):
+        m = QUOTE_RE.match(ln.strip())
+        if not m:
+            continue
+        who = [x for x in men if ln.strip()[m.end():].strip().startswith(x)]
+        if len(who) != 1 or who[0] in own:
+            continue
+        q = _NOT_YET.sub("", m.group(0))
+        if _DONE_CUM.search(q):
+            out.append("%s พูดว่าแตกแล้ว แต่ในช่วงนี้ตามแผนยังไม่ถึงตาที่เขาแตก (คนที่แตกในช่วงนี้คือ %s): ให้ %s ยังไม่แตก ห้ามพูดว่าแตก" % (who[0], ", ".join(sorted(own)) or "ไม่มี", who[0]))
+            break
     return out
 
 
