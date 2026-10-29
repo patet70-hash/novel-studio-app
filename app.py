@@ -1088,7 +1088,12 @@ def pose_block_group3(part):
             r = st.get("r") or men
             ln = "STEP %d [%s]: %s" % (k, row.get("n", pid), row.get("d", "").format(A=r[0], B=r[1], C=r[2], W=W))
             if pid == "FT":
-                ln += " | " + " ; ".join("%s: %s" % (nm, (t.get(fid) or {}).get("d", "")) for nm, fid in (st.get("fin") or {}).items())
+                fin = st.get("fin") or {}
+                ln += " | " + " ; ".join("%s: %s" % (nm, (t.get(fid) or {}).get("d", "")) for nm, fid in fin.items())
+                pl = {"F3": "is between her legs with his cock in her pussy", "F1": "kneels at her head with his cock at her lips", "F2": "kneels beside her with his cock in his own hand"}
+                ar = [("%s %s" % (nm, pl[fid])) for nm, fid in fin.items() if fid in pl]
+                if len(ar) == 3:
+                    ln += " | FIXED ARRANGEMENT for this whole step (nobody changes place, nobody swaps): %s is on her back; %s. Only the man at her head is ever in her mouth; only the man between her legs is ever in her pussy; write the three climaxes one after another in this arrangement." % (W, "; ".join(ar))
         elif st.get("ab"):
             a, b_ = st["ab"]
             ln = "STEP %d [%s]: ONLY %s and %s are with %s now; %s has already come and rests beside them, kissing her and touching her with his hands, his cock soft and not used: %s" % (
@@ -1720,6 +1725,37 @@ def thin_tagverb(text, verb="พึมพำ", keep=1):
         n[0] += 1
         return m.group(0) if n[0] <= keep else alts[(n[0] - keep - 1) % len(alts)]
     return re.sub(verb, rep, text)
+
+
+def unify_register(text, info):
+    """R70 (29 Oct, r69-trio): a man who is rough (says กู/มึง at least twice in the chapter) keeps ONE register across parts: his dirty quotes that still say
+    ผม (no ครับ-only politeness elsewhere) become กู (R61/R55 only look inside one part, and an early warm-up part has too few sex words to trigger them)."""
+    men = {n for n, v in (info or {}).items() if n and v.get("g") == "M"}
+    PRE = r"(?:(?<![ก-ฮ])|(?<=ของ)|(?<=ให้)|(?<=แก่)|(?<=กับ)|(?<=จาก)|(?<=ที่)|(?<=ถึง))"   # "ของกู" / "ให้ผม": the pronoun glued to a preposition still counts
+    if not men:
+        return text
+    rough = {}
+    parsed = []
+    for ln in text.split("\n"):
+        st = ln.strip()
+        m = QUOTE_RE.match(st)
+        spn = tag_speaker(st[m.end():], info) if m else None
+        parsed.append((ln, m, spn))
+        if m and spn in men and re.search(PRE + r"กู(?!เก|รู)|มึง", m.group(0)):
+            rough[spn] = rough.get(spn, 0) + 1
+    rough = {n for n, c in rough.items() if c >= 2}
+    if not rough:
+        return text
+    HAIR_ = r"(?![ก-ฮ]*(?:ยาว|สั้น|หอม|เปียก|ดำ|ขาว|หงอก|ร่วง))"
+    out = []
+    for ln, m, spn in parsed:
+        if m and spn in rough:
+            q = m.group(0)
+            if re.search(r"ควย|หี(?!บ)|เย็ด|น้ำเงี่ยน|น้ำเชื้อ|แตกใน|แตกใส่|ปากมึง|หัวนม", q) and re.search(PRE + r"ผม" + HAIR_, q) and "ครับ" not in q:
+                q2 = re.sub(PRE + r"ผม" + HAIR_, "กู", q)
+                ln = ln.replace(q, q2, 1)
+        out.append(ln)
+    return "\n".join(out)
 
 
 def thin_manner(text):
@@ -2590,6 +2626,13 @@ def aw_run(b, cid, key):
             job["words"] = body_words(new)
         if job.get("state") == "running":
             job["state"] = "done"
+        try:
+            _cur = read(fp)
+            _uni = unify_register(_cur, char_info(b))
+            if _uni != _cur:
+                write(fp, _uni)
+        except Exception:
+            pass
         rep = check_text(b, read(fp), o.get("target", 0))
         job["issues"] = rep["issues"]
         job["words"] = rep["words"]
