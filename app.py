@@ -513,6 +513,9 @@ def rebalance_sex_share(scenes, target):
     return scenes
 
 
+BEAT_W = int(os.environ.get("NOVEL_BEATW", "1300"))   # R22 switch: max words per beat (a scene longer than this is written as several beats); default unchanged
+
+
 def plan_scenes(summary, target):
     """split a chapter summary written as 'ฉากที่ 1 (ประมาณ 25%) ...' into scenes; otherwise cut by target length."""
     target = int(target or 0) or 3000
@@ -537,7 +540,7 @@ def plan_scenes(summary, target):
         scenes = [{"text": summary, "words": int(target / n), "slice": (i + 1, n)} for i in range(n)]
     parts = []
     for si, sc in enumerate(scenes):
-        m = max(1, -(-sc["words"] // 1300))
+        m = max(1, -(-sc["words"] // BEAT_W))
         for k in range(m):
             parts.append({"text": sc["text"], "words": int(sc["words"] / m), "scene": si + 1, "scenes": len(scenes),
                           "beat": k + 1, "beats": m, "slice": sc.get("slice")})
