@@ -61,7 +61,8 @@ def outline_text(b, draft=None):
 DRY_LAST_N = int(os.environ.get("NOVEL_DRY_N", "16384"))
 # Root cause of whole-block copies in ch03/05/07 (28 Oct): the DRY repeat penalty looked back only 1024 tokens while the prompt carries the whole chapter so far
 # (up to 20000 chars) and the previous chapter, so the model could replay a paragraph block written >1024 tokens earlier without any penalty.
-ANTI_REPEAT = {"dry_multiplier": 0.8, "dry_base": 1.75, "dry_allowed_length": 2, "dry_penalty_last_n": DRY_LAST_N}
+DRY_LEN = int(os.environ.get("NOVEL_DRY_LEN", "2"))   # R13/R14 (29 Oct): names/organ words repeat a lot in sex scenes; a short allowed_length may force odd spellings (ธณา, กระแท)
+ANTI_REPEAT = {} if os.environ.get("NOVEL_DRY", "1") == "0" else {"dry_multiplier": 0.8, "dry_base": 1.75, "dry_allowed_length": DRY_LEN, "dry_penalty_last_n": DRY_LAST_N}
 
 
 def settings():
