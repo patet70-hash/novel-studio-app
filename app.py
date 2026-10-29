@@ -590,7 +590,10 @@ def dialogue_hint(p):
         share, rate = "30-40%", 18   # the explicit warm-up beat of a sex scene is not allowed to turn into long narration
     else:
         share, rate = "15-20%", 10
-    if SPEECH_LITE:
+    if SPEECH_LITE and DLG_LOW and sexual:
+        share, rate = "15-20%", 9
+        extra = (" Round-9 style: keep the spoken lines FEW and natural (a moan, a command, a name, a short sentence), and between them write rich narration paragraphs of 2-4 sentences: the sensations in the body, breath, heat, wetness, muscle and skin, sounds in the room, what each person feels and wants, how the pleasure builds. About 40% of the text is such narration of feelings and sensations, not just a list of actions. Vary the speech tags (many lines need no tag: the action before it shows who speaks) and never repeat the same tag verb (ตอบกลับ, พูดขึ้น) more than twice.")
+    elif SPEECH_LITE:
         share, rate, extra = ("about 40%", 26, "") if sexual else ("15-20%", 10, "")
     lines = max(6, int(words * rate / 1000))
     return ("DIALOGUE SHARE: about %s of this part's text must be spoken lines (quoted): at least %d spoken lines, alternating with narration. Every narration paragraph is at most 3-4 sentences, then somebody speaks. Polite situations (talking to an elder, a boss, a client, a stranger, or in a formal work setting) use full polite sentences ending with ครับ/ค่ะ/คะ; in ordinary calm conversation at least every second line carries a natural ending particle (นะ, สิ, นะครับ, นะคะ, ค่ะ, ครับ, เหรอ, ล่ะ) instead of bare clipped sentences.%s" % (share, lines, extra))
@@ -1519,7 +1522,8 @@ def fix_name_typos(text, names, count_only=False):
 
 
 
-DLG_MIN = 0.35 if SPEECH_LITE else 0.50   # a PEAK part with less spoken text than this is written again (at most twice), the version with the most dialogue is kept
+DLG_LOW = os.environ.get("NOVEL_DLG_LOW", "") == "1"   # experiment round 9 (user-approved 29 Oct, this trial only): peak parts 15-20% dialogue + feeling narration
+DLG_MIN = (0.12 if DLG_LOW else 0.35) if SPEECH_LITE else 0.50   # a PEAK part with less spoken text than this is written again (at most twice), the version with the most dialogue is kept
 
 
 def quote_share(t):
