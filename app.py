@@ -596,7 +596,9 @@ def dialogue_hint(p):
     return ("DIALOGUE SHARE: about %s of this part's text must be spoken lines (quoted): at least %d spoken lines, alternating with narration. Every narration paragraph is at most 3-4 sentences, then somebody speaks. Polite situations (talking to an elder, a boss, a client, a stranger, or in a formal work setting) use full polite sentences ending with ครับ/ค่ะ/คะ; in ordinary calm conversation at least every second line carries a natural ending particle (นะ, สิ, นะครับ, นะคะ, ค่ะ, ครับ, เหรอ, ล่ะ) instead of bare clipped sentences.%s" % (share, lines, extra))
 
 
-BODY_LOGIC = " BODY LOGIC: at any moment only ONE act happens between ONE pair; everyone else watches, waits for a turn, kisses or strokes a partner: never one man doing two women (or a woman doing two men) at the same instant, and every change of position is written as a step (who moves, who lies where) before the next act; a man never touches another man; keep each woman's way of referring to herself the same all through the part."
+BODY_LOGIC_ON = os.environ.get("NOVEL_BODYLOGIC", "1") != "0"
+_BL = " BODY LOGIC: at any moment only ONE act happens between ONE pair; everyone else watches, waits for a turn, kisses or strokes a partner: never one man doing two women (or a woman doing two men) at the same instant, and every change of position is written as a step (who moves, who lies where) before the next act; a man never touches another man; keep each woman's way of referring to herself the same all through the part."
+BODY_LOGIC = _BL if BODY_LOGIC_ON else ""
 
 
 def heat_hint(p):
