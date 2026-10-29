@@ -1550,6 +1550,9 @@ def fix_particles(text, info, rough=False):
             n0 = tag_speaker(ln0.strip()[m0.end():], info)
             if n0 and info.get(n0, {}).get("g") == "M":
                 rough_men.add(n0)
+    _mn = "|".join(re.escape(x) for x in sorted([n for n, v in (info or {}).items() if n and v.get("g") == "M"], key=len, reverse=True))
+    if _mn:   # R59 (R59 text: "หิวน้ำหีของปกรณ์"): a man has น้ำควย, never น้ำหี
+        text = re.sub(r"น้ำ(?:หี|เงี่ยน)(?:ของ)?(%s)" % _mn, r"น้ำควยของ\1", text)
     men_n = len({tag_speaker(ln0.strip()[QUOTE_RE.match(ln0.strip()).end():], info) for ln0 in text.split("\n") if QUOTE_RE.match(ln0.strip())} & {n for n, v in info.items() if v.get("g") == "M"})   # R56: how many different men talk in this part
     blow_part = bool(re.search(r"อมควย|ดูดควย|อ้าปากรับควย|ควย[^\n“]{0,12}(?:เข้าปาก|ในปาก)", text))
     sexy_part = len(re.findall(r"ควย|หี(?![ก-ฮ])|เย็ด|น้ำเงี่ยน|น้ำเชื้อ|หัวนม", text)) >= 3   # R50: a clearly sexual part (self-name rule also for plain lines like "ก้องก็อยากเล่นด้วย")
@@ -1956,7 +1959,7 @@ def family_issues(text, info):
             m = re.search(r"\u201c(?:พ่อ|พี่)[^\u201d]{0,12}ควย(?:ของ)?(?:พ่อ|พี่)", p)
             if m:
                 out.append("ชายกับชาย (บทพูด): " + p[:50])
-    if re.search(r"(?:เลีย|อม|ดูด)[\u0E01-\u0E4E]{0,3}(?:หี|ควย|นม|หัวนม|เม็ดแตด)(?:ของ)?(?:ตัวเอง|เธอเอง|เขาเอง)|(?:หี|นม|เม็ดแตด|ควย)ของ(?:ตัวเอง|เธอเอง|เขาเอง)|หว่างขาของเธอ?เอง|หว่างขาของเธองเอง", text or ""):
+    if re.search(r"(?:เลีย|อม|ดูด)[\u0E01-\u0E4E]{0,3}(?:หี|ควย|นม|หัวนม|เม็ดแตด)(?:ของ)?(?:ตัวเอง|เธอเอง|เขาเอง)|(?:เลีย|อม|ดูด|กิน|จูบ)[^\n\u201c\u201d]{0,6}(?:หี|นม|เม็ดแตด|ควย)ของ(?:ตัวเอง|เธอเอง|เขาเอง)|หว่างขาของเธอ?เอง|หว่างขาของเธองเอง", text or ""):
         out.append("ทำกับร่างกายตัวเองไม่ได้ (เลีย/อมของตัวเอง)")
     F2 = [n for n, v in info.items() if n and v.get("g") == "F"]
     fr2 = "|".join(re.escape(x) for x in sorted(F2, key=len, reverse=True))
