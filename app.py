@@ -1199,7 +1199,21 @@ def attach_pose_plans(b, parts, cid="", salt=0):
     return parts
 
 
+_CODA_RE = re.compile(r"ประตู[^\n“”]{0,15}(?:ถูก)?(?:เปิด|เคาะ|ดัง)|เสียงกริ่ง|เสียงเคาะ|ใครบางคน(?:เดิน|เปิด|เข้า)|(?:เดิน|ก้าว)เข้ามา(?:ใน)?ห้อง|เสียงฝีเท้า|มีคน(?:เปิด|เดิน|มา)")
+
+
 def plan_issues(text, part):
+    """R66: wrapper: the pose-plan checks plus the coda check (a scene's last beat must not end on someone arriving: R64 'เสียงประตูห้องนอนถูกเปิดออก')."""
+    out = _plan_issues_pose(text, part)
+    pt = part or {}
+    if pt.get("beat") and pt.get("beat") == pt.get("beats") and not pt.get("last"):
+        tail = "\n".join(re.sub(r"“[^”]*”?", "", ln) for ln in (text or "").split("\n") if ln.strip())[-350:]
+        if _CODA_RE.search(tail):
+            out.append("ท้ายฉากห้ามมีใครเดินเข้า/เคาะ/เปิดประตู: ให้จบฉากด้วยภาพเงียบๆ ที่เดิม ฉากถัดไปจะเปิดสถานที่ใหม่เอง")
+    return out
+
+
+def _plan_issues_pose(text, part):
     """checks of a written part against its plan: he comes only in a part whose plan has a finish step, and that part must show it."""
     pp = (part or {}).get("pose")
     if not pp:
@@ -1373,7 +1387,7 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     if p["beats"] > 1 and p["beat"] < p["beats"] and not plan_f:
         lines.append("This is NOT the end of the scene: move the action on to the next stage and stop mid-flow; do not climax, conclude or wrap up the scene yet.")
     elif not p["last"]:
-        lines.append("Do not end or conclude the chapter; this scene ends at a natural point and the next part continues.")
+        lines.append("Do not end or conclude the chapter; this scene ends at a natural point and the next part continues. If this is the LAST beat of its scene: close it on a quiet image in the SAME place and moment; nobody arrives, no door opens or knocks, no new character, no change of place or time (the next scene opens its own setting).")
     else:
         lines.append("This is the FINAL part of the chapter: bring the scene to its ending and close the chapter on a specific image with an unresolved hook.")
     return "\n".join(lines)
@@ -1553,7 +1567,7 @@ def thin_owner(text):
         w = m.group(1)
         cnt[w] = cnt.get(w, 0) + 1
         return m.group(0) if (cnt[w] - 1) % 3 == 0 else w
-    return re.sub(r"(ควย|หน้าอก|ริมฝีปาก|มือ|ต้นขา|ลำตัว|สะโพก)ของ(?:เขา|เธอ)(?!วง|เอง)", rep, text)
+    return re.sub(r"(ควย|หน้าอก|ริมฝีปาก|มือ|ต้นขา|ลำตัว|สะโพก|ร่างกาย|ร่าง)ของ(?:เขา|เธอ)(?!วง|เอง)", rep, text)
 
 
 def thin_tagverb(text, verb="พึมพำ", keep=1):
