@@ -442,6 +442,10 @@ def speech_table(cast_info, info):
                 t = "คุณ" + y
             elif isstep(n) and iskid(y):
                 t = y
+            elif isstep(n) and isfather(y):
+                t = "คุณ" + y
+            elif isfather(n) and isstep(y):
+                t = y
             elif iskid(n) and iskid(y):
                 t = ("พี่" + y) if age(y) > age(n) else y
             elif age(n) and age(y) and age(y) - age(n) >= 8:
@@ -679,6 +683,8 @@ def kin_line(info, present):
     s = "KINSHIP (obey strictly): " + "/".join(fathers) + " is the REAL father (never พ่อเลี้ยง) of " + ", ".join(kids) + ". The children are siblings: they call each other by name or พี่/น้อง and NEVER ลูก/ลูกสาว/ลูกชาย (only a parent calls a child ลูก). The children call the father พ่อ."
     if step:
         s += " " + "/".join(step) + " is the stepmother (the father's second wife): the children call her คุณ" + step[0] + " or คุณแม่" + step[0] + ", never a bare แม่" + ((" (their real mother is " + "/".join(bio) + ")") if bio else "") + "."
+    if step:
+        s += " " + "/".join(step) + " is the father's WIFE, not his daughter: she never calls him พ่อ or คุณพ่อ and he never asks her to call him พ่อ or calls himself พ่อ to her; she says คุณ or คุณ" + "/".join(fathers) + "; he calls her by her name."
     s += " Do not swap these relations in the middle of the chapter."
     return s
 
@@ -1137,6 +1143,19 @@ def climax_leftovers(t):
     return n
 
 
+def norm_quotes(t):
+    """straight \" pairs on a line become curly quotes (the model drifts to ASCII quotes half way through a chapter)."""
+    def fix(line):
+        if line.count('"') % 2:
+            return line
+        k = [0]
+        def r(m):
+            k[0] += 1
+            return "\u201c" if k[0] % 2 else "\u201d"
+        return re.sub(r'"', r, line)
+    return "\n".join(fix(l) for l in (t or "").split("\n"))
+
+
 def clean_part(t):
     t = re.sub(r"[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]+", "", t.strip())   # stray Chinese characters the model sometimes emits inside Thai text
     t = re.sub(r"[\u0400-\u052F\u0590-\u06FF\u0900-\u0DFF\u0E80-\u0EFF\u1000-\u109F\uFB1D-\uFDFF\uFE70-\uFEFF\u3040-\u30FF\uAC00-\uD7AF]+", "", t)   # stray Cyrillic / Hebrew / Arabic / Indic / Lao / Burmese / Kana / Hangul
@@ -1144,7 +1163,7 @@ def clean_part(t):
     m = re.search(r"```(?:draft|text|markdown)?\s*\n([\s\S]*?)(```|$)", t)
     if m and not re.search(r"```edit", t):
         t = m.group(1).strip()
-    return t
+    return norm_quotes(t)
 
 
 def trim_to_paragraph(t):
@@ -1235,6 +1254,9 @@ def check_text(b, text, target=0):
     an = anatomy_issues(body, char_info(b))
     if an:
         issues.append("กายวิภาคผิดเพศ %d จุด (ผู้หญิงมี ควย / ผู้ชายมี หี)" % an)
+    aq = body.count('"')
+    if aq >= 4 and body.count("\u201c") >= 4:
+        issues.append("เครื่องหมายคำพูดปนกัน: ตรง \" %d ตัว และโค้ง “ ” %d ตัว (ควรเป็นแบบเดียวกัน)" % (aq, body.count("\u201c")))
     ut = untagged_dialogue(body)
     if ut:
         issues.append("บทพูดล้วนไม่มีผู้พูด/บรรยายคั่น %d บรรทัด (ติดกัน ≥%d บรรทัด) อ่านไม่รู้ว่าใครพูด" % (ut, UNTAG_RUN))
@@ -1331,7 +1353,7 @@ def _para_total(t):
     return max(1, sum(1 for p in re.split(r"\n+", t or "") if len(_para_key(p)) >= DUP_MIN_LEN))
 
 
-NAME_CTX = r"(^|[^\u0E00-\u0E7F]|\u0e04\u0e38\u0e13|\u0e1e\u0e35\u0e48|\u0e19\u0e49\u0e2d\u0e07|\u0e17\u0e48\u0e32\u0e19|\u0e1e\u0e48\u0e2d|\u0e41\u0e21\u0e48|\u0e25\u0e39\u0e01)"
+NAME_CTX = r"()"   # a Thai name sits right after a Thai verb (เธอมองกฤษฎ์) so the typo may follow any character; false hits are blocked by the known-names guard in fix_name_typos
 
 
 def _name_variant_res(names):
