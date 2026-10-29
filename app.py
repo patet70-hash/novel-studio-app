@@ -699,8 +699,199 @@ def posture_issues(text):
         if i - last > 3:
             groups += 1
         last = i
-    if groups >= 2 and not re.search(r"อีกรอบ|อีกครั้ง|ยังแข็ง|รอบสอง|รอบที่สอง", "\n".join(nar)):
+    rec = bool(re.search(r"อีกรอบ|อีกครั้ง|ยังแข็ง|รอบสอง|รอบที่สอง|แข็งขึ้นอีก|กลับมาแข็ง|แข็งตัวอีก|แข็งอีก|ปลุก", "\n".join(nar)))
+    if groups >= 2 and not rec:
         out.append("ผู้ชายแตกซ้ำ %d ครั้งในฉากเดียว" % groups)
+    return out
+
+
+# ---------------------------------------------------------------------------------------------------------------------------
+# R37 (29 Oct): POSE TABLE. A fixed table of positions for one man + one woman; the CODE picks a legal chain of positions for every sexual
+# scene (seeded per scene) and each beat's prompt carries its steps, so the model writes inside a possible body layout instead of inventing
+# one. Rules from the user: (1) both climax by the end of the scene; (2) the man may come mid-scene, then he is soft and may not penetrate until a
+# RECOVERY step (mouth / hand / rubbing / kissing) makes him hard; (3) the woman may climax any number of times mid-scene with no recovery;
+# (4) the man comes at most 1 + (0 | 1 | 2) times (2-beat scenes: once; 3-4 beats: up to twice; 5+: up to three times).
+# The table can be replaced by NOVEL_ROOT/poses.json (same shape as POSE_TABLE) without touching the code.
+# ---------------------------------------------------------------------------------------------------------------------------
+POSES_ON = os.environ.get("NOVEL_POSES", "0") == "1"
+POSE_TABLE = {
+    "A1": {"n": "จูบยืนพิงผนัง", "k": "warm", "d": "standing close against a wall, clothed, kissing hard, hands roaming over clothes", "m": "ดึงเธอเข้ามาจูบ", "next": ["A2", "B1"]},
+    "A2": {"n": "จูบและเล้าโลมบนเตียง", "k": "warm", "d": "she lies on her back on the bed, he lies beside or half over her, long kisses, hands under clothes, clothes coming off; no genital contact yet", "m": "วางเธอลงนอนบนเตียง", "next": ["B1", "B2", "C2"]},
+    "B1": {"n": "ถอดผ้า", "k": "warm", "d": "undressing each other (sitting on the bed edge or standing), underwear last; hands on bare skin, no penetration", "m": "ปลดกระดุม ถอดเสื้อผ้ากันและกัน", "next": ["B2", "C1", "C2", "C3", "D1"]},
+    "B2": {"n": "เล้าโลมนม", "k": "warm", "d": "she lies on her back, he kneels beside her kissing, licking and sucking her breasts and nipples while one hand moves down her thigh; her hand strokes his cock", "m": "ก้มลงจูบไล้ลงมาที่นม", "next": ["C1", "C2", "D1"]},
+    "C1": {"n": "หญิงอมควย", "k": "oral", "mouth": True, "d": "he sits on the bed edge (or stands), she kneels between his legs and sucks his cock; only her mouth and hands touch him; his cock is in her mouth only", "m": "ให้เธอคุกเข่าลงระหว่างขา", "next": ["C2", "D1", "D2", "E1"]},
+    "C2": {"n": "ชายเลียหี", "k": "oral", "d": "she lies on her back with legs apart, he lies between her thighs licking her pussy and clit, fingers allowed; his cock is not involved", "m": "จับเธอนอนหงาย อ้าขา แล้วก้มลงระหว่างขา", "next": ["D1", "D4", "E1", "D5"]},
+    "C3": {"n": "69", "k": "oral", "mouth": True, "d": "69: he lies on his back, she is over him facing his feet; his tongue on her pussy while her mouth is on his cock", "m": "ให้เธอขึ้นคร่อมหันหัวไปทางเท้าเขา", "next": ["D1", "D2", "E1"]},
+    "D1": {"n": "มิชชันนารี", "k": "pen", "d": "missionary: she on her back, he on top between her legs, cock in her pussy, her legs around his waist", "m": "พลิกเธอนอนหงายแล้วขึ้นคร่อมทับ", "next": ["D2", "D4", "E1", "E2", "D5"]},
+    "D2": {"n": "หญิงขึ้นคร่อมขย่ม", "k": "pen", "d": "cowgirl: he lies on his back, she straddles his hips facing him and rides, her hands on his chest; cock in her pussy", "m": "ดึงเธอขึ้นมาคร่อมบนสะโพก", "next": ["D1", "D3", "E1", "D5"]},
+    "D3": {"n": "คร่อมหันหลัง", "k": "pen", "d": "reverse cowgirl: he lies on his back, she straddles his hips facing his feet, cock in her pussy", "m": "ให้เธอหมุนตัวหันหลังคร่อม", "next": ["D2", "E1", "E2"]},
+    "D4": {"n": "ขาพาดบ่า", "k": "pen", "d": "she on her back, he kneels between her legs, her legs over his shoulders, cock deep in her pussy (he is in FRONT of her, never behind)", "m": "ยกขาเธอขึ้นพาดบ่า", "next": ["D1", "E1"]},
+    "D5": {"n": "นั่งตักเผชิญหน้า", "k": "pen", "d": "he sits (bed edge or sofa), she sits on his lap facing him, arms round his neck, cock in her pussy", "m": "ดึงเธอขึ้นมานั่งบนตัก", "next": ["D2", "E1"]},
+    "E1": {"n": "ด็อกกี้", "k": "pen", "d": "doggy: she on hands and knees, he kneels behind her holding her hips, cock in her pussy from behind", "m": "จับเธอคุกเข่าคว่ำหน้าแล้วเข้าทางด้านหลัง", "next": ["D1", "E2", "E3", "D2"]},
+    "E2": {"n": "ท่าตะแคง", "k": "pen", "d": "spoon: both lie on their sides, he behind her, one of her legs lifted, cock in her pussy from behind", "m": "พลิกเธอนอนตะแคงแล้วโอบจากด้านหลัง", "next": ["D1", "E1"]},
+    "E3": {"n": "ยืนเย็ดจากด้านหลัง", "k": "pen", "d": "standing: she stands bent over a table or leaning on the wall, he stands behind her, cock in her pussy", "m": "ลากเธอไปยืนโน้มตัวพิงโต๊ะ", "next": ["E1", "D1"]},
+    "R1": {"n": "ปลุกด้วยปาก", "k": "recover", "d": "he has just come and is soft: she kneels or lies beside him and licks and sucks his cock until it is hard again; no penetration yet", "m": "", "next": ["C2", "D1", "D2", "E1", "D5"]},
+    "R2": {"n": "ปลุกด้วยมือ", "k": "recover", "d": "he has just come and is soft: she strokes his cock with her hand while kissing him until it is hard again; no penetration yet", "m": "", "next": ["C2", "D1", "D2", "E1", "D5"]},
+    "R3": {"n": "ปลุกด้วยการถูไถ", "k": "recover", "d": "he has just come and is soft: she rubs his cock between her thighs or breasts and kisses him until it is hard again; no penetration yet", "m": "", "next": ["C2", "D1", "D2", "E1", "D5"]},
+    "R4": {"n": "พักกอดแล้วปลุก", "k": "recover", "d": "he has just come and is soft: a short cuddle, whispered talk and kisses while her hand keeps touching his cock until it is hard again (a few lines only); no penetration yet", "m": "", "next": ["C2", "D1", "D2", "E1", "D5"]},
+    "F1": {"n": "แตกในปาก", "k": "finish", "d": "he comes in her mouth: she kneels or lies with his cock at her lips; describe the orgasm and what she does with it", "m": "ดึงควยออกจากหีแล้วให้เธอคุกเข่าอ้าปากรอ", "next": []},
+    "F2": {"n": "แตกนอก", "k": "finish", "d": "he pulls out and comes on her belly, breasts or back; describe the orgasm", "m": "ดึงควยออกมา", "next": []},
+    "F3": {"n": "แตกใน", "k": "finish", "d": "he comes deep inside her pussy and stays inside for a moment; describe the orgasm", "m": "", "next": []},
+    "G1": {"n": "กอดหลังจบ", "k": "after", "d": "afterglow: a short hug, breathing, a kiss (2-3 sentences only)", "m": "", "next": []},
+}
+
+
+def pose_table():
+    """the active table: NOVEL_ROOT/poses.json when it exists and parses, else the built-in one."""
+    try:
+        fp = os.path.join(ROOT, "poses.json")
+        if os.path.exists(fp):
+            t = json.loads(read(fp, "{}") or "{}")
+            if isinstance(t, dict) and len(t) >= 8:
+                return t
+    except Exception:
+        pass
+    return POSE_TABLE
+
+
+def _pose_kind(t, pid):
+    return (t.get(pid) or {}).get("k", "")
+
+
+def make_pose_plan(nbeats, rng, table=None):
+    """one scene's chain of steps, split per beat. Each step {"id", "w": bool (she climaxes here)}. Rules: starts with a warm-up step; an
+    oral/penetration step never follows a man's climax without a recovery step; the scene ends with the man's finish; every legal edge follows
+    the table's "next". Returns a list (one list of steps per beat)."""
+    t = table or pose_table()
+    nbeats = max(1, int(nbeats))
+    S = max(4, 2 * nbeats)
+    mids = 0 if nbeats < 3 else rng.randint(0, 1 if nbeats < 5 else 2)
+    core = S - 1 - 2 * mids
+    segs = [core // (mids + 1) + (1 if i < core % (mids + 1) else 0) for i in range(mids + 1)]
+    chain = []
+    prev = None
+    used = {}
+    for si, ln in enumerate(segs):
+        for j in range(ln):
+            if prev is None:
+                cands = [x for x in ("A2", "B1", "B2") if x in t]
+            elif _pose_kind(t, prev) == "recover" or _pose_kind(t, prev) == "finish":
+                cands = [x for x in (t.get(prev) or {}).get("next", []) if x in t]
+            else:
+                cands = [x for x in (t.get(prev) or {}).get("next", []) if x in t and x != prev]
+            if si == 0 and j == 0:
+                pass
+            if not cands:
+                cands = [x for x in t if _pose_kind(t, x) == "pen"]
+            # late in a segment prefer penetration; avoid repeating a step used before
+            late = j >= max(1, ln - 2)
+            pool = [x for x in cands if _pose_kind(t, x) == "pen"] if late and any(_pose_kind(t, x) == "pen" for x in cands) else cands
+            fresh = [x for x in pool if used.get(x, 0) == 0] or pool
+            pick = rng.choice(fresh)
+            used[pick] = used.get(pick, 0) + 1
+            chain.append({"id": pick})
+            prev = pick
+        if si < mids:
+            chain.append({"id": rng.choice([x for x in t if _pose_kind(t, x) == "finish"] or ["F3"])})
+            chain.append({"id": rng.choice([x for x in t if _pose_kind(t, x) == "recover"] or ["R1"])})
+            prev = chain[-1]["id"]
+    fin = [x for x in t if _pose_kind(t, x) == "finish"] or ["F3"]
+    chain.append({"id": rng.choice(fin)})
+    # her climaxes: on one or two oral/penetration steps that are not the first; at least one before the final finish
+    act = [i for i, c in enumerate(chain[:-1]) if _pose_kind(t, c["id"]) in ("oral", "pen") and i > 0]
+    if act:
+        for i in rng.sample(act, min(len(act), rng.randint(1, 2))):
+            chain[i]["w"] = True
+        if not any(c.get("w") for c in chain):
+            chain[act[-1]]["w"] = True
+    else:
+        chain[-1]["w"] = True
+    # split into beats in order
+    out, n = [], len(chain)
+    for b in range(nbeats):
+        lo, hi = (n * b) // nbeats, (n * (b + 1)) // nbeats
+        out.append(chain[lo:hi])
+    return out
+
+
+def pose_block(part):
+    """the POSITION PLAN lines for one part (empty when the part has no plan)."""
+    pp = (part or {}).get("pose")
+    if not pp or not pp.get("steps"):
+        return ""
+    t = pose_table()
+    L = ["POSITION PLAN (ground truth: the positions below come from a fixed table so the bodies stay in possible places; obey it exactly, in this order, and use NO other position in this part):"]
+    if pp.get("prev"):
+        pv = t.get(pp["prev"]) or {}
+        L.append("Where the scene stands now: %s - %s." % (pv.get("n", ""), pv.get("d", "")))
+    prev = pp.get("prev")
+    for k, st in enumerate(pp["steps"], 1):
+        row = t.get(st["id"]) or {}
+        kind = row.get("k", "")
+        ln = "STEP %d [%s]: %s" % (k, row.get("n", st["id"]), row.get("d", ""))
+        if prev and prev != st["id"]:
+            pk = _pose_kind(t, prev)
+            if kind == "recover":
+                ln += " | HOW THEY GET THERE: right after he comes."
+            elif kind == "finish":
+                ln += " | HOW THEY GET THERE: build to it from the position they are in" + ((" (" + row.get("m") + ")") if row.get("m") else "") + "."
+            elif pk in ("oral", "pen", "recover", "finish") or kind in ("oral", "pen"):
+                mv = row.get("m") or "เปลี่ยนท่า"
+                ln += " | HOW THEY GET THERE: first write the move itself in one or two sentences (he pulls out or lifts his head or she lets go, then e.g. “%s”), and only then the new act." % mv
+        if st.get("w"):
+            ln += " | HER CLIMAX happens in this step: show it plainly (her body tightening, shaking, she says she is coming); afterwards they simply carry on, she needs no recovery."
+        if kind == "finish":
+            ln += " | HIS CLIMAX happens here and only here: write the moment, and make sure she has come before or with him."
+        if kind == "recover":
+            ln += " | He stays soft until the end of this step; nobody may penetrate him in it."
+        L.append(ln)
+        prev = st["id"]
+    L.append("PLAN RULES: his cock is in ONE place at a time (mouth, pussy, hand); never two positions in one paragraph; he comes only at a HIS CLIMAX step; after he comes he is soft and nothing penetrates until a recovery step has made him hard; the woman has a pussy only and the man a cock only.")
+    return " ".join(L[:1]) + "\n" + "\n".join(L[1:])
+
+
+def attach_pose_plans(b, parts, cid=""):
+    """put a seeded pose plan on the parts of every sexual scene with exactly one man and one woman (other casts keep the old behaviour)."""
+    if not POSES_ON:
+        return parts
+    import random, zlib
+    info = char_info(b)
+    by_scene = {}
+    for p in parts:
+        by_scene.setdefault(p["scene"], []).append(p)
+    for sc, ps in by_scene.items():
+        txt = ps[0]["text"]
+        if not is_sexual_text(txt):
+            continue
+        present = [n for n in info if n and n in txt]
+        men = [n for n in present if info[n].get("g") == "M"]
+        women = [n for n in present if info[n].get("g") == "F"]
+        if len(men) != 1 or len(women) != 1:
+            continue
+        rng = random.Random(zlib.crc32(("%s|%s|%d" % (b, cid, sc)).encode("utf-8")))
+        plan = make_pose_plan(len(ps), rng)
+        prev = None
+        for p, steps in zip(ps, plan):
+            p["pose"] = {"steps": steps, "prev": prev}
+            if steps:
+                prev = steps[-1]["id"]
+    return parts
+
+
+def plan_issues(text, part):
+    """checks of a written part against its plan: he comes only in a part whose plan has a finish step, and that part must show it."""
+    pp = (part or {}).get("pose")
+    if not pp:
+        return []
+    t = pose_table()
+    has_f = any(_pose_kind(t, s["id"]) == "finish" for s in pp.get("steps", []))
+    lines = [re.sub(r"“[^”]*”?", "", ln) for ln in (text or "").split("\n") if ln.strip()]
+    cum_n = sum(1 for ln in lines if _CUM.search(ln))
+    out = []
+    if not has_f and cum_n:
+        out.append("ผู้ชายแตกทั้งที่แผนของ beat นี้ยังไม่ถึงจุดจบ")
+    if has_f and not cum_n:
+        out.append("beat นี้ต้องมีการแตกของผู้ชายตามแผน แต่ไม่พบ")
     return out
 
 
@@ -804,10 +995,14 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     sf = sex_focus_hint(p)
     if sf:
         lines.append(sf)
+    pb = pose_block(p)
+    if pb:
+        lines.append(pb)
     if avoid:
         lines.append("OVERUSED SO FAR - do not use these phrases again in this part, find fresh wording: " + ", ".join("“%s”" % a for a in avoid))
     lines.append("Begin the chapter's prose now (no title line)." if (i == 0 and first_empty) else "Continue directly after the last paragraph of the manuscript so far; do not repeat it.")
-    if p["beats"] > 1 and p["beat"] < p["beats"]:
+    plan_f = bool(p.get("pose")) and any(_pose_kind(pose_table(), x["id"]) == "finish" for x in p["pose"].get("steps", []))
+    if p["beats"] > 1 and p["beat"] < p["beats"] and not plan_f:
         lines.append("This is NOT the end of the scene: move the action on to the next stage and stop mid-flow; do not climax, conclude or wrap up the scene yet.")
     elif not p["last"]:
         lines.append("Do not end or conclude the chapter; this scene ends at a natural point and the next part continues.")
@@ -1654,7 +1849,7 @@ def aw_run(b, cid, key):
         o = outline(b).get(cid, {})
         text0 = read(fp)
         first_empty = body_words(text0) < 60
-        parts = plan_scenes(o.get("summary", ""), o.get("target", 0))
+        parts = attach_pose_plans(b, plan_scenes(o.get("summary", ""), o.get("target", 0)), cid)
         names = name_table(b)
         tpw = 1.3   # tokens per Thai "word" (body_words unit); recalibrated from the model's own usage numbers after each part
         job.update({"n": len(parts), "i": 0, "state": "running"})
@@ -1690,8 +1885,8 @@ def aw_run(b, cid, key):
                         why.append("it repeated whole paragraphs and lines that were already written: every paragraph must be new, with new body movements, new words and new events")
                     if family_issues(cand[1], info0):
                         why.append("it broke a story rule: " + " | ".join(family_issues(cand[1], info0)[:3]) + ". Rules: nobody can lick, suck or touch their own body parts; a woman has no น้ำเชื้อ (only น้ำหี / น้ำเงี่ยน); never write several paragraphs that start with the same words (each paragraph must move the scene forward); the men NEVER touch, suck or lick each other (every sexual act is man-with-woman only; the men may watch, wait or talk while a woman is with the other man); the daughter is the husband's real daughter, never บุญธรรม")
-                    if posture_issues(cand[1]):
-                        why.append("its body logic was impossible: " + " | ".join(posture_issues(cand[1])[:3]) + ". Rules: one cock is in ONE place at a time (mouth OR pussy OR hand); to switch, first write the man pulling out or the couple changing position (e.g. ดึงควยออก, พลิกตัว, เปลี่ยนท่า) and the new position; nobody has two things in the mouth; the man comes ONCE, at the end of the scene")
+                    if posture_issues(cand[1]) or plan_issues(cand[1], parts[i]):
+                        why.append("its body logic was impossible or it ignored the POSITION PLAN: " + " | ".join((posture_issues(cand[1]) + plan_issues(cand[1], parts[i]))[:3]) + ". Rules: one cock is in ONE place at a time (mouth OR pussy OR hand); to switch, first write the man pulling out or the couple changing position (e.g. ดึงควยออก, พลิกตัว, เปลี่ยนท่า) and the new position; nobody has two things in the mouth; the man comes only at a HIS CLIMAX step of the plan")
                     if formula_heavy(cand[1]):
                         why.append("most quoted lines had the same shape 'short phrase... short phrase': vary the dialogue: full sentences, questions, commands, names, one-word cries, interrupted lines, and mix action beats between the lines")
                     if untag_n(cand[1]):
@@ -1725,7 +1920,7 @@ def aw_run(b, cid, key):
                     untag_t = untag_n(t)
                     fh_t = formula_heavy(t)
                     fam_t = family_issues(t, info0)
-                    pos_t = posture_issues(t)
+                    pos_t = posture_issues(t) + plan_issues(t, parts[i])
                     if attempt == 0:
                         job.setdefault("raw_pos", []).append(len(pos_t))   # experiment instrumentation: how much of the model's FIRST answer repeats what is already in the chapter
                         job.setdefault("raw_dup", []).append(round(dup_ratio(t, cur0), 3))
