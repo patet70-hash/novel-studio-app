@@ -811,7 +811,7 @@ GROUP_TABLE = {
     "M4": {"n": "ด็อกกี้ + อมควย", "k": "pen", "d": "{W} is on her hands and knees: {A} kneels behind her with his cock in her pussy, {B} kneels in front of her with his cock in her mouth; the men do not touch each other", "next": ["M5", "M6", "M8", "M7"]},
     "M5": {"n": "ขึ้นคร่อม + อมควย", "k": "pen", "d": "{A} lies on his back and {W} rides him facing him, his cock in her pussy; {B} kneels beside her head and she sucks his cock (or strokes it with her hand)", "next": ["M4", "M6", "M7", "M9"]},
     "M6": {"n": "ตะแคง + จับควย", "k": "pen", "d": "{W} lies on her side: {A} lies behind her in spoon position, his cock in her pussy from behind; {B} lies in front of her, kissing her, her hand stroking his cock", "next": ["M4", "M5", "M8"]},
-    "M7": {"n": "double: หี + ทวาร", "k": "pen", "dp": True, "d": "DOUBLE PENETRATION, slow and careful: {A} lies on his back, {W} lies on top of him facing him with her chest on his, his cock in her pussy; {B} kneels behind her and, after gel and slow fingers, eases his cock into her anus; she moans, asks them to go slowly, then they move together; one cock in the pussy, one in the anus, the men do not touch each other", "next": ["M5", "M4"]},
+    "M7": {"n": "double: สองแท่งในหี", "k": "pen", "dp": True, "d": "DOUBLE PENETRATION, slow and careful: {A} lies on his back, {W} lies on top of him facing him with her chest on his, his cock in her pussy; {B} kneels behind him between their legs and slowly eases his own cock into the SAME pussy beside {A}'s, so two cocks are inside her pussy at once; she moans, feels stretched and asks them to go slowly, then they move together; two cocks in the pussy, nothing in her anus, the men do not touch each other", "next": ["M5", "M4"]},
     "M8": {"n": "มิชชันนารี + มือจับ", "k": "pen", "d": "missionary: {W} on her back, {A} between her legs with his cock in her pussy; {B} kneels beside her head and she strokes his cock with her hand and licks the tip", "next": ["M4", "M5", "M7", "M9"]},
     "M9": {"n": "นั่งตัก + เล้าโลมจากข้างหลัง", "k": "pen", "d": "{A} sits on the bed edge, {W} sits on his lap facing him with his cock in her pussy; {B} kneels behind her, kisses her neck and plays with her breasts (his cock only rubs her back, it is not inside her)", "next": ["M4", "M5", "M7"]},
     # R52 (29 Oct): five more group poses (user: add 2-men-1-woman poses too)
@@ -990,7 +990,7 @@ TRIO_TABLE = {
     "T3": {"n": "เลียหี + อมควย + มือจับ", "k": "oral", "d": "{W} lies on her back: {A} lies between her thighs licking her pussy and clit with his tongue and fingers only; {B} kneels by her head and she sucks his cock; {C} kneels on her other side and she strokes his cock with her hand; nobody penetrates her", "next": ["T4", "T5", "T6", "T7", "T8", "T10"]},
     "T4": {"n": "ด็อกกี้ + อมควย + มือจับ", "k": "pen", "d": "{W} is on her hands and knees: {A} kneels behind her with his cock in her pussy; {B} kneels in front of her with his cock in her mouth; {C} kneels beside her and she strokes his cock with one hand (the other hand holds the bed)", "next": ["T5", "T6", "T7", "T8", "T10"]},
     "T5": {"n": "ขึ้นคร่อม + อมควย + มือจับ", "k": "pen", "d": "{A} lies on his back and {W} rides him facing him, his cock in her pussy; {B} kneels beside her head and she sucks his cock; {C} kneels on her other side and she strokes his cock with her hand", "next": ["T4", "T6", "T7", "T8", "T10"]},
-    "T6": {"n": "double: หี + ทวาร + อมควย", "k": "pen", "dp": True, "d": "DOUBLE PENETRATION plus mouth, slow and careful: {A} lies on his back and {W} lies on top of him facing him with her chest on his, his cock in her pussy; {B} kneels behind her and, after gel and slow fingers, eases his cock into her anus; {C} kneels in front of her face and she sucks his cock; she moans, asks them to go slowly, then they move together; one cock in the pussy, one in the anus, one in the mouth, the men do not touch each other. ROLES for the whole step: {A} stays in her pussy, {B} alone uses gel and enters her anus (nobody puts gel on or touches another man's cock), {C} stays at her mouth", "next": ["T5", "T4"]},
+    "T6": {"n": "double: สองแท่งในหี + อมควย", "k": "pen", "dp": True, "d": "DOUBLE PENETRATION plus mouth, slow and careful: {A} lies on his back and {W} lies on top of him facing him with her chest on his, his cock in her pussy; {B} kneels behind him between their legs and slowly eases his own cock into the SAME pussy beside {A}'s, so two cocks are inside her pussy at once; {C} kneels in front of her face and she sucks his cock; she moans, feels stretched and asks them to go slowly, then they move together; two cocks in the pussy, one in the mouth, nothing in her anus, the men do not touch each other. ROLES for the whole step: {A} and {B} are both in her pussy, {C} stays at her mouth", "next": ["T5", "T4"]},
     "T7": {"n": "มิชชันนารี + อมควย + มือจับ", "k": "pen", "d": "missionary: {W} on her back, {A} between her legs with his cock in her pussy; {B} kneels beside her head and she sucks his cock; {C} kneels on her other side and she strokes his cock with her hand", "next": ["T4", "T5", "T6", "T8", "T10"]},
     "T8": {"n": "ตะแคงช้อน + อมควย + นมหนีบ", "k": "pen", "d": "{W} lies on her side: {A} lies behind her in spoon position, his cock in her pussy from behind; {B} lies in front of her and she sucks his cock; {C} kneels over her chest and slides his cock between her breasts, which she presses together (his cock touches only her breasts)", "next": ["T4", "T5", "T7", "T10"]},
     "T9": {"n": "นมหนีบ + เลียหี + มือจับ", "k": "oral", "d": "{W} lies on her back: {B} kneels astride her chest and slides his cock between her breasts which she presses together (his cock touches only her breasts); {A} lies between her thighs licking her pussy and clit with his tongue and fingers only; {C} kneels beside her head and she strokes his cock with her hand and licks the tip; nobody penetrates her", "next": ["T4", "T5", "T7", "T10"]},
@@ -1118,7 +1118,7 @@ def pose_block_group3(part):
             ln += " | %s's CLIMAX happens here and only here; %s has come before or with him." % (who or men[0], W)
         if pid == "T6":   # R80 (r79-dp: the model wrote only the mouth part of the double, in 4 attempts)
             rr = st.get("r") or men
-            ln += " | THIS STEP MUST CONTAIN, each in its own short paragraph and in this order: (1) %s squeezes gel (บีบเจล) onto his fingers and onto her anus; (2) one finger slowly into her anus (ทวาร), she gasps and asks him to go slow; (3) %s eases the head of his cock into her anus (ดันหัวควยเข้าไปในทวารของเธอ); (4) then %s in her pussy, %s in her anus and %s in her mouth all move together. Use the words เจล and ทวาร." % (rr[1], rr[1], rr[0], rr[1], rr[2])
+            ln += " | THIS STEP MUST CONTAIN, each in its own short paragraph and in this order: (1) %s is already in her pussy; (2) %s slowly eases his cock into the SAME pussy beside it (ดันควยเข้าไปในหีพร้อมกับอีกคน), her pussy is stretched full with TWO cocks (ควยสองแท่งในหีเดียว), she gasps and asks them to go slow; (3) then both move together while %s is in her mouth. Use the words สองแท่ง and พร้อมกัน. Nothing goes in her anus." % (rr[0], rr[1], rr[2])
         if pid == "FT":
             ln += " | ALL THREE MEN'S CLIMAX happens here and only here."
         if kind == "recover":
@@ -1126,7 +1126,7 @@ def pose_block_group3(part):
         L.append(ln)
     if not any(_pose_kind(t, x["id"]) == "finish" for x in pp["steps"]):   # R80 (r79-dp: a man came in beat 2 and again at the end)
         L.append("NOBODY COMES IN THIS PART: no man ejaculates here and none shouts that he HAS come; do not write แตกแล้ว, น้ำเชื้อ, น้ำควย or ปล่อยน้ำ for any man (only her climax may happen); a man may at most say he is close.")
-    L.append("PLAN RULES: each man's cock is in ONE place at a time; her mouth holds ONE cock at a time, her pussy ONE cock, her anus only in the double-penetration step, each hand at most one cock; the men NEVER touch, kiss, lick or rub each other; a man comes only at his CLIMAX step; after he comes he is soft and rests (he may kiss her and touch her with his hands) until a recovery step; the woman has a pussy only and the men a cock only; keep every paragraph to one position.")
+    L.append("PLAN RULES: each man's cock is in ONE place at a time; her mouth holds ONE cock at a time, her pussy ONE cock (TWO cocks only in the double-penetration step), her anus never, each hand at most one cock; the men NEVER touch, kiss, lick or rub each other; a man comes only at his CLIMAX step; after he comes he is soft and rests (he may kiss her and touch her with his hands) until a recovery step; the woman has a pussy only and the men a cock only; keep every paragraph to one position.")
     L.append("SPEAKING RULES (four people are talking): every spoken line is said by exactly ONE person and its tag names that person (%s, %s, %s or %s). Her moans, her climax and her requests are said by %s ONLY, tagged to her, never to a man. The men speak TO her or about her; the three men never speak vulgar or insulting words to each other and never talk about each other's body (between themselves only a short plain line such as asking the other to wait or to move). A man never calls himself by his own name and never speaks of himself in the third person. She never says กู or มึง; the men never say ชั้น. In the narration three men are present, so never write a bare 'เขา' for a man: write his name; and do not repeat 'ควยของ…' in every sentence (at most twice per paragraph, otherwise just say what he does). 'ให้หมด' goes only with a liquid (กลืนให้หมด, กินน้ำควยให้หมด), never with a body part (never 'ดูดควยให้หมด')." % (men[0], men[1], men[2], W, W))
     return " ".join(L[:1]) + "\n" + "\n".join(L[1:])
 
@@ -1170,7 +1170,7 @@ def pose_block_group(part):
             if (st.get("place") or {}).get(who or A):
                 ln += " | WHERE HE COMES: the cum lands on her %s (narrate it landing there)." % st["place"][who or A]
         if pid == "M7":   # R80
-            ln += " | THIS STEP MUST CONTAIN, each in its own short paragraph and in this order: (1) %s squeezes gel (บีบเจล) onto his fingers and onto her anus; (2) one finger slowly into her anus (ทวาร), she gasps and asks him to go slow; (3) %s eases the head of his cock into her anus (ดันหัวควยเข้าไปในทวารของเธอ); (4) then %s in her pussy and %s in her anus move together. Use the words เจล and ทวาร." % (B, B, A, B)
+            ln += " | THIS STEP MUST CONTAIN, each in its own short paragraph and in this order: (1) %s is already in her pussy; (2) %s slowly eases his cock into the SAME pussy beside it (ดันควยเข้าไปในหีพร้อมกับอีกคน), her pussy is stretched full with TWO cocks (ควยสองแท่งในหีเดียว), she gasps and asks them to go slow; (3) then both move together. Use the words สองแท่ง and พร้อมกัน. Nothing goes in her anus." % (A, B)
         if kind == "finish" and pid == "FB":
             ln += " | BOTH MEN'S CLIMAX happens here and only here."
         if kind == "recover":
@@ -1178,7 +1178,7 @@ def pose_block_group(part):
         L.append(ln)
     if not any(_pose_kind(t, x["id"]) == "finish" for x in pp["steps"]):   # R80 (r79-dp: a man came in beat 2 and again at the end)
         L.append("NOBODY COMES IN THIS PART: no man ejaculates here and none shouts that he HAS come; do not write แตกแล้ว, น้ำเชื้อ, น้ำควย or ปล่อยน้ำ for any man (only her climax may happen); a man may at most say he is close.")
-    L.append("PLAN RULES: each man's cock is in ONE place at a time; her mouth holds ONE cock at a time, her pussy ONE cock, her anus only in the double-penetration step; the men NEVER touch, kiss, lick or rub each other; a man comes only at his CLIMAX step; after he comes he is soft and rests (he may kiss her and touch her with his hands) until a recovery step; the woman has a pussy only and the men a cock only; keep every paragraph to one position.")
+    L.append("PLAN RULES: each man's cock is in ONE place at a time; her mouth holds ONE cock at a time, her pussy ONE cock (TWO cocks only in the double-penetration step), her anus never; the men NEVER touch, kiss, lick or rub each other; a man comes only at his CLIMAX step; after he comes he is soft and rests (he may kiss her and touch her with his hands) until a recovery step; the woman has a pussy only and the men a cock only; keep every paragraph to one position.")
     if os.environ.get("NOVEL_GSPEAK", "1") != "0":   # R48 (29 Oct): speaker / address rules for three-person scenes
         L.append("SPEAKING RULES (three people are talking): every spoken line is said by exactly ONE person and its tag names that person (%s, %s or %s). Her moans, her climax and her requests are said by %s ONLY, tagged to her, never to a man. The men speak TO her or about her; %s and %s never speak vulgar or insulting words to each other and never talk about each other's body (between themselves only a short plain line such as asking the other to wait or to move). A man never calls himself by his own name and never speaks of himself in the third person. She never says กู or มึง; the men never say ชั้น. In the narration two men are present, so never write a bare 'เขา' for a man: write his name; and do not repeat 'ควยของ…' in every sentence (at most twice per paragraph, otherwise just say what he does). 'ให้หมด' goes only with a liquid (กลืนให้หมด, กินน้ำควยให้หมด), never with a body part (never 'ดูดควยให้หมด')." % (A, B, W, W, A, B))
     return " ".join(L[:1]) + "\n" + "\n".join(L[1:])
@@ -1265,7 +1265,7 @@ def finish_wanted(txt):
     return ""
 
 
-_DP_RE = re.compile(r"สอดสองรู|สองรูพร้อม|สองรู|ดับเบิล|double|DP|สอดทวารพร้อม|หีกับทวาร|หีและทวาร", re.I)
+_DP_RE = re.compile(r"สอดสองรู|สองรูพร้อม|สองรู|ดับเบิล|double|DP|สอดทวารพร้อม|หีกับทวาร|หีและทวาร|สองแท่งในหี|สองแท่งพร้อม|สองควยในหี|สองดอกในหี", re.I)
 
 
 def dp_wanted(txt):
@@ -1435,8 +1435,8 @@ def _plan_issues_pose(text, part):
     lines = [re.sub(r"“[^”]*”?", "", ln) for ln in (text or "").split("\n") if ln.strip()]
     cum_n = sum(1 for ln in lines if _CUM.search(ln))
     out = []
-    if any(st.get("id") in ("T6", "M7") for st in pp.get("steps", [])) and not re.search(r"ทวาร|รูก้น|รูตูด|ตูด|ทวารหนัก|เข้าไปในก้น|ก้นของเธอ", "\n".join(lines)):
-        out.append("แผนมีท่า double (ควยหนึ่งดอกในหี อีกดอกในทวารพร้อมกัน) แต่ไม่พบการเขียนว่าสอดควยเข้าทวารเลย: ต้องเขียนขั้นตอนนี้ให้ชัด (เจล นิ้วช้าๆ แล้วค่อยๆ สอดเข้าทวาร เธอร้องขอให้ช้า)")
+    if any(st.get("id") in ("T6", "M7") for st in pp.get("steps", [])) and not re.search(r"สองแท่ง|สองดอก|ควยทั้งสอง|สองควย|ควยสองอัน", "\n".join(lines)):
+        out.append("แผนมีท่า double (ควยสองแท่งในหีเดียวพร้อมกัน) แต่ไม่พบการเขียนว่ามีควยสองแท่งอยู่ในหีพร้อมกันเลย: ต้องเขียนให้ชัด (คนหนึ่งอยู่ในหีแล้ว อีกคนค่อยๆ ดันเข้าไปข้างกัน หีเธอตึงเต็มด้วยควยสองแท่ง เธอร้องขอให้ช้า แล้วขยับพร้อมกัน) ห้ามใส่ทวาร")
     if not has_f and cum_n:
         out.append("ผู้ชายแตกทั้งที่แผนของ beat นี้ยังไม่ถึงจุดจบ")
     if pp.get("quick") and re.search(r"(?:เลีย|ดูด|กิน)(?:ยอด)?(?:หี|เม็ดแตด|แตด)|(?:ปาก|ลิ้น|ริมฝีปาก)ของ(?:เขา|[ก-ฮ]{2,8})[^\n“]{0,25}(?:หี|เม็ดแตด|ยอดหี)", "\n".join(lines)):
@@ -1513,27 +1513,13 @@ def _early_climax_issues(t, pp, text):
 
 
 def _dp_role_issues(pp, lines):
-    """R75 (r73-trio-9: the man who enters her anus was the one who put gel on his own cock while another man 'entered' too): in the double step only the man the
-    plan names for her anus may enter it or be said to enter it, and gel goes on HIS cock only (nobody puts gel on or touches another man's cock)."""
-    anus = others = None
-    for st in pp.get("steps", []):
-        if st.get("id") == "T6" and st.get("r"):
-            anus, others = st["r"][1], [st["r"][0], st["r"][2]]
-        elif st.get("id") == "M7" and pp.get("cast"):
-            anus, others = pp["cast"]["B"], [pp["cast"]["A"]]
-    if not anus:
+    """R81: the double is two cocks in the PUSSY; no man may enter her anus or use gel for it (the old anal version was too hard for the model)."""
+    if not any(st.get("id") in ("T6", "M7") for st in pp.get("steps", [])):
         return []
-    names = [anus] + others
     alltxt = "\n".join(lines)
-    out = []
-    for n_ in others:
-        oth = "|".join(re.escape(x) for x in names if x != n_)
-        gap = r"(?:(?!%s)[^\n]){0,40}" % oth
-        if re.search(re.escape(n_) + gap + r"(?:สอด|ดัน|เสียบ|ยัด|กด|จ่อ|เบียด)" + r"[^\n]{0,30}(?:ทวาร|รูก้น|รูตูด|ก้นเธอ|ก้นของเธอ)", alltxt):
-            out.append("ท่า double: คนที่สอดทวารเธอคือ %s เท่านั้น ห้ามเขียนให้ %s สอดทวาร (%s อยู่ในหี/ที่ปากของเธอ)" % (anus, n_, n_))
-        if re.search(r"เจล[^\n]{0,30}ควย(?:ของ)?" + re.escape(n_) + r"(?![ก-ฮ])", alltxt):
-            out.append("ท่า double: เจลทาที่ควยของ %s เท่านั้น ห้ามทาเจลที่ควยของ %s" % (anus, n_))
-    return out
+    if re.search(r"(?:สอด|ดัน|เสียบ|ยัด|กด|จ่อ|เบียด)[^\n]{0,30}(?:ทวาร|รูก้น|รูตูด|ก้นเธอ|ก้นของเธอ)", alltxt):
+        return ["ท่า double ในแผนคือควยสองแท่งในหีเดียว ไม่มีใครสอดทวาร/ก้นเธอ: ห้ามเขียนการสอดทวารและห้ามบีบเจล ให้เขียนว่าสองแท่งอยู่ในหีพร้อมกัน"]
+    return []
 
 
 _ANAL_CUM = re.compile(r"(?:น้ำเชื้อ|น้ำควย|แตก|พุ่ง|ปล่อย|หลั่ง|ฉีด|สาด)[^\n]{0,25}(?:ในทวาร|ในรูทวาร|ในรูก้น|ในก้น|เข้าทวาร|ในตูด)|แตก(?:ใน)?(?:ก้น|ทวาร|ตูด)")
