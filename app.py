@@ -1945,6 +1945,9 @@ def unify_register(text, info):
     for ln, m, spn in parsed:
         if m and spn in rough:
             q = m.group(0)
+            if "ครับ" in q and not re.search(PRE + r"ผม" + HAIR_, q):   # R85 (r84-dp: "เตรียมตัวมาดีจังเลยนะครับ" / "พร้อมหรือยังครับ" from men who say กู everywhere else): a rough man's ครับ goes even when the line has no ผม
+                q3 = re.sub(r"\s*(?:นะ)?ครับ", "", q)
+                ln = ln.replace(q, q3, 1)
             if re.search(PRE + r"ผม" + HAIR_, q):   # R75: every ผม of a rough man, not only the dirty lines; R79 (r78-dp: "สิครับ ผมอยากเห็น" from a man who says กู 7 times): his ครับ goes too
                 q2 = re.sub(r"\s*(?:นะ)?ครับ", "", q) if "ครับ" in q else q
                 q2 = re.sub(PRE + r"ผม" + HAIR_, "กู", q2)
@@ -1953,11 +1956,27 @@ def unify_register(text, info):
     return "\n".join(out)
 
 
+def fix_man_pussy(text, info):
+    """R85 (r84-dp: ธนา says “ปล่อยน้ำในหีกูเลย”): a man has no pussy; in a quote tagged to a man, หีกู / หีของกู / หีผม becomes หีมึง / หีของมึง."""
+    men = {n for n, v in (info or {}).items() if n and v.get("g") == "M"}
+    if not men:
+        return text
+    out = []
+    for ln in text.split("\n"):
+        st = ln.strip()
+        m = QUOTE_RE.match(st)
+        if m and tag_speaker(st[m.end():], info) in men and re.search(r"หี(?:ของ)?(?:กู|ผม)", m.group(0)):
+            q2 = re.sub(r"หี(ของ)?(?:กู|ผม)", lambda x: "หี" + (x.group(1) or "") + "มึง", m.group(0))
+            ln = ln.replace(m.group(0), q2, 1)
+        out.append(ln)
+    return "\n".join(out)
+
+
 def chapter_polish(text, info):
     """R71 (29 Oct, r70-trio): end-of-chapter pass: (1) one register per rough man (unify_register); (2) "พุ่งออกมา" x9: keep every 3rd, rotate the rest;
     (3) a pussy that overflows "ออกทางปาก" (anatomy nonsense) overflows "ออกมา"; (4) a trailing echo run of one-word lines (>= 8 short quotes at the very end)
     is cut to its first three lines."""
-    t = unify_register(text, info)
+    t = fix_man_pussy(unify_register(text, info), info)
     alts = ["สาดออกมา", "ทะลักออกมา", "ไหลทะลักออกมา"]
     n = [0]
     def rep(m):
