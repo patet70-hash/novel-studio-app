@@ -1783,6 +1783,22 @@ def char_info(b):
 QUOTE_RE = re.compile(r"[\u201c\"][^\u201d\"\n]+[\u201d\"]")
 
 
+def close_open_quotes(text, info):
+    """R88 (r88-dp: “สัส… แตกในมึงแล้ว… ก้องครางหอบ — the closing mark is missing, so no later fix sees the quote or its speaker): a line that opens “ and never closes it
+    gets the mark right before the first name in it (the speaker tag)."""
+    names = sorted((n for n in (info or {}) if n), key=len, reverse=True)
+    out = []
+    for ln in (text or "").split("\n"):
+        st = ln.strip()
+        if st.startswith("\u201c") and "\u201d" not in st and '"' not in st[1:]:
+            hits = [st.find(n, 3) for n in names if st.find(n, 3) > 3]
+            if hits:
+                i = min(hits)
+                ln = ln.replace(st, st[:i].rstrip() + "\u201d " + st[i:], 1)
+        out.append(ln)
+    return "\n".join(out)
+
+
 def split_dialogue(text):
     """Put every spoken line (quote + its short tag) on its own paragraph; narration stays in its own paragraphs."""
     out = []
@@ -3121,7 +3137,7 @@ def aw_run(b, cid, key):
                 pass
             cur = read(fp)
             part = drop_dup_paragraphs(fix_name_typos(part, names), cur)
-            part = strip_early_cum(thin_manner(thin_fluid(thin_tagverb(_thin_owner_n(b, fix_swallow(fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak"))))))), parts[i].get("pose"))
+            part = strip_early_cum(thin_manner(thin_fluid(thin_tagverb(_thin_owner_n(b, fix_swallow(fix_particles(dedupe_quotes(split_dialogue(close_open_quotes(thin_repeats(part, cur), char_info(b))), cur), char_info(b), rough=(heat_level(parts[i]) == "peak"))))))), parts[i].get("pose"))
             try:
                 _scn = parts[i].get("scene")
                 _spos = scene_pos.setdefault(_scn, len(cur))
