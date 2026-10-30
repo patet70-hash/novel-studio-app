@@ -2188,6 +2188,43 @@ def strip_repeat_cum(text, prior, pp):
     return "\n".join(out)
 
 
+_PLACE_WORD = {"ก้น": "ก้น", "หลัง": "แผ่นหลัง", "ใบหน้า": "ใบหน้า", "หน้าอก": "หน้าอก", "หน้าท้อง": "หน้าท้อง", "ต้นขา": "ต้นขา"}
+_ANY_PLACE = re.compile(r"(?:แผ่น)?หลัง(?!จาก|ที่|เสร็จ)|หน้าท้อง|ท้องน้อย|เนินอก|หน้าอก|แก้มก้น|ก้น|ใบหน้า|ต้นขา")
+
+
+def fix_finish_place(text, pp):
+    """R87 (r86-dp: summary 'ปกรณ์แตกบนหลังเธอ', written on her belly): in a group part, in the narration of a man whose plan names the place of his outside finish,
+    a wrong body part in his cum lines (and the 2 lines after) is swapped for the planned one."""
+    if not pp or not pp.get("g"):
+        return text
+    want = {}
+    for st in pp.get("steps", []):
+        for nm, pl in (st.get("place") or {}).items():
+            if pl in _PLACE_WORD:
+                want[nm] = pl
+    if not want:
+        return text
+    cast = pp.get("cast") or {}
+    allmen = list(cast.get("men") or [x for x in (cast.get("A"), cast.get("B")) if x]) + list(want)
+    out, cur, left = [], None, 0
+    for ln in (text or "").split("\n"):
+        st = ln.strip()
+        if st and not QUOTE_RE.match(st):
+            hits = sorted((st.find(x), x) for x in want if x in st)
+            if cur and any(x in st and x != cur for x in allmen):
+                cur = None
+            if hits and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
+                cur, left = hits[0][1], 3
+            if cur and left > 0 and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
+                rx = dict(_PLACES).get(want[cur], "")
+                if rx and not re.search(rx, st) and _ANY_PLACE.search(st):
+                    ln = _ANY_PLACE.sub(_PLACE_WORD[want[cur]], ln, count=1)
+        if left > 0:
+            left -= 1
+        out.append(ln)
+    return "\n".join(out)
+
+
 def thin_manner(text):
     """R60 (R60: "…ออกมาเสียง…" x10 e.g. ครางออกมาเสียงแหลม): in one part keep the first, the others lose the "เสียงX" tail (ครางออกมา)."""
     n = [0]
@@ -3063,6 +3100,7 @@ def aw_run(b, cid, key):
                 _spos = scene_pos.setdefault(_scn, len(cur))
                 _before = len(part)
                 part = strip_repeat_cum(part, cur[_spos:], parts[i].get("pose"))
+                part = fix_finish_place(part, parts[i].get("pose"))
                 if len(part) < _before:
                     job.setdefault("repeatcum", []).append([i + 1, _before - len(part)])   # instrumentation: parts where a repeated finish was cut
             except Exception:
