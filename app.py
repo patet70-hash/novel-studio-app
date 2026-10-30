@@ -1126,7 +1126,7 @@ def pose_block_group3(part):
         L.append(ln)
     if not any(_pose_kind(t, x["id"]) == "finish" for x in pp["steps"]):   # R80 (r79-dp: a man came in beat 2 and again at the end)
         L.append("NOBODY COMES IN THIS PART: no man ejaculates here and none shouts that he HAS come; do not write แตกแล้ว, น้ำเชื้อ, น้ำควย or ปล่อยน้ำ for any man (only her climax may happen); a man may at most say he is close.")
-    L.append("PLAN RULES: each man's cock is in ONE place at a time; her mouth holds ONE cock at a time, her pussy ONE cock (TWO cocks only in the double-penetration step), her anus never, each hand at most one cock; the men NEVER touch, kiss, lick or rub each other; a man comes only at his CLIMAX step; after he comes he is soft and rests (he may kiss her and touch her with his hands) until a recovery step; the woman has a pussy only and the men a cock only; keep every paragraph to one position.")
+    L.append("PLAN RULES: each man's cock is in ONE place at a time; her mouth holds ONE cock at a time, her pussy ONE cock (TWO cocks only in the double-penetration step), her anus never, each hand at most one cock; the men NEVER touch, kiss, lick or rub each other; a man comes only at his CLIMAX step; after he comes he is soft and rests (he may kiss her and touch her with his hands) until a recovery step; the woman has a pussy only and the men a cock only; keep every paragraph to one position; every spoken line that uses ผม, กู, มึง or ครับ is followed by a tag naming the man who says it (“...” ก้องครางเสียงแหบ).")
     L.append("SPEAKING RULES (four people are talking): every spoken line is said by exactly ONE person and its tag names that person (%s, %s, %s or %s). Her moans, her climax and her requests are said by %s ONLY, tagged to her, never to a man. The men speak TO her or about her; the three men never speak vulgar or insulting words to each other and never talk about each other's body (between themselves only a short plain line such as asking the other to wait or to move). A man never calls himself by his own name and never speaks of himself in the third person. She never says กู or มึง; the men never say ชั้น. In the narration three men are present, so never write a bare 'เขา' for a man: write his name; and do not repeat 'ควยของ…' in every sentence (at most twice per paragraph, otherwise just say what he does). 'ให้หมด' goes only with a liquid (กลืนให้หมด, กินน้ำควยให้หมด), never with a body part (never 'ดูดควยให้หมด')." % (men[0], men[1], men[2], W, W))
     return " ".join(L[:1]) + "\n" + "\n".join(L[1:])
 
@@ -1178,7 +1178,7 @@ def pose_block_group(part):
         L.append(ln)
     if not any(_pose_kind(t, x["id"]) == "finish" for x in pp["steps"]):   # R80 (r79-dp: a man came in beat 2 and again at the end)
         L.append("NOBODY COMES IN THIS PART: no man ejaculates here and none shouts that he HAS come; do not write แตกแล้ว, น้ำเชื้อ, น้ำควย or ปล่อยน้ำ for any man (only her climax may happen); a man may at most say he is close.")
-    L.append("PLAN RULES: each man's cock is in ONE place at a time; her mouth holds ONE cock at a time, her pussy ONE cock (TWO cocks only in the double-penetration step), her anus never; the men NEVER touch, kiss, lick or rub each other; a man comes only at his CLIMAX step; after he comes he is soft and rests (he may kiss her and touch her with his hands) until a recovery step; the woman has a pussy only and the men a cock only; keep every paragraph to one position.")
+    L.append("PLAN RULES: each man's cock is in ONE place at a time; her mouth holds ONE cock at a time, her pussy ONE cock (TWO cocks only in the double-penetration step), her anus never; the men NEVER touch, kiss, lick or rub each other; a man comes only at his CLIMAX step; after he comes he is soft and rests (he may kiss her and touch her with his hands) until a recovery step; the woman has a pussy only and the men a cock only; keep every paragraph to one position; every spoken line that uses ผม, กู, มึง or ครับ is followed by a tag naming the man who says it (“...” ก้องครางเสียงแหบ).")
     if os.environ.get("NOVEL_GSPEAK", "1") != "0":   # R48 (29 Oct): speaker / address rules for three-person scenes
         L.append("SPEAKING RULES (three people are talking): every spoken line is said by exactly ONE person and its tag names that person (%s, %s or %s). Her moans, her climax and her requests are said by %s ONLY, tagged to her, never to a man. The men speak TO her or about her; %s and %s never speak vulgar or insulting words to each other and never talk about each other's body (between themselves only a short plain line such as asking the other to wait or to move). A man never calls himself by his own name and never speaks of himself in the third person. She never says กู or มึง; the men never say ชั้น. In the narration two men are present, so never write a bare 'เขา' for a man: write his name; and do not repeat 'ควยของ…' in every sentence (at most twice per paragraph, otherwise just say what he does). 'ให้หมด' goes only with a liquid (กลืนให้หมด, กินน้ำควยให้หมด), never with a body part (never 'ดูดควยให้หมด')." % (A, B, W, W, A, B))
     return " ".join(L[:1]) + "\n" + "\n".join(L[1:])
@@ -1443,6 +1443,16 @@ def _plan_issues_pose(text, part):
     out = []
     if any(st.get("id") in ("T6", "M7") for st in pp.get("steps", [])) and not re.search(r"สองแท่ง|สองดอก|ควยทั้งสอง|สองควย|ควยสองอัน", "\n".join(lines)):
         out.append("แผนมีท่า double (ควยสองแท่งในหีเดียวพร้อมกัน) แต่ไม่พบการเขียนว่ามีควยสองแท่งอยู่ในหีพร้อมกันเลย: ต้องเขียนให้ชัด (คนหนึ่งอยู่ในหีแล้ว อีกคนค่อยๆ ดันเข้าไปข้างกัน หีเธอตึงเต็มด้วยควยสองแท่ง เธอร้องขอให้ช้า แล้วขยับพร้อมกัน) ห้ามใส่ทวาร")
+    if pp.get("g"):
+        men_ = (pp.get("cast") or {}).get("men") or [x for x in ((pp.get("cast") or {}).get("A"), (pp.get("cast") or {}).get("B")) if x]
+        bad = 0
+        for ln in (text or "").split("\n"):
+            st = ln.strip()
+            m = QUOTE_RE.match(st)
+            if m and men_ and re.search(r"(?<![ก-ฮ])ผม(?![ก-ฮ]*(?:ยาว|สั้น|หอม|เปียก|ดำ|ขาว))|ครับ", m.group(0)) and not any(x in st[m.end():][:40] for x in men_):
+                bad += 1
+        if bad:
+            out.append("มีบทพูดที่ใช้ ผม/ครับ แต่ไม่ระบุว่าใครเป็นคนพูด %d จุด: ทุกบทพูดที่มีคำว่าผม กู มึง ครับ ต้องมีท้ายประโยคบอกชื่อผู้ชายที่พูด" % bad)
     if not has_f and cum_n:
         out.append("ผู้ชายแตกทั้งที่แผนของ beat นี้ยังไม่ถึงจุดจบ")
     if pp.get("quick") and re.search(r"(?:เลีย|ดูด|กิน)(?:ยอด)?(?:หี|เม็ดแตด|แตด)|(?:ปาก|ลิ้น|ริมฝีปาก)ของ(?:เขา|[ก-ฮ]{2,8})[^\n“]{0,25}(?:หี|เม็ดแตด|ยอดหี)", "\n".join(lines)):
@@ -1941,8 +1951,12 @@ def unify_register(text, info):
     if not rough:
         return text
     HAIR_ = r"(?![ก-ฮ]*(?:ยาว|สั้น|หอม|เปียก|ดำ|ขาว|หงอก|ร่วง))"
+    present = {n for n in men if n in text}
+    allrough = bool(present) and present <= rough   # R88: every man of the chapter is rough, so a quote nobody tagged can only be a rough man's
     out = []
     for ln, m, spn in parsed:
+        if m and spn is None and allrough and not re.search(r"ค่ะ|คะ|นะจ๊ะ|จ๋า|(?<![ก-ฮ])ชั้น(?!วาง|ที่|หนึ่ง|สอง|สาม|บน|ล่าง|ใน|เรียน|ปี|ๆ)|หนู", m.group(0)):
+            spn = next(iter(rough))
         if m and spn in rough:
             q = m.group(0)
             if "ครับ" in q and not re.search(PRE + r"ผม" + HAIR_, q):   # R85 (r84-dp: "เตรียมตัวมาดีจังเลยนะครับ" / "พร้อมหรือยังครับ" from men who say กู everywhere else): a rough man's ครับ goes even when the line has no ผม
