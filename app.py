@@ -2032,6 +2032,66 @@ def strip_early_cum(text, pp, names=None):
     return "\n".join(out)
 
 
+_DP_DONE = re.compile(r"สองแท่ง|สองดอก|ควยทั้งสอง|สองควย|ควยสองอัน")
+
+
+def _dp_patch_prompt(A, B, C, W, ctx):
+    mouth = (" %s is at her mouth and she sucks him." % C) if C else ""
+    return ("Continue this Thai erotic novel scene with ONLY the next 4-6 short paragraphs (Thai prose, no title, no notes). Moment to write: %s is already inside %s's pussy; now %s slowly eases his cock into the SAME pussy beside it, so TWO cocks are inside her pussy at once (ควยสองแท่งในหีเดียว), her pussy is stretched full, she gasps and asks them to go slow, then the two men move together (พร้อมกัน).%s "
+            "You MUST use the words ควยสองแท่ง and พร้อมกัน. Rules: nothing goes in her anus; nobody comes or says he has come (only she may climax); the men never touch each other; the woman has only a pussy and the men only cocks; direct erotic-novel words (ควย, หี, น้ำเงี่ยน), no clinical words; include at least 4 quoted lines of moaning and rough talk, every quote followed by who says it; the men speak rough (กู, มึง). One short paragraph per movement.\n\nThe scene so far ends with:\n%s") % (A, W, B, mouth, ctx)
+
+
+def dp_patch(part, pp, call=None):
+    """R82 (r79-dp, r80-dp, r81-dp: the model never wrote the double, in the anal or the pussy version): when the plan has the double step (T6/M7) and the finished part has no
+    'two cocks' wording, ask the model for ONE short passage that is only that moment and put it at the step's place. Returns (part, inserted)."""
+    if os.environ.get("NOVEL_DPPATCH", "1") == "0" or not pp:
+        return part, False
+    steps = pp.get("steps") or []
+    idx = [k for k, x in enumerate(steps) if x.get("id") in ("T6", "M7")]
+    if not idx or _DP_DONE.search(part or ""):
+        return part, False
+    st = steps[idx[0]]
+    cast = pp.get("cast") or {}
+    if st.get("id") == "T6":
+        r = st.get("r") or cast.get("men") or []
+        if len(r) < 3:
+            return part, False
+        A, B, C = r[0], r[1], r[2]
+    else:
+        A, B, C = cast.get("A"), cast.get("B"), None
+        if not (A and B):
+            return part, False
+    W = cast.get("W") or "she"
+    sep = "\n\n" if "\n\n" in part else "\n"
+    paras = [x for x in part.split(sep) if x.strip()]
+    if len(paras) < 3:
+        return part, False
+    pos = max(2, min(len(paras), int(len(paras) * (idx[0] + 0.5) / len(steps))))
+    ctx = sep.join(paras[max(0, pos - 3):pos])
+    prompt = _dp_patch_prompt(A, B, C, W, ctx)
+    st_ = settings()
+    for _ in range(2):
+        try:
+            payload = {"messages": [{"role": "user", "content": prompt}], "stream": False, "max_tokens": 900,
+                       "temperature": st_["temperature"], "chat_template_kwargs": {"enable_thinking": False}}
+            payload.update(ANTI_REPEAT)
+            req = urllib.request.Request(LLM + "/v1/chat/completions", json.dumps(payload).encode(), {"Content-Type": "application/json"})
+            r = json.loads(urllib.request.urlopen(req, timeout=600).read().decode("utf-8"))
+            t = clean_part(r["choices"][0]["message"].get("content") or "").strip()
+        except Exception:
+            continue
+        if not t or "```" in t or t.lstrip().startswith("{") or not _DP_DONE.search(t):
+            continue
+        if re.search(r"(?:สอด|ดัน|เสียบ|ยัด|กด|จ่อ|เบียด)[^\n]{0,30}(?:ทวาร|รูก้น|รูตูด|ก้นเธอ|ก้นของเธอ)|เจล", t):
+            continue
+        t2 = strip_early_cum(t, {"g": True, "steps": [{"id": "M1"}], "cast": cast})
+        if len(t2) < len(t) * 0.8 or len(t2) < 120:
+            continue
+        new = [x for x in t2.split("\n") if x.strip()]
+        return sep.join(paras[:pos] + new + paras[pos:]), True
+    return part, False
+
+
 def thin_manner(text):
     """R60 (R60: "…ออกมาเสียง…" x10 e.g. ครางออกมาเสียงแหลม): in one part keep the first, the others lose the "เสียงX" tail (ครางออกมา)."""
     n = [0]
@@ -2890,6 +2950,12 @@ def aw_run(b, cid, key):
             if not part:
                 job.update({"state": "error", "error": "ส่วนที่ %d โมเดลไม่ตอบเป็นเนื้อเรื่อง" % (i + 1)})
                 return
+            try:
+                part, _dpi = dp_patch(part, parts[i].get("pose"))
+                if _dpi:
+                    job.setdefault("dppatch", []).append(i + 1)   # instrumentation: which parts got the separate double passage
+            except Exception:
+                pass
             cur = read(fp)
             part = drop_dup_paragraphs(fix_name_typos(part, names), cur)
             part = strip_early_cum(thin_manner(thin_fluid(thin_tagverb(_thin_owner_n(b, fix_swallow(fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak"))))))), parts[i].get("pose"))
