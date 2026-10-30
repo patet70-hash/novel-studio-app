@@ -2256,10 +2256,22 @@ def fix_finish_place(text, pp):
                 continue
             elif cur and left > 0 and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
                 rx = dict(_PLACES).get(want[cur], "")
+                w_ = _PLACE_WORD.get(want[cur], "")
                 if rx and _INSIDE_HER.search(st):   # planned outside, written inside her pussy: move it to the planned place
-                    ln = _INSIDE_HER.sub("บน" + _PLACE_WORD[want[cur]] + "ของเธอ", ln, count=1)
+                    ln = _INSIDE_HER.sub("บน" + w_ + "ของเธอ", ln, count=1)
                 elif rx and not re.search(rx, st) and _ANY_PLACE.search(st):
-                    ln = _ANY_PLACE.sub(_PLACE_WORD[want[cur]], ln, count=1)
+                    ln = _ANY_PLACE.sub(w_, ln, count=1)
+                elif rx:
+                    # R90 (r89-dp: "อาบหน้าท้องของเธอ ... หยดลงบนหน้าอกและหลัง", planned: the back only): the cum goes to the planned place ONLY.
+                    # a wrong part in a clause that has no planned word becomes the planned one; "<wrong>และ<planned>" / "<planned>และ<wrong>" keeps the planned one
+                    bad = _ANY_PLACE.pattern
+                    parts_ = ln.split(" ")
+                    for k_, c_ in enumerate(parts_):
+                        if _ANY_PLACE.search(c_) and not re.search(rx, c_) and re.search(r"น้ำเชื้อ|น้ำควย|พุ่ง|สาด|อาบ|หยด|ฉีด|กระเซ็น|เปื้อน", c_):
+                            parts_[k_] = _ANY_PLACE.sub(w_, c_, count=1)
+                    ln = " ".join(parts_)
+                    ln = re.sub(r"(?:%s)(?:และ|กับ|ทั้ง)(%s)" % (bad, rx), r"\1", ln)
+                    ln = re.sub(r"(%s[ก-ฮ]{0,3})(?:และ|กับ)(?:%s)" % (rx, bad), r"\1", ln)
         if win > 0:
             win -= 1
         if left > 0:
