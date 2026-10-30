@@ -2696,6 +2696,43 @@ def collapse_prefix_runs(text, k=8, minrun=3):
     return re.sub(r"\n{3,}", "\n\n", "\n".join(res))
 
 
+def strip_man_on_man(text, info):
+    """R89 (r88-dp / r88b-dp: "ปกรณ์ใช้มือลูบไล้ควยของก้อง", "ปกรณ์ยังคงอมควยของก้อง"): the retries keep failing this rule, so it is enforced in code: in narration, the clause (the stretch
+    between two spaces) in which one man touches / licks / sucks another man's cock is cut, together with the doer's own name when it stands just before it."""
+    M = [n for n, v in (info or {}).items() if n and v.get("g") == "M"]
+    if len(M) < 2:
+        return text
+    mr = "|".join(re.escape(x) for x in sorted(M, key=len, reverse=True))
+    allr = "|".join(re.escape(x) for x in sorted([n for n in info if n and len(n) >= 2], key=len, reverse=True))
+    obj_mark = r"(?:หี|นม|ปาก|ก้น|หน้าอก|ต้นขา|สะโพก|ขา|แก้ม|ไหล่|หลัง|ท้อง|เอว|คอ|ใบหน้า|ผม|ให้|กับ|ที่|จาก|ของ|ถึง|ข้าง|ใกล้|หา|มอง|ตา|เห็น|เรียก|ดึง|ดัน|จูบ|กอด)$"
+    rx = re.compile(r"(?:อม|เลีย|ดูด|ชัก|จับ|ลูบ|ไล้|กำ)[\u0E01-\u0E4E]{0,4}(?:ควย|หัวควย|ดุ้น)(?:ของ)?(%s)" % mr)
+    out = []
+    for ln in (text or "").split("\n"):
+        st = ln.strip()
+        if not st or QUOTE_RE.match(st):
+            out.append(ln)
+            continue
+        for _ in range(6):
+            hit = None
+            for mm in rx.finditer(ln):
+                prev = [x for x in re.finditer(allr, ln[:mm.start()]) if not re.search(obj_mark, ln[max(0, x.start() - 5):x.start()])] if allr else []
+                if prev and prev[-1].group(0) in M and prev[-1].group(0) != mm.group(1):
+                    hit = (mm, prev[-1])
+                    break
+            if not hit:
+                break
+            mm, ac = hit
+            left = ln.rfind(" ", 0, mm.start()) + 1
+            if 0 <= mm.start() - ac.start() <= 25:
+                left = min(left, ln.rfind(" ", 0, ac.start()) + 1)
+            right = ln.find(" ", mm.end())
+            right = len(ln) if right < 0 else right
+            ln = (ln[:left].rstrip() + " " + ln[right:].lstrip()).strip()
+        if ln.strip():
+            out.append(ln)
+    return "\n".join(out)
+
+
 def family_issues(text, info):
     """hard story-rule violations the model keeps making: (a) man-on-man sex acts, (b) [removed 29 Oct: spouses may call each other พ่อ/แม่/ป๊า/ม๊า],
     (c) a real daughter/son called บุญธรรม (adopted). Returns a list of short Thai descriptions (empty = clean)."""
@@ -2713,7 +2750,7 @@ def family_issues(text, info):
         for p in paras:
             for mm in re.finditer(r"(?:อม|เลีย|ดูด|ชัก|จับ|ลูบ)[\u0E01-\u0E4E]{0,4}(?:ควย|หัวควย)(?:ของ)?(%s)" % mr, p):
                 # actor = the nearest character name BEFORE the act verb (29 Oct: a man named earlier in the paragraph made "ลลิตา...อมควยของธนา" a false 'man on man')
-                obj_mark = r"(?:หี|นม|ปาก|ก้น|หน้าอก|ต้นขา|สะโพก|ขา|แก้ม|ไหล่|หลัง|ท้อง|เอว|คอ|ใบหน้า|ผม|ให้|กับ|ที่|จาก|ของ|ถึง|ข้าง|ใกล้|หา|มอง|เห็น|เรียก|ดึง|ดัน|จูบ|กอด)$"   # a name right after these is the object, not the doer
+                obj_mark = r"(?:หี|นม|ปาก|ก้น|หน้าอก|ต้นขา|สะโพก|ขา|แก้ม|ไหล่|หลัง|ท้อง|เอว|คอ|ใบหน้า|ผม|ให้|กับ|ที่|จาก|ของ|ถึง|ข้าง|ใกล้|หา|มอง|ตา|เห็น|เรียก|ดึง|ดัน|จูบ|กอด)$"   # a name right after these is the object, not the doer
                 prev = [x.group(0) for x in re.finditer(allr, p[:mm.start()]) if not re.search(obj_mark, p[max(0, x.start() - 5):x.start()])] if allr else []
                 actor = prev[-1] if prev else None
                 if actor and actor in M and actor != mm.group(1):
@@ -3144,6 +3181,7 @@ def aw_run(b, cid, key):
                 _before = len(part)
                 part = strip_repeat_cum(part, cur[_spos:], parts[i].get("pose"))
                 part = fix_finish_place(part, parts[i].get("pose"))
+                part = strip_man_on_man(part, char_info(b))
                 if len(part) < _before:
                     job.setdefault("repeatcum", []).append([i + 1, _before - len(part)])   # instrumentation: parts where a repeated finish was cut
             except Exception:
