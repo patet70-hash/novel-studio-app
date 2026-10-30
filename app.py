@@ -1337,8 +1337,14 @@ def attach_pose_plans(b, parts, cid="", salt=0):
     info = char_info(b)
     t = pose_table()
     by_scene = {}
+    first_sc = {}
     for p in parts:
-        by_scene.setdefault(p["scene"], []).append(p)
+        if p.get("slice"):
+            first_sc.setdefault(p["text"], p["scene"])
+    for p in parts:
+        # R84 (r83-dp: a one-scene summary with a 3,000-word target is cut into 2 'slices' with the SAME text; each slice got its own 3-beat plan, so every man finished twice
+        # and the double (needs 4+ beats) never came up): the slices of one summary are ONE scene for the pose plan.
+        by_scene.setdefault(first_sc.get(p["text"], p["scene"]) if p.get("slice") else p["scene"], []).append(p)
     seen, seen_open, last_fin = set(), set(), None
     want = None
     for sc, ps in sorted(by_scene.items()):
