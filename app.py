@@ -1488,7 +1488,7 @@ def _plan_issues_pose(text, part):
 
 
 _DONE_CUM = re.compile(r"แตกแล้ว|แตกใน|แตกใส่|แตกบน|แตกที่|กูแตก|ผมแตก|น้ำ(?:เชื้อ|ควย)กู(?:พุ่ง|ไหล|ออก)")
-_NOT_YET = re.compile(r"(?:จะ|ใกล้จะ|ใกล้|ขอ|อยาก|ให้(?:มึง|เธอ|คุณ|หนู|เรา|ลลิ?ตา)?|อย่า|ห้าม|ไม่ให้|ตอน|เดี๋ยว)\s*แตก|แตกพร้อม")   # R86: "เย็ดให้มึงแตกใน" / "ตอนแตก" are intentions, not a finish (r85-dp: ก้อง's real finish was cut as a repeat)
+_NOT_YET = re.compile(r"(?:ก็จะ|จะ|ใกล้จะ|ใกล้|ขอ|อยาก|ให้(?:มึง|เธอ|คุณ|หนู|เรา|ลลิ?ตา)?|อย่า|ห้าม|ไม่ให้|ตอน|เดี๋ยว(?:ก็)?)\s*แตก|แตกพร้อม")   # R86: "เย็ดให้มึงแตกใน" / "ตอนแตก" are intentions, not a finish (r85-dp: ก้อง's real finish was cut as a repeat)
 
 
 def _early_climax_issues(t, pp, text):
