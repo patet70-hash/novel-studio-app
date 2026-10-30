@@ -2240,12 +2240,24 @@ def fix_finish_place(text, pp):
     cast = pp.get("cast") or {}
     allmen = list(cast.get("men") or [x for x in (cast.get("A"), cast.get("B")) if x]) + list(want)
     out, cur, left, win = [], None, 0, 0
-    for ln in (text or "").split("\n"):
+    prev_named, prev_age = None, 9
+    nm_rx = "|".join(re.escape(x) for x in sorted(allmen, key=len, reverse=True))
+    for ln_full in (text or "").split("\n"):
+        ln = ln_full
         st = ln.strip()
-        if st and not QUOTE_RE.match(st):
+        qm = QUOTE_RE.match(st) if st else None
+        lead = ln[:len(ln) - len(ln.lstrip())]
+        qpart = qm.group(0) if qm else ""
+        if qm:   # R90c (r90b-dp: “สัส... แตกแล้ว!” เขาตวาดเสียงก้อง น้ำควย...): the narration after a leading quote is checked too
+            ln = ln[len(lead) + len(qpart):]
+            st = ln.strip()
+        st = re.sub(r"เสียง(?:%s)" % nm_rx, "เสียง", st) if nm_rx else st   # "เสียงก้อง" is a voice, not the man
+        if st:
             hits = sorted((st.find(x), x) for x in want if x in st)
             if cur and any(x in st and x != cur for x in allmen):
                 cur = None
+            if not hits and win <= 0 and not any(x in st for x in allmen) and prev_named in want and prev_age <= 2 and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
+                hits = [(0, prev_named)]   # he is "เขา" here: the man named in the line just before
             if hits and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
                 cur, left = hits[0][1], 3
             if hits and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
@@ -2272,6 +2284,14 @@ def fix_finish_place(text, pp):
                     ln = " ".join(parts_)
                     ln = re.sub(r"(?:%s)(?:และ|กับ|ทั้ง)(%s)" % (bad, rx), r"\1", ln)
                     ln = re.sub(r"(%s[ก-ฮ]{0,3})(?:และ|กับ)(?:%s)" % (rx, bad), r"\1", ln)
+        if st:
+            named = [x for x in allmen if x in st]
+            if named:
+                prev_named, prev_age = min(named, key=lambda x: st.find(x)), 0
+            else:
+                prev_age += 1
+        if qm:
+            ln = lead + qpart + ln
         if win > 0:
             win -= 1
         if left > 0:
