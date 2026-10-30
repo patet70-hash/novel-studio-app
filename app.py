@@ -1116,11 +1116,16 @@ def pose_block_group3(part):
             ln += " | HER CLIMAX happens in this step: show it plainly; afterwards they simply carry on, she needs no recovery."
         if kind == "finish" and pid != "FT":
             ln += " | %s's CLIMAX happens here and only here; %s has come before or with him." % (who or men[0], W)
+        if pid == "T6":   # R80 (r79-dp: the model wrote only the mouth part of the double, in 4 attempts)
+            rr = st.get("r") or men
+            ln += " | THIS STEP MUST CONTAIN, each in its own short paragraph and in this order: (1) %s squeezes gel (บีบเจล) onto his fingers and onto her anus; (2) one finger slowly into her anus (ทวาร), she gasps and asks him to go slow; (3) %s eases the head of his cock into her anus (ดันหัวควยเข้าไปในทวารของเธอ); (4) then %s in her pussy, %s in her anus and %s in her mouth all move together. Use the words เจล and ทวาร." % (rr[1], rr[1], rr[0], rr[1], rr[2])
         if pid == "FT":
             ln += " | ALL THREE MEN'S CLIMAX happens here and only here."
         if kind == "recover":
             ln += " | The men stay soft until the end of this step; nobody penetrates anyone in it."
         L.append(ln)
+    if not any(_pose_kind(t, x["id"]) == "finish" for x in pp["steps"]):   # R80 (r79-dp: a man came in beat 2 and again at the end)
+        L.append("NOBODY COMES IN THIS PART: no man ejaculates here and none shouts that he HAS come; do not write แตกแล้ว, น้ำเชื้อ, น้ำควย or ปล่อยน้ำ for any man (only her climax may happen); a man may at most say he is close.")
     L.append("PLAN RULES: each man's cock is in ONE place at a time; her mouth holds ONE cock at a time, her pussy ONE cock, her anus only in the double-penetration step, each hand at most one cock; the men NEVER touch, kiss, lick or rub each other; a man comes only at his CLIMAX step; after he comes he is soft and rests (he may kiss her and touch her with his hands) until a recovery step; the woman has a pussy only and the men a cock only; keep every paragraph to one position.")
     L.append("SPEAKING RULES (four people are talking): every spoken line is said by exactly ONE person and its tag names that person (%s, %s, %s or %s). Her moans, her climax and her requests are said by %s ONLY, tagged to her, never to a man. The men speak TO her or about her; the three men never speak vulgar or insulting words to each other and never talk about each other's body (between themselves only a short plain line such as asking the other to wait or to move). A man never calls himself by his own name and never speaks of himself in the third person. She never says กู or มึง; the men never say ชั้น. In the narration three men are present, so never write a bare 'เขา' for a man: write his name; and do not repeat 'ควยของ…' in every sentence (at most twice per paragraph, otherwise just say what he does). 'ให้หมด' goes only with a liquid (กลืนให้หมด, กินน้ำควยให้หมด), never with a body part (never 'ดูดควยให้หมด')." % (men[0], men[1], men[2], W, W))
     return " ".join(L[:1]) + "\n" + "\n".join(L[1:])
@@ -1164,11 +1169,15 @@ def pose_block_group(part):
             ln += " | %s's CLIMAX happens here and only here; %s has come before or with him." % (who or A, W)
             if (st.get("place") or {}).get(who or A):
                 ln += " | WHERE HE COMES: the cum lands on her %s (narrate it landing there)." % st["place"][who or A]
+        if pid == "M7":   # R80
+            ln += " | THIS STEP MUST CONTAIN, each in its own short paragraph and in this order: (1) %s squeezes gel (บีบเจล) onto his fingers and onto her anus; (2) one finger slowly into her anus (ทวาร), she gasps and asks him to go slow; (3) %s eases the head of his cock into her anus (ดันหัวควยเข้าไปในทวารของเธอ); (4) then %s in her pussy and %s in her anus move together. Use the words เจล and ทวาร." % (B, B, A, B)
         if kind == "finish" and pid == "FB":
             ln += " | BOTH MEN'S CLIMAX happens here and only here."
         if kind == "recover":
             ln += " | The men stay soft until the end of this step; nobody penetrates anyone in it."
         L.append(ln)
+    if not any(_pose_kind(t, x["id"]) == "finish" for x in pp["steps"]):   # R80 (r79-dp: a man came in beat 2 and again at the end)
+        L.append("NOBODY COMES IN THIS PART: no man ejaculates here and none shouts that he HAS come; do not write แตกแล้ว, น้ำเชื้อ, น้ำควย or ปล่อยน้ำ for any man (only her climax may happen); a man may at most say he is close.")
     L.append("PLAN RULES: each man's cock is in ONE place at a time; her mouth holds ONE cock at a time, her pussy ONE cock, her anus only in the double-penetration step; the men NEVER touch, kiss, lick or rub each other; a man comes only at his CLIMAX step; after he comes he is soft and rests (he may kiss her and touch her with his hands) until a recovery step; the woman has a pussy only and the men a cock only; keep every paragraph to one position.")
     if os.environ.get("NOVEL_GSPEAK", "1") != "0":   # R48 (29 Oct): speaker / address rules for three-person scenes
         L.append("SPEAKING RULES (three people are talking): every spoken line is said by exactly ONE person and its tag names that person (%s, %s or %s). Her moans, her climax and her requests are said by %s ONLY, tagged to her, never to a man. The men speak TO her or about her; %s and %s never speak vulgar or insulting words to each other and never talk about each other's body (between themselves only a short plain line such as asking the other to wait or to move). A man never calls himself by his own name and never speaks of himself in the third person. She never says กู or มึง; the men never say ชั้น. In the narration two men are present, so never write a bare 'เขา' for a man: write his name; and do not repeat 'ควยของ…' in every sentence (at most twice per paragraph, otherwise just say what he does). 'ให้หมด' goes only with a liquid (กลืนให้หมด, กินน้ำควยให้หมด), never with a body part (never 'ดูดควยให้หมด')." % (A, B, W, W, A, B))
@@ -2001,6 +2010,40 @@ def chapter_polish(text, info):
         lines = lines[:k] + [lines[i] for i in keep]
         t = "\n".join(lines)
     return t
+
+
+_MALE_CUM_LINE = re.compile(r"น้ำเชื้อ|น้ำควย(?!เธอ)|ปล่อยน้ำ|พุ่ง(?:ออก|ใส่|เข้า)|ฉีดน้ำ|แตก(?:ใน|ใส่|บน)")
+_HER_LINE = re.compile(r"น้ำหี|น้ำเงี่ยน|เธอ(?:แตก|ถึง)|ลลิ?ตา(?:แตก|ถึง)")
+
+
+def strip_early_cum(text, pp, names=None):
+    """R80 (r79-dp: ก้อง came in beat 2, then again at the end): in a part of a 2/3-men scene whose plan has no finish step, a narration line in which a man comes
+    (น้ำเชื้อ / ปล่อยน้ำ / พุ่งออก...) and a spoken line in which a man says he HAS come are removed (her own climax lines are kept)."""
+    if not pp or not pp.get("g"):
+        return text
+    t = pose_table()
+    if any(_pose_kind(t, x["id"]) == "finish" for x in pp.get("steps", [])):
+        return text
+    out = []
+    for ln in (text or "").split("\n"):
+        st = ln.strip()
+        if not st:
+            out.append(ln)
+            continue
+        m = QUOTE_RE.match(st)
+        if m:
+            q = _NOT_YET.sub("", m.group(0))
+            tag = st[m.end():].strip()
+            cast = pp.get("cast") or {}
+            men = cast.get("men") or [x for x in (cast.get("A"), cast.get("B")) if x]
+            if _DONE_CUM.search(q) and any(tag.startswith(x) for x in men):
+                continue
+            out.append(ln)
+            continue
+        if _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
+            continue
+        out.append(ln)
+    return "\n".join(out)
 
 
 def thin_manner(text):
@@ -2863,7 +2906,7 @@ def aw_run(b, cid, key):
                 return
             cur = read(fp)
             part = drop_dup_paragraphs(fix_name_typos(part, names), cur)
-            part = thin_manner(thin_fluid(thin_tagverb(_thin_owner_n(b, fix_swallow(fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak")))))))
+            part = strip_early_cum(thin_manner(thin_fluid(thin_tagverb(_thin_owner_n(b, fix_swallow(fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak"))))))), parts[i].get("pose"))
             tail = cur.rstrip()[-60:]
             if tail and part.startswith(tail[-40:]):
                 part = part[len(tail[-40:]):].lstrip()
