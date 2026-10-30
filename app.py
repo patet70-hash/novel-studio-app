@@ -2041,30 +2041,39 @@ def _dp_patch_prompt(A, B, C, W, ctx):
             "You MUST use the words ควยสองแท่ง and พร้อมกัน. Rules: nothing goes in her anus; nobody comes or says he has come (only she may climax); the men never touch each other; the woman has only a pussy and the men only cocks; direct erotic-novel words (ควย, หี, น้ำเงี่ยน), no clinical words; include at least 4 quoted lines of moaning and rough talk, every quote followed by who says it; the men speak rough (กู, มึง). One short paragraph per movement.\n\nThe scene so far ends with:\n%s") % (A, W, B, mouth, ctx)
 
 
-def dp_patch(part, pp, call=None):
+def dp_patch(part, pp, log=None):
     """R82 (r79-dp, r80-dp, r81-dp: the model never wrote the double, in the anal or the pussy version): when the plan has the double step (T6/M7) and the finished part has no
     'two cocks' wording, ask the model for ONE short passage that is only that moment and put it at the step's place. Returns (part, inserted)."""
+    lg = log if log is not None else []
     if os.environ.get("NOVEL_DPPATCH", "1") == "0" or not pp:
+        lg.append("off")
         return part, False
     steps = pp.get("steps") or []
     idx = [k for k, x in enumerate(steps) if x.get("id") in ("T6", "M7")]
-    if not idx or _DP_DONE.search(part or ""):
+    if not idx:
+        lg.append("no-dp-step:" + ",".join(x.get("id", "?") for x in steps))
+        return part, False
+    if _DP_DONE.search(part or ""):
+        lg.append("model-wrote-it")
         return part, False
     st = steps[idx[0]]
     cast = pp.get("cast") or {}
     if st.get("id") == "T6":
         r = st.get("r") or cast.get("men") or []
         if len(r) < 3:
+            lg.append("no-roles")
             return part, False
         A, B, C = r[0], r[1], r[2]
     else:
         A, B, C = cast.get("A"), cast.get("B"), None
         if not (A and B):
+            lg.append("no-cast")
             return part, False
     W = cast.get("W") or "she"
     sep = "\n\n" if "\n\n" in part else "\n"
     paras = [x for x in part.split(sep) if x.strip()]
     if len(paras) < 3:
+        lg.append("part-too-short")
         return part, False
     pos = max(2, min(len(paras), int(len(paras) * (idx[0] + 0.5) / len(steps))))
     ctx = sep.join(paras[max(0, pos - 3):pos])
@@ -2078,18 +2087,80 @@ def dp_patch(part, pp, call=None):
             req = urllib.request.Request(LLM + "/v1/chat/completions", json.dumps(payload).encode(), {"Content-Type": "application/json"})
             r = json.loads(urllib.request.urlopen(req, timeout=600).read().decode("utf-8"))
             t = clean_part(r["choices"][0]["message"].get("content") or "").strip()
-        except Exception:
+        except Exception as e:
+            lg.append("call-error:" + str(e)[:60])
             continue
         if not t or "```" in t or t.lstrip().startswith("{") or not _DP_DONE.search(t):
+            lg.append("reply-without-keywords:%d:%s" % (len(t or ""), (t or "")[:60].replace("\n", " ")))
             continue
         if re.search(r"(?:สอด|ดัน|เสียบ|ยัด|กด|จ่อ|เบียด)[^\n]{0,30}(?:ทวาร|รูก้น|รูตูด|ก้นเธอ|ก้นของเธอ)|เจล", t):
+            lg.append("reply-anal-or-gel")
             continue
         t2 = strip_early_cum(t, {"g": True, "steps": [{"id": "M1"}], "cast": cast})
         if len(t2) < len(t) * 0.8 or len(t2) < 120:
+            lg.append("reply-too-short-after-strip:%d" % len(t2))
             continue
         new = [x for x in t2.split("\n") if x.strip()]
+        lg.append("inserted")
         return sep.join(paras[:pos] + new + paras[pos:]), True
     return part, False
+
+
+def strip_repeat_cum(text, prior, pp):
+    """R83 (r82-dp: ธนา came in the mouth twice, ปกรณ์ announced it 4 times, ก้อง twice in one scene): a man comes ONCE per scene. In a group part, a line in which a man comes /
+    says he has come is removed when he already did in the earlier parts of the same scene (`prior`) or earlier in this part; a bare cum-narration line right after a removed
+    announcement goes too. Her climax lines stay."""
+    if not pp or not pp.get("g"):
+        return text
+    cast = pp.get("cast") or {}
+    men = cast.get("men") or [x for x in (cast.get("A"), cast.get("B")) if x]
+    if not men:
+        return text
+
+    def owner(st):
+        m = QUOTE_RE.match(st)
+        if m:
+            q = _NOT_YET.sub("", m.group(0))
+            tag = st[m.end():].strip()
+            if _DONE_CUM.search(q):
+                for x in men:
+                    if tag.startswith(x):
+                        return x, True
+            return None, False
+        if _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
+            hits = sorted((st.find(x), x) for x in men if x in st)
+            if hits:
+                return hits[0][1], False
+        return None, False
+
+    came = set()
+    for ln in (prior or "").split("\n"):
+        o, _ = owner(ln.strip())
+        if o:
+            came.add(o)
+    out = []
+    drop_next = False
+    first_at = {}
+    k = 0
+    for ln in (text or "").split("\n"):
+        st = ln.strip()
+        if not st:
+            out.append(ln)
+            continue
+        k += 1
+        o, spoken = owner(st)
+        if o and o in came and not (o in first_at and k - first_at[o] <= 1):   # the lines right after his first announcement are the same finish
+            drop_next = spoken
+            continue
+        if drop_next and not QUOTE_RE.match(st) and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st) and not any(x in st for x in men):
+            drop_next = False
+            continue
+        drop_next = False
+        if o:
+            came.add(o)
+            first_at.setdefault(o, k)
+        out.append(ln)
+    return "\n".join(out)
 
 
 def thin_manner(text):
@@ -2852,6 +2923,7 @@ def aw_run(b, cid, key):
         tpw = 1.3   # tokens per Thai "word" (body_words unit); recalibrated from the model's own usage numbers after each part
         job.update({"n": len(parts), "i": 0, "state": "running"})
         snapshot_chapter(b, cid)
+        scene_pos = {}
         for i in range(len(parts)):
             if job.get("cancel"):
                 job["state"] = "cancelled"
@@ -2951,7 +3023,9 @@ def aw_run(b, cid, key):
                 job.update({"state": "error", "error": "ส่วนที่ %d โมเดลไม่ตอบเป็นเนื้อเรื่อง" % (i + 1)})
                 return
             try:
-                part, _dpi = dp_patch(part, parts[i].get("pose"))
+                _lg = []
+                part, _dpi = dp_patch(part, parts[i].get("pose"), _lg)
+                job.setdefault("dpinfo", []).append([i + 1] + _lg)   # instrumentation: why the double passage was or was not inserted
                 if _dpi:
                     job.setdefault("dppatch", []).append(i + 1)   # instrumentation: which parts got the separate double passage
             except Exception:
@@ -2959,6 +3033,15 @@ def aw_run(b, cid, key):
             cur = read(fp)
             part = drop_dup_paragraphs(fix_name_typos(part, names), cur)
             part = strip_early_cum(thin_manner(thin_fluid(thin_tagverb(_thin_owner_n(b, fix_swallow(fix_particles(dedupe_quotes(split_dialogue(thin_repeats(part, cur)), cur), char_info(b), rough=(heat_level(parts[i]) == "peak"))))))), parts[i].get("pose"))
+            try:
+                _scn = parts[i].get("scene")
+                _spos = scene_pos.setdefault(_scn, len(cur))
+                _before = len(part)
+                part = strip_repeat_cum(part, cur[_spos:], parts[i].get("pose"))
+                if len(part) < _before:
+                    job.setdefault("repeatcum", []).append([i + 1, _before - len(part)])   # instrumentation: parts where a repeated finish was cut
+            except Exception:
+                pass
             tail = cur.rstrip()[-60:]
             if tail and part.startswith(tail[-40:]):
                 part = part[len(tail[-40:]):].lstrip()
