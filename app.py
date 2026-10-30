@@ -2192,6 +2192,9 @@ _PLACE_WORD = {"ก้น": "ก้น", "หลัง": "แผ่นหลั�
 _ANY_PLACE = re.compile(r"(?:แผ่น)?หลัง(?!จาก|ที่|เสร็จ)|หน้าท้อง|ท้องน้อย|เนินอก|หน้าอก|แก้มก้น|ก้น|ใบหน้า|ต้นขา")
 
 
+_INSIDE_HER = re.compile(r"(?:ภายใน|ข้างใน|ใน)(?:หี|ตัว)(?:ของ)?(?:เธอ|ลลิ?ตา)?")
+
+
 def fix_finish_place(text, pp):
     """R87 (r86-dp: summary 'ปกรณ์แตกบนหลังเธอ', written on her belly): in a group part, in the narration of a man whose plan names the place of his outside finish,
     a wrong body part in his cum lines (and the 2 lines after) is swapped for the planned one."""
@@ -2206,7 +2209,7 @@ def fix_finish_place(text, pp):
         return text
     cast = pp.get("cast") or {}
     allmen = list(cast.get("men") or [x for x in (cast.get("A"), cast.get("B")) if x]) + list(want)
-    out, cur, left = [], None, 0
+    out, cur, left, win = [], None, 0, 0
     for ln in (text or "").split("\n"):
         st = ln.strip()
         if st and not QUOTE_RE.match(st):
@@ -2215,10 +2218,20 @@ def fix_finish_place(text, pp):
                 cur = None
             if hits and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
                 cur, left = hits[0][1], 3
-            if cur and left > 0 and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
+            if hits and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
+                win = 6
+            if (win > 0 and not hits and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st) and not any(x in st for x in allmen)
+                  and any(re.search(dict(_PLACES).get(w_, "x^"), st) for w_ in want.values())):
+                win = 0   # a bare cum line on the planned place right after his own finish: the same finish told twice
+                continue
+            elif cur and left > 0 and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
                 rx = dict(_PLACES).get(want[cur], "")
-                if rx and not re.search(rx, st) and _ANY_PLACE.search(st):
+                if rx and _INSIDE_HER.search(st):   # planned outside, written inside her pussy: move it to the planned place
+                    ln = _INSIDE_HER.sub("บน" + _PLACE_WORD[want[cur]] + "ของเธอ", ln, count=1)
+                elif rx and not re.search(rx, st) and _ANY_PLACE.search(st):
                     ln = _ANY_PLACE.sub(_PLACE_WORD[want[cur]], ln, count=1)
+        if win > 0:
+            win -= 1
         if left > 0:
             left -= 1
         out.append(ln)
