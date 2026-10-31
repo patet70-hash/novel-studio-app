@@ -1390,6 +1390,15 @@ def close_wanted(txt):
     return None
 
 
+def close_pos(txt):
+    """True when the summary puts the cum-sharing kiss at the end, False when in the middle, else None (random)."""
+    if re.search(r"(?:ท้ายฉาก|ตอนจบ|จบฉาก|ปิดฉาก|ท้ายสุด)[^\n]{0,25}(?:จูบ|แลก)|(?:จูบ|แลกน้ำ)[^\n]{0,25}(?:ท้ายฉาก|ตอนจบ|จบฉาก|ปิดฉาก|ท้ายสุด)", txt or ""):
+        return True
+    if re.search(r"(?:ระหว่างฉาก|กลางฉาก|ระหว่างนั้น|กลางเรื่อง)[^\n]{0,25}(?:จูบ|แลก)|(?:จูบ|แลกน้ำ)[^\n]{0,25}(?:ระหว่างฉาก|กลางฉาก|กลางเรื่อง)", txt or ""):
+        return False
+    return None
+
+
 def _quad_first_fins(rng, asg):
     """first-round finish kinds for four men: each woman's two men get two different kinds from mouth / titjob / handjob, one titjob in all."""
     out, f4 = {}, False
@@ -1404,7 +1413,7 @@ def _quad_first_fins(rng, asg):
     return out
 
 
-def make_quad_plan(nbeats, rng, men, women, table=None, close_n=None):
+def make_quad_plan(nbeats, rng, men, women, table=None, close_n=None, close_last=None):
     """chain for TWO women and FOUR men (names). Steps: {"id", "cells"/"ww"/"mast"/"rest", "wc": [women who climax], "sqw": [women who squirt], "fin", "wm", "who", "wf", "rd"}.
     Shape: warm-up, 2-3 layout steps, round-1 finish of all four (each with his woman), recovery, 2-3 layout steps, the men who do not close finish one by one
     (outside / inside, each with a woman), then the closing step: the remaining men come in one woman's mouth and the women share it with a kiss. Each man comes twice."""
@@ -1503,7 +1512,14 @@ def make_quad_plan(nbeats, rng, men, women, table=None, close_n=None):
     if closers:
         wa = rng.choice([W1, W2])
         wb = W2 if wa == W1 else W1
-        chain.append({"id": "CQ", "fin": {m: "F1" for m in closers}, "wm": {m: wa for m in closers}, "share": wb, "rd": 2})
+        cq = {"id": "CQ", "fin": {m: "F1" for m in closers}, "wm": {m: wa for m in closers}, "share": wb, "rd": 2, "last": True}
+        # R111 (user 31 Oct): the cum-sharing kiss need not end the scene, it may come between - only after a man has come in a woman's mouth
+        first_single = len(chain) - 2 * len(singles)
+        if singles and close_last is not True and (close_last is False or rng.random() < 0.35):
+            chain.insert(first_single, cq)
+            cq["last"] = False
+        else:
+            chain.append(cq)
     # her climaxes: every woman at least once; random squirt
     act = [i for i, c in enumerate(chain) if i > 0 and (c.get("cells") or c.get("ww") or c.get("mast"))]
     cl = {W1: 0, W2: 0}
@@ -1589,7 +1605,7 @@ def pose_block_quad(part):
         elif pid == "CQ":
             fin = st.get("fin") or {}
             wa = next(iter((st.get("wm") or {}).values()), W1)
-            ln += row.get("d", "") + " | %s kneels with her mouth open; %s come%s in her mouth one after another (she keeps it all in her mouth, no swallowing yet); then %s kisses %s deeply and they pass the cum from mouth to mouth, tongues and lips wet and white, a little drips from their chins; end the scene on that image" % (wa, " and ".join(fin), "" if len(fin) > 1 else "s", st.get("share") or W2, wa)
+            ln += row.get("d", "") + " | %s kneels with her mouth open; %s come%s in her mouth one after another (she keeps it all in her mouth, no swallowing yet; ONLY %s takes cum in her mouth - %s's mouth stays empty and %s does not put his cock in %s's mouth); then %s kisses %s deeply and they pass the cum from mouth to mouth, tongues and lips wet and white, a little drips from their chins%s" % (wa, " and ".join(fin), "" if len(fin) > 1 else "s", wa, st.get("share") or W2, "any man", st.get("share") or W2, st.get("share") or W2, wa, "; end the scene on that image" if st.get("last", True) else "; the scene goes on afterwards with the other men (do not end the scene here)")
         else:   # a single man's finish step (outside / inside) with one woman
             who, wf = st.get("who"), st.get("wf") or W1
             ln += "ONLY %s comes now, with %s (in the description 'he' means %s): %s | %s's CLIMAX happens here and only here" % (who, wf, who, row.get("d", ""), who)
@@ -1879,7 +1895,7 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         for k in range(60):
             rng = random.Random(zlib.crc32(("%s|%s|%d|%d|%d" % (b, cid, sc, salt, k)).encode("utf-8")))
             if group4:
-                plan = make_quad_plan(len(ps), rng, men, women, t, close_n=close_wanted(txt))
+                plan = make_quad_plan(len(ps), rng, men, women, t, close_n=close_wanted(txt), close_last=close_pos(txt))
             elif group3:
                 plan = make_group3_plan(len(ps), rng, men, t, dp=dp_wanted(txt), tail_ok=False, rounds=rounds)
             elif group:
@@ -2935,8 +2951,14 @@ def ensure_finish_lines(text, prior, pp, fallback=True):
         place.update(st_.get("place") or {})
         if st_.get("rd") == 2 and st_.get("who"):
             second.add(st_["who"])
+        if st_.get("rd") == 2 and isinstance(f_, dict):   # R111: the men of a round-2 group step (closing image) are judged on this part too
+            second.update(f_)
     if not kinds or not men:
         return text
+    closing_men = set()
+    for st_ in pp.get("steps", []):
+        if st_.get("id") == "CQ" and isinstance(st_.get("fin"), dict):
+            closing_men |= set(st_["fin"])
     kind_of = _line_kind
 
     def narrated(blob, who):
@@ -2982,6 +3004,11 @@ def ensure_finish_lines(text, prior, pp, fallback=True):
             last = len(lines) - 1   # R97: he never announced it either - the planned finish is added at the end of the part (a man the model skipped in a common finish step)
             while last > 0 and not lines[last].strip():
                 last -= 1
+            if closing_men and who not in closing_men:   # R111 (r111-dp: ปกรณ์'s line landed after the shared-cum kiss): the closing image stays last, a late line goes before the first closer's cum / the cum-sharing kiss
+                cl_ = [i for i, ln in enumerate(lines)
+                       if re.search(r"แลกน้ำ|แลกกัน|ส่งน้ำ|ป้อนน้ำ|ถ่ายน้ำ", ln) or (any(c in ln for c in closing_men) and _MALE_CUM_LINE.search(ln))]
+                if cl_:
+                    last = max(0, min(cl_) - 1)
         k = sorted(kinds[who], key=lambda x: ("F3", "F2", "F4", "F5", "F1").index(x))[0]   # a man with two finishes in one part gets the late one added first
         if k == "F4":
             new = "%sชักควยหนีบอยู่ระหว่างนมของเธอแรงๆ จนแตก น้ำเชื้อร้อนๆ พุ่งกระเซ็นเปื้อนร่องอก นมและใบหน้าของเธอ" % who
