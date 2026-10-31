@@ -4130,7 +4130,7 @@ def fix_vocative(text, pp, log=None):
         q2 = q[:calls[0].start(1)] + y + q[calls[0].end(1):] if len(calls) == 1 else re.sub(r"(?<![\u0E01-\u0E4E])%s(?![\u0E01-\u0E4E])" % re.escape(x), y, q)
         lines[i] = ln.replace(q, q2, 1)
         if log is not None:
-            log.append("%s->%s" % (x, y))
+            log.append("%s->%s | %s => %s" % (x, y, q[:45], q2[:45]))   # R131: keep the before/after quote so a round review can judge every vocative change
     return "\n".join(lines)
 
 
