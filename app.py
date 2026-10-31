@@ -4207,6 +4207,35 @@ def fix_vocative(text, pp, log=None):
     return "\n".join(lines)
 
 
+def _lev(a, b):
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
+def _fuzzy_name(tok, cands, known):
+    """R136: the ONE cast name this token is a garbled version of, else None. Same first and last letter, edit distance <=1 for names of 3-4 characters and <=2 for 5+,
+    and the token is not itself a cast name; two equally close names -> None (never guess)."""
+    if not tok or tok in known or re.match(r"เธอ|เอา|เขา", tok) or any(k and len(k) >= 3 and tok.startswith(k) for k in known):
+        return None   # pronouns / เอา, and a token that already starts with a whole cast name, are words, not garbled names
+    hits = []
+    for c in cands:
+        d = _lev(tok, c)
+        lim = 2 if len(c) >= 5 else 1
+        if 0 < d <= lim and tok[0] == c[0] and tok[-1] == c[-1] and abs(len(tok) - len(c)) <= 2:
+            hits.append((d, c))
+    if not hits:
+        return None
+    hits.sort()
+    if len(hits) > 1 and hits[0][0] == hits[1][0]:
+        return None
+    return hits[0][1]
+
+
 def fix_name_typos(text, names, count_only=False):
     n = 0
     # R24 (29 Oct): a name with ONE extra repeated consonant (ลลลิตา for ลลิตา, seen ×12 in R20/R23) is repaired first
@@ -4234,6 +4263,36 @@ def fix_name_typos(text, names, count_only=False):
             n += 1
             return m.group(1) + th
         text = rx.sub(sub, text)
+    # R136 (r136-r3: "ลลิตา" came out as ลิลา x6 and ลลิลิตา x1 in speaker tags and after อี): a garbled name in a speaker-tag slot (after a closing quote, right before a
+    # speech / body verb) or after อี / ไอ becomes the ONE cast name it is closest to; only names of 3+ Thai characters; pronouns and other words are too far to match
+    _kn = {x for x in known_all if x}
+    _cands = sorted({x for x in _kn if len(x) >= 3 and not re.search(r"[A-Za-z\s]", x)}, key=len, reverse=True)
+    if _cands:
+        def _fz(m):
+            nonlocal n
+            run = m.group(2)
+            if any(run.startswith(k) for k in _kn if k):
+                return m.group(0)   # an exact cast name starts the tag: nothing to repair
+            best = None
+            for L in range(3, min(len(run), 10) + 1):
+                fix = _fuzzy_name(run[:L], _cands, _kn)
+                if fix:
+                    d = _lev(run[:L], fix)
+                    if best is None or d < best[0]:
+                        best = (d, L, fix)
+            if not best:
+                return m.group(0)
+            n += 1
+            return m.group(1) + best[2] + run[best[1]:]
+        text = re.sub(r"([\u201d\"]\s*)([\u0E01-\u0E4E]{3,24})", _fz, text)
+        def _fv(m):
+            nonlocal n
+            fix = _fuzzy_name(m.group(2), _cands, _kn)
+            if not fix:
+                return m.group(0)
+            n += 1
+            return m.group(1) + fix
+        text = re.sub(r"((?:อี|ไอ))([\u0E01-\u0E4E]{3,9})(?=[\u201d\"\s\u2026,.!?])", _fv, text)
     return n if count_only else text
 
 
