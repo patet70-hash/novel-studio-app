@@ -1505,9 +1505,20 @@ def make_quad_plan(nbeats, rng, men, women, table=None, close_n=None, close_last
     closers = shuffled[:cn]
     singles = shuffled[cn:]
     for m in singles:
-        chain.append(layout(rng.choice(["QG", "QM"])))
+        lay = layout(rng.choice(["QG", "QM"]))
+        chain.append(lay)
         wf = place[m] or rng.choice([W1, W2])
-        chain.append({"id": rng.choice(pool2), "who": m, "wf": wf, "rd": 2})
+        fst = {"id": rng.choice(pool2), "who": m, "wf": wf, "rd": 2}
+        if m in lay.get("rest", []):
+            # R116 (user 31 Oct): a resting man (stroking himself, not coming) who rejoins: if he only keeps stroking he comes OUTSIDE on her body;
+            # if he rejoins with another act the normal system applies (inside her)
+            if "F2" in t and rng.random() < 0.5:
+                fst = {"id": "F2", "who": m, "wf": wf, "rd": 2, "sj": True}
+            else:
+                fst["rj"] = True
+                if fst["id"] == "F2" and "F3" in t:
+                    fst["id"] = "F3"
+        chain.append(fst)
         place[m] = wf
     if closers:
         wa = rng.choice([W1, W2])
@@ -1608,7 +1619,12 @@ def pose_block_quad(part):
             ln += row.get("d", "") + " | %s kneels with her mouth open; %s come%s in her mouth one after another (she keeps it all in her mouth, no swallowing yet; ONLY %s takes cum in her mouth - %s's mouth stays empty and %s does not put his cock in %s's mouth); then %s kisses %s deeply and they pass the cum from mouth to mouth, tongues and lips wet and white, a little drips from their chins%s" % (wa, " and ".join(fin), "" if len(fin) > 1 else "s", wa, st.get("share") or W2, "any man", st.get("share") or W2, st.get("share") or W2, wa, "; end the scene on that image" if st.get("last", True) else "; the scene goes on afterwards with the other men (do not end the scene here)")
         else:   # a single man's finish step (outside / inside) with one woman
             who, wf = st.get("who"), st.get("wf") or W1
-            ln += "ONLY %s comes now, with %s (in the description 'he' means %s): %s | %s's CLIMAX happens here and only here" % (who, wf, who, row.get("d", ""), who)
+            _d = row.get("d", "")
+            if st.get("sj"):
+                _d = "he has been standing aside stroking his own cock and now steps up beside her and keeps stroking himself (no sex, his cock goes in no hole and not in her mouth) until he comes: the cum lands OUTSIDE on her body (belly, breasts, thighs or back), describe the orgasm"
+            elif st.get("rj"):
+                _d = "he has been standing aside stroking his own cock; he now steps in and joins her with this act: " + _d
+            ln += "ONLY %s comes now, with %s (in the description 'he' means %s): %s | %s's CLIMAX happens here and only here" % (who, wf, who, _d, who)
         rest = [m for m in st.get("rest", [])]
         if pid in ("QG", "QM", "QV", "QW") and rest:
             ln += " | NOT in any cell: %s - watching and stroking their own cocks, not coming" % ", ".join(rest)
