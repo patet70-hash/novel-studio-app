@@ -2230,6 +2230,36 @@ def echo_n(t):
     return echo_runs(split_dialogue(t or ""))
 
 
+def loop_n(t):
+    """R129 (31 Oct, r131-nt part 1: six lines 'แต่เธอต้อง... ก่อน' ping-ponged): number of quoted lines in a run of >=4 consecutive dialogue-only lines where, inside a window of 10 lines,
+    >=4 long lines (>=14 chars without punctuation) start with the same 6 characters. Narration or a long tag breaks the run."""
+    def flush(run):
+        if len(run) < 4:
+            return 0
+        flag = set()
+        for st in range(len(run)):
+            c = {}
+            for k, q in enumerate(run[st:st + 10]):
+                z = re.sub(r"[\s.…!?,“”\"]", "", q)
+                if len(z) >= 14:
+                    c.setdefault(z[:6], []).append(st + k)
+            for v in c.values():
+                if len(v) >= 4:
+                    flag.update(v)
+        return len(flag)
+    n, run = 0, []
+    for ln in (t or "").split("\n"):
+        ln = ln.strip()
+        if not ln:
+            continue
+        if ln.startswith("“") and re.match(r"^“[^”]*”\s*[^“”]{0,40}$", ln):
+            run.append(ln)
+        else:
+            n += flush(run)
+            run = []
+    return n + flush(run)
+
+
 def untag_n(t):
     return untagged_dialogue(split_dialogue(t or ""))
 
@@ -4264,6 +4294,8 @@ def aw_run(b, cid, key):
                         why.append("it was far too long: write about %d Thai words and never more than %d: fewer repeated body-part descriptions and fewer fillers, keep the plan steps and the ending" % (int(parts[i]["words"] * 0.85), int(parts[i]["words"])))
                     if echo_n(cand[1]):
                         why.append("it had a long run of one-word lines echoed back and forth (like “อม” / “ดูด” / “แรง” / “หมด”): never answer a line by repeating its word; write real sentences, give each line new content, and put an action beat of the body between every two or three lines")
+                    if loop_n(cand[1]):
+                        why.append("its dialogue looped: several lines in a row started with the same words and just swapped the names (like 'แต่เธอต้องให้ธนาก่อน' / 'แต่เธอต้องให้ปกรณ์ก่อน'): every line must say something NEW, move the scene forward, and have an action beat of the bodies between every two or three lines")
                     if untag_n(cand[1]):
                         why.append("it had a long run of bare quoted lines with no speaker or action between them: after every 2-3 quoted lines add a short action beat or tag that names who is speaking and what the bodies are doing, so the reader always knows who talks")
                     m = msg + "\nREWRITE: your previous version was not acceptable: " + "; and ".join(why or ["write it more vividly"]) + ". Write the part again, keeping the same events."
@@ -4293,7 +4325,7 @@ def aw_run(b, cid, key):
                     t = trim_to_paragraph(t)
                 if t and not t.lstrip().startswith("{") and "```" not in t and len(t) > 200:
                     untag_t = untag_n(t)
-                    fh_t = formula_heavy(t) or bool(echo_n(t))   # R54: an echo loop counts like a formula-heavy part
+                    fh_t = formula_heavy(t) or bool(echo_n(t)) or bool(loop_n(t))   # R54: an echo loop counts like a formula-heavy part
                     fam_t = family_issues(t, info0)
                     pos_t = posture_issues(t, _is_group(parts[i])) + plan_issues(t, parts[i])
                     if attempt == 0:
