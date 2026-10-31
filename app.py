@@ -2290,7 +2290,11 @@ def fix_finish_place(text, pp):
                     parts_ = ln.split(" ")
                     for k_, c_ in enumerate(parts_):
                         if _ANY_PLACE.search(c_) and not re.search(rx, c_) and re.search(r"น้ำเชื้อ|น้ำควย|พุ่ง|สาด|อาบ|หยด|ฉีด|กระเซ็น|เปื้อน", c_):
-                            parts_[k_] = _ANY_PLACE.sub(w_, c_, count=1)
+                            _n_ = [0]
+                            def _rp(m_, w_=w_, _n_=_n_):   # R93 (r92-dp: "เปื้อนหน้าท้องและไหลลงไปตามหน้าอก"): EVERY wrong part goes; the first becomes the planned place, later ones "ตัว"
+                                _n_[0] += 1
+                                return w_ if _n_[0] == 1 else "ตัว"
+                            parts_[k_] = _ANY_PLACE.sub(_rp, c_)
                     ln = " ".join(parts_)
                     ln = re.sub(r"(?:%s)(?:และ|กับ|ทั้ง)(%s)" % (bad, rx), r"\1", ln)
                     ln = re.sub(r"(%s[ก-ฮ]{0,3})(?:และ|กับ)(?:%s)" % (rx, bad), r"\1", ln)
@@ -3226,13 +3230,19 @@ def aw_run(b, cid, key):
                 _p1 = part
                 part = fix_finish_place(part, parts[i].get("pose"))
                 _p2 = part
+                try:   # R93 instrumentation: [part, planned finish places in this part, whether fix_finish_place changed the text]
+                    _pp_ = parts[i].get("pose") or {}
+                    _w_ = {nm: pl for st_ in _pp_.get("steps", []) for nm, pl in (st_.get("place") or {}).items()}
+                    job.setdefault("fixplace", []).append([i + 1, bool(_pp_.get("g")), _w_, _p1 != _p2])
+                except Exception:
+                    pass
                 part = strip_man_on_man(part, char_info(b))
                 if len(part) < _before:
                     # R91 instrumentation: [part, chars cut by strip_repeat_cum, by fix_finish_place, by strip_man_on_man, up to 3 samples of the removed lines]
                     _gone = [x.strip()[:90] for x in _p0.split("\n") if x.strip() and x not in part.split("\n")][:3]
                     job.setdefault("repeatcum", []).append([i + 1, len(_p0) - len(_p1), len(_p1) - len(_p2), len(_p2) - len(part), _gone])
-            except Exception:
-                pass
+            except Exception as _e:
+                job.setdefault("fixerr", []).append([i + 1, repr(_e)[:160]])
             tail = cur.rstrip()[-60:]
             if tail and part.startswith(tail[-40:]):
                 part = part[len(tail[-40:]):].lstrip()
