@@ -1432,6 +1432,12 @@ def apply_men_finish(plan, wanted):
                         fin[nm] = wanted[nm][0]
                         if wanted[nm][1]:
                             st.setdefault("place", {})[nm] = wanted[nm][1]
+                f4 = [nm for nm, k_ in fin.items() if k_ == "F4"]
+                if len(f4) > 1:   # R102 (r103-dp: ก้อง was drawn F4 and ธนา was named F4: two titjobs, one man got none): only one titjob finish per step, a drawn one gives way to a named one
+                    keep = next((nm for nm in f4 if nm in wanted), f4[0])
+                    for nm in f4:
+                        if nm != keep and nm not in wanted:
+                            fin[nm] = "F1"
             elif st.get("who") in wanted and st["id"] in ("F1", "F2", "F3", "F4", "F5"):
                 if two and (st.get("rd") != 2 or wanted[st["who"]][0] in _FIRST_KINDS):
                     continue
@@ -2559,7 +2565,10 @@ def ensure_finish_lines(text, prior, pp, fallback=True):
     def narrated(blob, who):
         for ln in (blob or "").split("\n"):
             st = ln.strip()
-            if not st or QUOTE_RE.match(st) or not _MALE_CUM_LINE.search(st) or _her_only(st):
+            qm_ = QUOTE_RE.match(st)
+            if qm_:
+                st = st[qm_.end():].strip()   # R102 (r103-dp: “ชั้นจะแตกให้ดู” เธอตอบก่อนจะเขย่าจนน้ำควยพุ่งออกมาเต็มฝ่ามือ was narration too, a template line was added): narration after a leading quote counts
+            if not st or not _MALE_CUM_LINE.search(st) or _her_only(st):
                 continue
             if kind_of(st) not in kinds[who]:
                 continue
