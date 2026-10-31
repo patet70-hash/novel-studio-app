@@ -810,7 +810,7 @@ _TJ_FIN = ("; the cum lands in her cleavage and splashes on her breasts and her 
 
 _SQ_YES = re.compile(r"squirt|สควิร์ต|ฉี่พุ่ง|น้ำพุ่ง|น้ำแตกพุ่ง|หีพุ่ง|ฉีดน้ำ(?:หี|เงี่ยน)", re.I)
 _SQ_NO = re.compile(r"(?:ไม่|ห้าม)[^\n]{0,6}(?:squirt|สควิร์ต|น้ำพุ่ง|ฉี่พุ่ง)", re.I)
-_SQ_TEXT = " | SQUIRT: at her climax a jet of clear fluid shoots out of her pussy (over his hand / his face / her thighs / the sheet or the floor, as the position allows): write it plainly, the spray itself, the sound, the wet mess, her shaking."
+_SQ_TEXT = " | SQUIRT: at her climax a jet of clear fluid shoots out of her pussy (over his hand / his face / her thighs / the sheet or the floor, as the position allows; never on her own back, chin or face): write it plainly, the spray itself, the sound, the wet mess, her shaking."
 
 
 def mark_squirt(plan, t, txt, rng, p=0.4):
@@ -937,7 +937,7 @@ def _second_pool(t):
 
 def _line_kind(st):
     """which kind of finish a narration line shows: F3 inside her pussy, F1 mouth, F5 in her hand, F4 between her breasts, else F2 (outside)."""
-    if _INSIDE_HER.search(st) or re.search(r"ในหี|ข้างใน|ภายใน|ในท้อง|ช่องหี|ช่องคลอด", st):
+    if _INSIDE_HER.search(st) or re.search(r"ในหี|ข้างใน|ภายใน|ในท้อง|รูหี|ห้องหี|ช่องหี|ช่องคลอด", st):
         return "F3"
     if not re.search(r"ปาก", st) and re.search(r"หนีบ|ร่องนม|ร่องอก|ระหว่างนม|หว่างนม|หว่างอก|ระหว่างหน้าอก|ระหว่างอก|ระหว่างทรวงอก", st):   # R104 (r105-dp: 'หนีบแน่นในร่องนมจนแตก น้ำเชื้อไหลลงคอและใบหน้า' was read as mouth, a template titjob line was added: ธนา came twice in round 1)
         return "F4"
@@ -2258,7 +2258,7 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     return "\n".join(lines)
 
 
-PLAIN_WORDS = [("อวัยวะเพศ", "ของลับ"), ("อวัยวะสืบพันธุ์", "ของลับ"), ("องคชาต", "ควย"), ("ช่องคลอด", "หี"), ("น้ำอสุจิ", "น้ำเชื้อ"), ("เสร็จข้างใน", "แตกใน"), ("เสร็จข้างนอก", "แตกข้างนอก"), ("เสร็จที่หน้า", "แตกใส่หน้า"), ("เสร็จในปาก", "แตกในปาก"), ("เสร็จในหี", "แตกในหี"), ("ถึงจุดสุดยอด", "แตก"), ("น้ำหล่อลื่น", "น้ำหี"), ("สารคัดหลั่ง", "น้ำหี")]
+PLAIN_WORDS = [("อวัยวะเพศ", "ของลับ"), ("อวัยวะสืบพันธุ์", "ของลับ"), ("องคชาต", "ควย"), ("ช่องคลอด", "หี"), ("ช่องหี", "รูหี"), ("ห้องหี", "รูหี"), ("น้ำอสุจิ", "น้ำเชื้อ"), ("เสร็จข้างใน", "แตกใน"), ("เสร็จข้างนอก", "แตกข้างนอก"), ("เสร็จที่หน้า", "แตกใส่หน้า"), ("เสร็จในปาก", "แตกในปาก"), ("เสร็จในหี", "แตกในหี"), ("ถึงจุดสุดยอด", "แตก"), ("น้ำหล่อลื่น", "น้ำหี"), ("สารคัดหลั่ง", "น้ำหี")]
 
 
 TYPO_FIX = [("พึมพ่า", "พึมพำ"), ("พึมพ้ำ", "พึมพำ"), ("พึมพร", "พึมพำ"), ("หนุกมาก", "สนุกมาก"), ("เปียกชับ", "เปียกชื้น"), ("กระแทควย", "กระแทกควย"), ("เยียดให้", "เย็ดให้"), ("ริมฝีริมฝีปาก", "ริมฝีปาก"), ("แรงตดของ", "แรงกระแทกของ"), ("การตดจน", "การกระแทกจน"), ("ขมับหี", "ขมิบหี"), ("อ่อนโยล", "อ่อนโยน")]   # R32 additions seen in r32-r34
@@ -2830,7 +2830,77 @@ _PLACE_WORD = {"ก้น": "ก้น", "หลัง": "แผ่นหลั�
 _ANY_PLACE = re.compile(r"(?:แผ่น)?หลัง(?!จาก|ที่|เสร็จ)|หน้าท้อง|ท้องน้อย|เนินอก|หน้าอก|แก้มก้น|ก้น|ใบหน้า|ต้นขา")
 
 
-_INSIDE_HER = re.compile(r"(?:ภายใน|ข้างใน|ใน)(?:หี|ตัว)(?:ของ)?(?:เธอ|ลลิ?ตา)?")
+_INSIDE_HER = re.compile(r"(?:ลึก)?(?:เข้าไป)?(?:ภายใน|ข้างใน|ใน)(?:รูหี|ช่องหี|ห้องหี|ช่องคลอด|หี|ตัว)(?:ของ)?(?:เธอ|ลลิ?ตา)?")
+
+
+def _pose_men(pp):
+    cast = (pp or {}).get("cast") or {}
+    men = list(cast.get("men") or [x for x in (cast.get("A"), cast.get("B")) if x])
+    for st in (pp or {}).get("steps", []):
+        if st.get("who") and st["who"] not in men:
+            men.append(st["who"])
+        for nm in (st.get("fin") or {}):
+            if nm not in men:
+                men.append(nm)
+    return men
+
+
+def name_cum_owner(text, pp):
+    """R115 (r117-dp, user 31 Oct: extra finishes are fine but must read clearly, with the owner named): a man's cum line that names nobody
+    ('น้ำเชื้อสีขาวข้นสาดออกมาจากหัวควย...') gets its owner when the two lines before it name exactly one man: 'น้ำเชื้อ' -> 'น้ำเชื้อของX'."""
+    men = _pose_men(pp)
+    if not text or len(men) < 2:
+        return text
+    rx = "|".join(re.escape(x) for x in sorted(men, key=len, reverse=True))
+    lines = text.split("\n")
+    for i, ln in enumerate(lines):
+        st = ln.strip()
+        if not st or QUOTE_RE.match(st) or re.search(rx, st):
+            continue
+        if not (_MALE_CUM_LINE.search(st) and not _HER_LINE.search(st)) or not re.search(r"น้ำเชื้อ(?!ของ)", st):
+            continue
+        seen, k = [], i - 1
+        while k >= 0 and len(seen) < 2 + 0 and i - k <= 3:
+            prev = lines[k].strip()
+            k -= 1
+            if not prev:
+                continue
+            seen.append(prev)
+        named = {m.group(0) for p in seen for m in re.finditer(rx, re.sub(r"เสียง(?:%s)" % rx, "เสียง", p))}
+        if len(named) == 1:
+            lines[i] = re.sub(r"น้ำเชื้อ(?!ของ)", "น้ำเชื้อของ" + next(iter(named)), ln, count=1)
+    return "\n".join(lines)
+
+
+_HER_FLUID_BAD = re.compile(r"(แผ่นหลัง|หลัง|คาง|ใบหน้า|หน้า)(ของเธอ|ของลลิ?ตา)")
+
+
+def fix_her_fluid_place(text, pp=None):
+    """R115 (r117-dp, user 31 Oct: anatomy): her own wetness / squirt (น้ำหี) never lands on her own back, chin or face: 'จนเปียกไปทั่วแผ่นหลังของเธอ' -> '...ต้นขาของเธอ',
+    'น้ำหีของเธอไหลหยดลงมาที่คาง' (while she sucks him) -> '...ที่ต้นขา'."""
+    out = []
+    for ln in (text or "").split("\n"):
+        st = ln.strip()
+        if st and not QUOTE_RE.match(st) and re.search(r"น้ำหี", st) and not re.search(r"น้ำเชื้อ|น้ำควย", st):
+            ln = _HER_FLUID_BAD.sub(lambda m: "ต้นขา" + m.group(2), ln)
+            ln = re.sub(r"(น้ำหี[^\n]{0,24}?(?:ที่|ลงบน|บน|ถึง))คาง(?!ของ)", r"\1ต้นขา", ln)
+        out.append(ln)
+    return "\n".join(out)
+
+
+def fix_male_pretty(text, pp):
+    """R115 (r117-dp: ธนา says "เพราะกูสวยมากจริงๆ"): a man calls himself หล่อ, never สวย."""
+    men = _pose_men(pp)
+    if not text or not men:
+        return text
+    rx = "|".join(re.escape(x) for x in sorted(men, key=len, reverse=True))
+    out = []
+    for ln in text.split("\n"):
+        m = re.match(r"^(\s*)(“[^”\n]*”)(\s*(?:%s)[^\n]*)$" % rx, ln)
+        if m and re.search(r"(?<![ก-ฮ])กู[^”]{0,8}สวย", m.group(2)) and "สวย" in m.group(2):
+            ln = m.group(1) + m.group(2).replace("สวย", "หล่อ") + m.group(3)
+        out.append(ln)
+    return "\n".join(out)
 
 
 def fix_finish_place(text, pp):
@@ -2838,15 +2908,24 @@ def fix_finish_place(text, pp):
     a wrong body part in his cum lines (and the 2 lines after) is swapped for the planned one."""
     if not pp or not pp.get("g"):
         return text
-    want = {}
+    want, outs = {}, {}
     for st in pp.get("steps", []):
         for nm, pl in (st.get("place") or {}).items():
             if pl in _PLACE_WORD:
                 want[nm] = pl
-    if not want:
+        # R115 (r117-dp: ปกรณ์ planned F2 outside, written "ราดลงลึกเข้าไปในห้องหี"): an outside finish with NO named place still must not land inside her
+        if st.get("who") and st.get("id") == "F2":
+            outs[st["who"]] = "หน้าท้อง"
+        for nm, k in (st.get("fin") or {}).items():
+            if k == "F2":
+                outs.setdefault(nm, "หน้าท้อง")
+    for nm in list(outs):
+        if nm in want:
+            outs.pop(nm)
+    if not want and not outs:
         return text
     cast = pp.get("cast") or {}
-    allmen = list(cast.get("men") or [x for x in (cast.get("A"), cast.get("B")) if x]) + list(want)
+    allmen = list(cast.get("men") or [x for x in (cast.get("A"), cast.get("B")) if x]) + list(want) + [x for x in outs if x not in want]
     out, cur, left, win = [], None, 0, 0
     prev_named, prev_age = None, 9
     nm_rx = "|".join(re.escape(x) for x in sorted(allmen, key=len, reverse=True))
@@ -2861,10 +2940,10 @@ def fix_finish_place(text, pp):
             st = ln.strip()
         st = re.sub(r"เสียง(?:%s)" % nm_rx, "เสียง", st) if nm_rx else st   # "เสียงก้อง" is a voice, not the man
         if st:
-            hits = sorted((st.find(x), x) for x in want if x in st)
+            hits = sorted((st.find(x), x) for x in list(want) + list(outs) if x in st)
             if cur and any(x in st and x != cur for x in allmen):
                 cur = None
-            if not hits and win <= 0 and not any(x in st for x in allmen) and prev_named in want and prev_age <= 2 and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
+            if not hits and win <= 0 and not any(x in st for x in allmen) and (prev_named in want or prev_named in outs) and prev_age <= 2 and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
                 hits = [(0, prev_named)]   # he is "เขา" here: the man named in the line just before
             if hits and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
                 cur, left = hits[0][1], 3
@@ -2874,6 +2953,9 @@ def fix_finish_place(text, pp):
                   and any(re.search(dict(_PLACES).get(w_, "x^"), st) for w_ in want.values())):
                 win = 0   # a bare cum line on the planned place right after his own finish: the same finish told twice
                 continue
+            elif cur and cur in outs and left > 0 and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
+                if _INSIDE_HER.search(st):   # no planned place: only "inside her" is wrong, it becomes her belly
+                    ln = _INSIDE_HER.sub("บน" + outs[cur] + "ของเธอ", ln, count=1)
             elif cur and left > 0 and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
                 rx = dict(_PLACES).get(want[cur], "")
                 w_ = _PLACE_WORD.get(want[cur], "")
@@ -4007,6 +4089,9 @@ def aw_run(b, cid, key):
                 _spos = scene_pos.setdefault(_scn, len(cur))
                 _before = len(part)
                 _p0 = part
+                part = name_cum_owner(part, parts[i].get("pose"))
+                part = fix_her_fluid_place(part)
+                part = fix_male_pretty(part, parts[i].get("pose"))
                 part = strip_repeat_cum(part, cur[_spos:], parts[i].get("pose"))
                 _p1 = part
                 part = fix_finish_place(part, parts[i].get("pose"))
@@ -4533,7 +4618,7 @@ class H(BaseHTTPRequestHandler):
         task = ("TASK: rewrite the summary of chapter %s (\"%s\", target %s words) as a SCENE LIST in THAI for a scene-by-scene writer. Current summary: %s\n"
                 "FORMAT: 2-5 scenes, exactly like: ฉากที่ 1 (ประมาณ 20%%) <who is there, where, what happens in order> ฉากที่ 2 (ประมาณ 80%%) ... Percentages add up to 100. "
                 "Keep every plot point, setting and group composition of the current summary and stay consistent with the neighbouring chapters and the bible. Use ONLY characters named or clearly implied by the current summary (match descriptions such as 'the two secretaries' or 'the driver' to the roles in the NAMES list); never add other family members. "
-                "Write everything in Thai: no English words, no English labels like (Position 1) or (Oral), and never the clinical words อวัยวะเพศ, องคชาต, ช่องคลอด, น้ำอสุจิ, ถึงจุดสุดยอด (say ควย, หี, เย็ด, อม, เลีย, น้ำเชื้อ instead). Describe how a man finishes with the word แตก plus the place: แตกใน (แตกในปาก, แตกในหี), แตกข้างนอก, แตกใส่หน้า; never use เสร็จ for this. A woman climaxing is also แตก (never เสร็จ); her wetness is น้ำหี or น้ำเงี่ยน, never น้ำหล่อลื่น or สารคัดหลั่ง. "
+                "Write everything in Thai: no English words, no English labels like (Position 1) or (Oral), and never the clinical words อวัยวะเพศ, องคชาต, ช่องคลอด, น้ำอสุจิ, ถึงจุดสุดยอด (say ควย, หี, เย็ด, อม, เลีย, น้ำเชื้อ instead). The hole itself is always รูหี (never ช่องหี, ห้องหี or ช่องคลอด). Describe how a man finishes with the word แตก plus the place: แตกใน (แตกในปาก, แตกในหี), แตกข้างนอก, แตกใส่หน้า; never use เสร็จ for this. A woman climaxing is also แตก (never เสร็จ); her wetness is น้ำหี or น้ำเงี่ยน, never น้ำหล่อลื่น or สารคัดหลั่ง. "
                 "In each sex scene name every participant, say who is a stranger or newcomer if relevant, list the acts and positions in order (oral on the man first, at least 4-5 different positions in a pair scene and 6-8 in a group scene, every participant active) and how it ends (about 60%% of sex scenes end with แตกในปาก). "
                 "Sex scenes together take about 60-70%% of the chapter; a non-sex opening or closing scene takes the rest. Write names only in Thai script from the NAMES list. Unless the bible has custom speech and relationship rules: every character is heterosexual (no LGBT characters), but in sex scenes women may have sex with each other; men have no sexual contact with men. Maximum 1100 characters. Output ONLY the scene list, nothing else."
                 ) % (cid, chl.get(cid, {}).get("title", cid), ol[cid].get("target", 0), ol[cid].get("summary", ""))
