@@ -1250,6 +1250,12 @@ def pose_block_group3(part):
                 ln += " | " + " ; ".join("%s: %s" % (nm, (t.get(fid) or {}).get("d", "")) + ((" (the cum lands on her %s)" % st["place"][nm]) if (st.get("place") or {}).get(nm) else "") for nm, fid in fin.items())
                 pl = {"F3": "is between her legs with his cock in her pussy", "F1": "kneels at her head with his cock at her lips", "F2": "kneels beside her with his cock in his own hand"}
                 ar = [("%s %s" % (nm, pl[fid])) for nm, fid in fin.items() if fid in pl]
+                kf = sorted(fin.values())
+                if kf == ["F1", "F4", "F5"]:   # R106 (r107-dp: ก้อง was written doing the titjob that ธนา was planned for, ธนา's finish came from a template line): bind each man to his own act
+                    who4 = [nm for nm, f_ in fin.items() if f_ == "F4"][0]
+                    who1 = [nm for nm, f_ in fin.items() if f_ == "F1"][0]
+                    who5 = [nm for nm, f_ in fin.items() if f_ == "F5"][0]
+                    ln += " | FIXED ARRANGEMENT for this whole step (nobody swaps acts): ONLY %s has his cock between her breasts (the titjob is HIS and nobody else's); ONLY %s is in her mouth; ONLY %s has his cock in her hand. Write each man's own act and his own climax in it, one after another: %s's cum lands on her breasts and face, %s's in her mouth, %s's in her hand." % (who4, who1, who5, who4, who1, who5)
                 if len(ar) == 3:
                     ln += " | FIXED ARRANGEMENT for this whole step (nobody changes place, nobody swaps): %s is on her back; %s. Only the man at her head is ever in her mouth; only the man between her legs is ever in her pussy; write the three climaxes one after another in this arrangement." % (W, "; ".join(ar))
         elif st.get("ab"):
@@ -3635,7 +3641,7 @@ def aw_run(b, cid, key):
                 part = strip_self_oral(part)
                 part = fix_name_krub(part, char_info(b))
                 try:   # R97 instrumentation: the plan of this part [id, who, fin, rd, place]
-                    job.setdefault("plan", []).append([i + 1, [[st_.get("id"), st_.get("who"), st_.get("fin"), st_.get("rd"), st_.get("place")] for st_ in (parts[i].get("pose") or {}).get("steps", [])]])
+                    job.setdefault("plan", []).append([i + 1, [[st_.get("id"), st_.get("who"), st_.get("fin"), st_.get("rd"), st_.get("place")] for st_ in (parts[i].get("pose") or {}).get("steps", [])], (parts[i].get("pose") or {}).get("tv")])
                 except Exception:
                     pass
                 _pe = part
