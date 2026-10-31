@@ -765,6 +765,11 @@ POSE_TABLE = {
     "R2": {"n": "ปลุกด้วยมือ", "k": "recover", "d": "he has just come and is soft: she strokes his cock with her hand while kissing him until it is hard again; no penetration yet", "m": "", "next": ["C2", "D1", "D2", "E1", "D5"]},
     "R3": {"n": "ปลุกด้วยการถูไถ", "k": "recover", "d": "he has just come and is soft: she rubs his cock between her thighs or breasts and kisses him until it is hard again; no penetration yet", "m": "", "next": ["C2", "D1", "D2", "E1", "D5"]},
     "R4": {"n": "พักกอดแล้วปลุก", "k": "recover", "d": "he has just come and is soft: a short cuddle, whispered talk and kisses while her hand keeps touching his cock until it is hard again (a few lines only); no penetration yet", "m": "", "next": ["C2", "D1", "D2", "E1", "D5"]},
+    "H1": {"n": "เกี่ยวเบ็ดนอนจนน้ำแตก", "k": "oral", "sq": True, "d": "hooking fingers, lying: she lies on her back with her legs wide apart and her knees up, he kneels between her thighs, two fingers inside her pussy curled upward (hooked) against the front wall and rubbing it fast and hard while his mouth is on her clit; she bucks and squirts: a jet of clear fluid shoots from her pussy over his hand and wrists and soaks the sheet; his cock is not involved", "m": "จับเธอนอนหงาย อ้าขาขึ้น แล้วสอดนิ้วเข้าไปเกี่ยวข้างใน", "next": ["D1", "D4", "E1", "D5", "C2"]},
+    "H2": {"n": "ชายเลียหีขณะเธอนั่ง", "k": "oral", "d": "licking, she sits: she sits on the edge of whatever seat the scene already has (bed, sofa, chair, tub edge) with her legs wide open, one foot or knee over his shoulder, he kneels in front of her and licks and sucks her pussy and clit, her hands in his hair; his cock is not involved", "m": "จับเธอนั่งลงที่ขอบเตียงแล้วคุกเข่าลงตรงหน้าเธอ", "next": ["H3", "D1", "D9", "E1", "D5"]},
+    "H3": {"n": "เกี่ยวเบ็ดนั่งจนน้ำแตก", "k": "oral", "sq": True, "d": "hooking fingers, she sits: she sits on the edge of whatever seat the scene already has (bed, sofa, chair, tub edge) with her legs wide, he kneels or sits in front of her, two fingers inside her pussy curled upward (hooked) and rubbing fast while his tongue is on her clit; she shakes and squirts: a jet of clear fluid shoots out over his hand and chest and splashes on the floor; his cock is not involved", "m": "จับเธอนั่งลงที่ขอบเตียงแล้วสอดนิ้วเข้าไปเกี่ยวข้างใน", "next": ["H2", "D1", "D9", "E1", "D5"]},
+    "H4": {"n": "ชายเลียหีขณะเธอยืน", "k": "oral", "d": "licking, she stands: she stands with her back against the wall (or a door or a rail she holds), one leg lifted over his shoulder, he kneels in front of her and licks and sucks her pussy and clit while she holds his head; his cock is not involved", "m": "ดึงเธอลุกขึ้นยืนพิงผนังแล้วคุกเข่าลงตรงหน้าเธอ", "next": ["H5", "E5", "E6", "D1", "D9"]},
+    "H5": {"n": "เกี่ยวเบ็ดยืนจนน้ำแตก", "k": "oral", "sq": True, "d": "hooking fingers, she stands: she stands with her back against the wall (or leans forward holding something firm) with her legs apart, he is in front of or behind her with two fingers inside her pussy curled upward (hooked) and rubbing fast; she clings to him, her knees shaking, and squirts: a jet of clear fluid shoots down her thighs and over his hand and onto the floor; his cock is not involved", "m": "ดึงเธอลุกขึ้นยืนพิงผนังแล้วสอดนิ้วเข้าไปเกี่ยวข้างใน", "next": ["H4", "E5", "E6", "D1", "D9"]},
     "F1": {"n": "แตกในปาก", "k": "finish", "d": "he comes in her mouth: she kneels or lies with his cock at her lips; describe the orgasm and what she does with it", "m": "ดึงควยออกจากหีแล้วให้เธอคุกเข่าอ้าปากรอ", "next": []},
     "F2": {"n": "แตกนอก", "k": "finish", "d": "he pulls out and comes on her belly, breasts or back; describe the orgasm", "m": "ดึงควยออกมา", "next": []},
     "F3": {"n": "แตกใน", "k": "finish", "d": "he comes deep inside her pussy and stays inside for a moment; describe the orgasm", "m": "", "next": []},
@@ -784,6 +789,16 @@ for _pid, _add in _EDGE_ADD.items():
     for _x in _add:
         if _x not in POSE_TABLE[_pid]["next"]:
             POSE_TABLE[_pid]["next"].append(_x)
+
+_EDGE_ADD2 = {   # R109 (user 31 Oct): she is licked / fingered (hooked) until she squirts, lying / sitting / standing: where H1-H5 can be reached from
+    "A2": ["H2", "H4"], "B1": ["H2", "H4"], "B2": ["H1", "H2", "H4"], "C1": ["H2"], "C2": ["H1", "H3"], "D1": ["H1", "H3"], "D2": ["H3"],
+    "R1": ["H1", "H2"], "R2": ["H1", "H2"], "R3": ["H1", "H2"], "R4": ["H1", "H2"],
+}
+for _pid, _add in _EDGE_ADD2.items():
+    for _x in _add:
+        if _x not in POSE_TABLE[_pid]["next"]:
+            POSE_TABLE[_pid]["next"].append(_x)
+
 _TJ_D = {
     1: ("titjob: HE STANDS (wherever they are: floor, by the bed, bathroom, balcony...) and SHE KNEELS in front of him (or bends forward from the waist) and does it herself: she holds her breasts together with both hands around his cock and moves them up and down along it (or he rocks slowly between them); his cock touches nothing but her breasts, the tip near her chin or lips; no penetration",
         "ให้เธอคุกเข่าหรือก้มตัวลงตรงหน้าเขาที่ยืนอยู่"),
@@ -791,6 +806,29 @@ _TJ_D = {
         "ให้เขานั่งลงแล้วเธอคุกเข่าลงระหว่างเข่าเขา"),
 }
 _TJ_FIN = ("; the cum lands in her cleavage and splashes on her breasts and her face; describe the orgasm and the mess on her breasts and face (nothing enters her pussy or mouth in this step)")
+
+
+_SQ_YES = re.compile(r"squirt|สควิร์ต|ฉี่พุ่ง|น้ำพุ่ง|น้ำแตกพุ่ง|หีพุ่ง|ฉีดน้ำ(?:หี|เงี่ยน)", re.I)
+_SQ_NO = re.compile(r"(?:ไม่|ห้าม)[^\n]{0,6}(?:squirt|สควิร์ต|น้ำพุ่ง|ฉี่พุ่ง)", re.I)
+_SQ_TEXT = " | SQUIRT: at her climax a jet of clear fluid shoots out of her pussy (over his hand / his face / her thighs / the sheet or the floor, as the position allows): write it plainly, the spray itself, the sound, the wet mess, her shaking."
+
+
+def mark_squirt(plan, t, txt, rng, p=0.4):
+    """R109 (user 31 Oct): every scene, her climax is sometimes a squirt (random); the finger-hook poses always are; the author's words win ('squirt' asked / 'ไม่ squirt')."""
+    yes, no = bool(_SQ_YES.search(txt or "")), bool(_SQ_NO.search(txt or ""))
+    for bt in plan:
+        for st in bt:
+            row = (t.get(st.get("id")) or {}) if isinstance(t, dict) else {}
+            if row.get("sq") and not no:
+                st["w"] = True
+                st["sq"] = True
+            elif st.get("w"):
+                st["sq"] = (not no) and (yes or rng.random() < p)
+    return plan
+
+
+def _climax_extra(st):
+    return _SQ_TEXT if st.get("sq") else ""
 
 
 def _tj_table(t, pp):
@@ -1291,6 +1329,7 @@ def pose_block_group3(part):
                 row.get("d", ""))
         if st.get("w"):
             ln += " | HER CLIMAX happens in this step: show it plainly; afterwards they simply carry on, she needs no recovery."
+            ln += _climax_extra(st)
         if kind == "finish" and pid != "FT":
             ln += " | %s's CLIMAX happens here and only here; %s has come before or with him." % (who or men[0], W)
         if pid == "T6":   # R80 (r79-dp: the model wrote only the mouth part of the double, in 4 attempts)
@@ -1348,6 +1387,7 @@ def pose_block_group(part):
                 d)
         if st.get("w"):
             ln += " | HER CLIMAX happens in this step: show it plainly; afterwards they simply carry on, she needs no recovery."
+            ln += _climax_extra(st)
         if kind == "finish" and pid != "FB":
             ln += " | %s's CLIMAX happens here and only here; %s has come before or with him." % (who or A, W)
             if (st.get("place") or {}).get(who or A):
@@ -1406,6 +1446,7 @@ def pose_block(part):
                 ln += " | HOW THEY GET THERE: first write the move itself in one or two sentences (he pulls out or lifts his head or she lets go, then e.g. “%s”), and only then the new act." % mv
         if st.get("w"):
             ln += " | HER CLIMAX happens in this step: show it plainly (her body tightening, shaking, she says she is coming); afterwards they simply carry on, she needs no recovery."
+            ln += _climax_extra(st)
         if kind == "finish":
             if pp.get("quick"):
                 ln += " | HIS CLIMAX happens here and only here: write the moment; this is a quickie, she does it for him and needs no climax of her own."
@@ -1601,6 +1642,7 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         plan = pick or plan
         if group:
             plan = apply_men_finish(plan, finish_wanted_men(txt, men))
+        plan = mark_squirt(plan, t, txt, random.Random(zlib.crc32(("%s|%s|%d|%d|sq" % (b, cid, sc, salt)).encode("utf-8"))))   # R109
         sig = _plan_sig(plan)
         seen.add(sig)
         seen_open.add(sig[:2])
