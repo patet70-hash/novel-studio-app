@@ -784,6 +784,42 @@ for _pid, _add in _EDGE_ADD.items():
     for _x in _add:
         if _x not in POSE_TABLE[_pid]["next"]:
             POSE_TABLE[_pid]["next"].append(_x)
+_TJ_D = {
+    1: ("titjob: HE STANDS (wherever they are: floor, by the bed, bathroom, balcony...) and SHE KNEELS in front of him (or bends forward from the waist) and does it herself: she holds her breasts together with both hands around his cock and moves them up and down along it (or he rocks slowly between them); his cock touches nothing but her breasts, the tip near her chin or lips; no penetration",
+        "ให้เธอคุกเข่าหรือก้มตัวลงตรงหน้าเขาที่ยืนอยู่"),
+    2: ("titjob: HE SITS (on whatever seat the scene already has: edge of the bed, sofa, chair, tub edge - never furniture the scene does not have), a little higher than her, and SHE KNEELS between his knees (or bends forward over his lap) and does it herself: she holds her breasts together with both hands around his cock and moves them up and down along it; his cock touches nothing but her breasts, the tip near her chin or lips; no penetration",
+        "ให้เขานั่งลงแล้วเธอคุกเข่าลงระหว่างเข่าเขา"),
+}
+_TJ_FIN = ("; the cum lands in her cleavage and splashes on her breasts and her face; describe the orgasm and the mess on her breasts and face (nothing enters her pussy or mouth in this step)")
+
+
+def _tj_table(t, pp):
+    """R105 (31 Oct, user): a second way to do the titjob: the man stands or sits higher and the woman kneels / bends forward and does it. pp['tv'] 0 = old (she lies on her back), 1 = he stands, 2 = he sits."""
+    tv = (pp or {}).get("tv") or 0
+    if tv not in _TJ_D or not isinstance(t, dict) or ("C6" not in t and "F4" not in t):
+        return t
+    d, m = _TJ_D[tv]
+    t = dict(t)
+    if "C6" in t:
+        t["C6"] = dict(t["C6"], d=d, m=m)
+    if "F4" in t:
+        t["F4"] = dict(t["F4"], d=d.replace("titjob:", "titjob finish:").replace("no penetration", "he thrusts or she moves until he comes") + _TJ_FIN, m=m)
+    return t
+
+
+_TJ_KNEEL_RE = re.compile(r"(?:เธอ|ลลิ?ตา\S{0,6})?(?:คุกเข่า|ก้ม|โน้มตัว)[^\n]{0,12}หนีบนม|หนีบนม[^\n]{0,10}(?:ท่ายืน|ท่านั่ง|ขณะยืน|ขณะนั่ง)|(?:ยืน|นั่ง)[^\n]{0,14}หนีบนม")
+_TJ_LIE_RE = re.compile(r"นอนหงาย[^\n]{0,12}หนีบนม|หนีบนม[^\n]{0,10}นอนหงาย|คร่อมอก")
+
+
+def tj_variant(txt, rng):
+    """0 = she lies on her back, 1 = he stands, 2 = he sits; the author's words win, else a 50/50 draw between the old and the new way (the new way: stand / sit 50/50)."""
+    if _TJ_LIE_RE.search(txt or ""):
+        return 0
+    if _TJ_KNEEL_RE.search(txt or ""):
+        return 1 if re.search(r"ยืน", txt) and not re.search(r"นั่ง", txt) else (2 if re.search(r"นั่ง", txt) and not re.search(r"ยืน", txt) else rng.choice((1, 2)))
+    return 0 if rng.random() < 0.5 else rng.choice((1, 2))
+
+
 POSE_START = ("A2", "B1", "B2", "A3", "B3")   # first steps of a scene
 
 
@@ -1191,6 +1227,7 @@ def make_group3_plan(nbeats, rng, men, table=None, dp=False, tail_ok=True, round
 def pose_block_group3(part):
     pp = part["pose"]
     t = pose_table()
+    t = _tj_table(t, pp)
     cs = pp.get("cast") or {}
     men = cs.get("men") or ["A", "B", "C"]
     W = cs.get("W", "she")
@@ -1251,6 +1288,7 @@ def pose_block_group3(part):
 def pose_block_group(part):
     pp = part["pose"]
     t = pose_table()
+    t = _tj_table(t, pp)
     cs = pp.get("cast") or {}
     A, B, W = cs.get("A", "A"), cs.get("B", "B"), cs.get("W", "she")
     L = ["POSITION PLAN FOR %s WITH TWO MEN, %s AND %s, AT THE SAME TIME (ground truth: the positions come from a fixed table so the bodies stay in possible places; obey it exactly, in this order, and use NO other position in this part):" % (W, A, B)]
@@ -1315,6 +1353,7 @@ def pose_block(part):
     if pp.get("g"):
         return pose_block_group(part)
     t = pose_table()
+    t = _tj_table(t, pp)
     L = ["POSITION PLAN (ground truth: the positions below come from a fixed table so the bodies stay in possible places; obey it exactly, in this order, and use NO other position in this part):"]
     if pp.get("quick"):
         L.append("QUICKIE: this scene is short and hurried: she gives it to him fast (clothes mostly on or half off, no long foreplay, no talk about feelings); it ends when he comes. Only she does things to him: he never licks, sucks or fingers her, and she is not undressed below the waist. He keeps ONE way of speaking the whole scene (ผม/ครับ, or กู/มึง if he is rough), never switching.")
@@ -1540,8 +1579,10 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         last_fin = sig[-1]
         prev = None
         carry = want if (want and want in txt) else None
+        tv_ = tj_variant(txt, random.Random(zlib.crc32(("%s|%s|%d|%d|tj" % (b, cid, sc, salt)).encode("utf-8"))))   # R105
         for p, steps in zip(ps, plan):
             p["pose"] = {"steps": steps, "prev": prev}
+            p["pose"]["tv"] = tv_
             if want_fin and not group and not (rounds == 2 and want_fin in _FIRST_KINDS):
                 p["pose"]["fin"] = want_fin
                 if finish_place(txt):
