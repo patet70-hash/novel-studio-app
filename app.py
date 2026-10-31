@@ -3681,6 +3681,29 @@ def strip_man_on_man(text, info):
                 if new_ != ln.strip():
                     ln = new_
             st = ln.strip()
+        qm2 = QUOTE_RE.match(st) if st else None
+        if qm2 and st[qm2.end():].strip():   # R123: "“…” ปกรณ์ลูบควยของก้อง": the narration after a leading quote is cleaned like a narration line
+            head_, tail_ = st[:qm2.end()], st[qm2.end():]
+            tail0_ = tail_
+            for _ in range(6):
+                hit = None
+                for mm in rx.finditer(tail_):
+                    prev = [x for x in re.finditer(allr, tail_[:mm.start()]) if not re.search(obj_mark, tail_[max(0, x.start() - 5):x.start()])] if allr else []
+                    if prev and prev[-1].group(0) in M and prev[-1].group(0) != mm.group(1):
+                        hit = (mm, prev[-1])
+                        break
+                if not hit:
+                    break
+                mm, ac = hit
+                left = tail_.rfind(" ", 0, mm.start()) + 1
+                if 0 <= mm.start() - ac.start() <= 25:
+                    left = min(left, tail_.rfind(" ", 0, ac.start()) + 1)
+                right = tail_.find(" ", mm.end())
+                right = len(tail_) if right < 0 else right
+                tail_ = (tail_[:left].rstrip() + " " + tail_[right:].lstrip()).strip()
+            if tail_ != tail0_:
+                ln = (head_ + " " + tail_.strip()).rstrip()
+                st = ln.strip()
         if not st or QUOTE_RE.match(st):
             if ln.strip():
                 out.append(ln)
@@ -3724,7 +3747,8 @@ def family_issues(text, info):
             for mm in re.finditer(r"(?:อม|เลีย|ดูด|ชัก|จับ|ลูบ)[\u0E01-\u0E4E]{0,4}(?:ควย|หัวควย)(?:ของ)?(%s)" % mr, p):
                 # actor = the nearest character name BEFORE the act verb (29 Oct: a man named earlier in the paragraph made "ลลิตา...อมควยของธนา" a false 'man on man')
                 obj_mark = r"(?:หี|นม|ปาก|ก้น|หน้าอก|ต้นขา|สะโพก|ขา|แก้ม|ไหล่|หลัง|ท้อง|เอว|คอ|ใบหน้า|ผม|ให้|กับ|ที่|จาก|ของ|ถึง|ข้าง|ใกล้|หา|มอง|ตา|เห็น|เรียก|ดึง|ดัน|จูบ|กอด)$"   # a name right after these is the object, not the doer
-                prev = [x.group(0) for x in re.finditer(allr, p[:mm.start()]) if not re.search(obj_mark, p[max(0, x.start() - 5):x.start()])] if allr else []
+                pq = re.sub(r"\u201c[^\u201d]*\u201d", lambda m_: " " * len(m_.group(0)), p)   # R123: a name inside a quoted line (a vocative) is not the doer
+                prev = [x.group(0) for x in re.finditer(allr, pq[:mm.start()]) if not re.search(obj_mark, pq[max(0, x.start() - 5):x.start()])] if allr else []
                 actor = prev[-1] if prev else None
                 if actor and actor in M and actor != mm.group(1):
                     out.append("ชายกับชาย: " + p[max(0, mm.start() - 20):mm.end() + 5])
