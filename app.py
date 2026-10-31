@@ -3028,6 +3028,28 @@ def collapse_prefix_runs(text, k=8, minrun=3):
     return re.sub(r"\n{3,}", "\n\n", "\n".join(res))
 
 
+def strip_self_oral(text):
+    """R101 (r102-dp: “ปกรณ์ก้มหน้าลงมาก้มลงอมหัวควยของตัวเองอย่างตั้งใจ”): a man cannot suck / lick his own cock; the clause (between two spaces) is cut from narration,
+    a line that was only that clause goes. Pulling out / stroking his own cock (ดึง / ชัก... ของตัวเอง) is fine and stays."""
+    rx = re.compile(r"(?:อม|เลีย|ดูด)[\u0E01-\u0E4E]{0,4}(?:ควย|หัวควย|ดุ้น)ของตัวเอง")
+    out = []
+    for ln in (text or "").split("\n"):
+        st = ln.strip()
+        if st and not QUOTE_RE.match(st):
+            for _ in range(4):
+                mm = rx.search(ln)
+                if not mm:
+                    break
+                left = ln.rfind(" ", 0, mm.start()) + 1
+                right = ln.find(" ", mm.end())
+                right = len(ln) if right < 0 else right
+                ln = (ln[:left].rstrip() + " " + ln[right:].lstrip()).strip()
+            if not ln.strip():
+                continue
+        out.append(ln)
+    return "\n".join(out)
+
+
 def strip_man_on_man(text, info):
     """R89 (r88-dp / r88b-dp: "ปกรณ์ใช้มือลูบไล้ควยของก้อง", "ปกรณ์ยังคงอมควยของก้อง"): the retries keep failing this rule, so it is enforced in code: in narration, the clause (the stretch
     between two spaces) in which one man touches / licks / sucks another man's cock is cut, together with the doer's own name when it stands just before it."""
@@ -3556,6 +3578,7 @@ def aw_run(b, cid, key):
                 except Exception:
                     pass
                 part = strip_man_on_man(part, char_info(b))
+                part = strip_self_oral(part)
                 part = fix_name_krub(part, char_info(b))
                 try:   # R97 instrumentation: the plan of this part [id, who, fin, rd, place]
                     job.setdefault("plan", []).append([i + 1, [[st_.get("id"), st_.get("who"), st_.get("fin"), st_.get("rd"), st_.get("place")] for st_ in (parts[i].get("pose") or {}).get("steps", [])]])
