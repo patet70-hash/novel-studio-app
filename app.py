@@ -1425,18 +1425,20 @@ def apply_men_finish(plan, wanted):
         for st in bt:
             fin = st.get("fin")
             if isinstance(fin, dict):
+                applied = set()
                 for nm in list(fin):
                     if nm in wanted:
                         if two and not (st.get("rd") == 1 and wanted[nm][0] in _FIRST_KINDS):
                             continue
+                        applied.add(nm)
                         fin[nm] = wanted[nm][0]
                         if wanted[nm][1]:
                             st.setdefault("place", {})[nm] = wanted[nm][1]
                 f4 = [nm for nm, k_ in fin.items() if k_ == "F4"]
                 if len(f4) > 1:   # R102 (r103-dp: ก้อง was drawn F4 and ธนา was named F4: two titjobs, one man got none): only one titjob finish per step, a drawn one gives way to a named one
-                    keep = next((nm for nm in f4 if nm in wanted), f4[0])
+                    keep = next((nm for nm in f4 if nm in applied), f4[0])   # R103: 'applied' = named kinds really written in this step (r104-dp: ก้อง was named F2 for round 2, so 'in wanted' wrongly protected his drawn F4)
                     for nm in f4:
-                        if nm != keep and nm not in wanted:
+                        if nm != keep and nm not in applied:
                             fin[nm] = "F1"
             elif st.get("who") in wanted and st["id"] in ("F1", "F2", "F3", "F4", "F5"):
                 if two and (st.get("rd") != 2 or wanted[st["who"]][0] in _FIRST_KINDS):
