@@ -4039,6 +4039,28 @@ def aw_run(b, cid, key):
             new, _ = apply_chapter_edits(cur, [], part)
             write(fp, new)
             job["words"] = body_words(new)
+        try:   # R114 (r115-dp: after the last planned finish the model went on and ก้อง/ปกรณ์/ธนา came a third time; offline, strip_repeat_cum on the finished text removes those lines): one sweep over each 2/3-men scene with the whole scene as context (the 4-men scene is left alone: its closing mouth-cum lines are wanted)
+            _c2 = read(fp)
+            _last = {}
+            for _pr in parts:
+                _pp2 = _pr.get("pose") or {}
+                if _pp2.get("g") in (True, 3) and _pp2.get("nfin"):
+                    _last[_pr.get("scene")] = _pp2
+            _cuts = 0
+            for _sc, _pp2 in sorted(_last.items(), key=lambda kv: -(scene_pos.get(kv[0]) or 0)):
+                _p0 = scene_pos.get(_sc)
+                if _p0 is None:
+                    continue
+                _body = _c2[_p0:]
+                _nb = strip_repeat_cum(_body, "", _pp2)
+                if _nb != _body:
+                    _cuts += len(_body) - len(_nb)
+                    _c2 = _c2[:_p0] + _nb
+            if _cuts:
+                write(fp, _c2)
+                job["sweep"] = _cuts   # R114 instrumentation: characters removed by the final sweep
+        except Exception as _e:
+            job["sweeperr"] = repr(_e)[:160]
         if job.get("state") == "running":
             job["state"] = "done"
         try:
