@@ -1700,7 +1700,20 @@ def pose_block_group(part):
     return " ".join(L[:1]) + "\n" + "\n".join(L[1:])
 
 
+_BODY_RULE = (" BODY STATE (R119): in EVERY step with sexual activity show, in plain raw words, what the bodies look like and do: "
+              "(a) face and eyes: expression, gaze (แววตา), eyes rolling or closing, flushed cheeks, biting her lip, open mouth, panting; "
+              "(b) body in motion: breasts bouncing and jiggling (นมกระเพื่อม / นมเด้ง / นมแกว่ง), hips rocking, back arching, belly and thighs shaking; "
+              "(c) clenching and twitching: legs trembling, pussy clamping (ตอดรัด), muscles tensing (เกร็ง), twitching (กระตุก), toes curling, nails digging in. "
+              "Give at least two or three DIFFERENT such details per step, from different groups, in fresh wording each time (never the same phrase twice); "
+              "attribute each to the right person by name. Keep these as short clauses inside the action paragraphs so the dialogue share stays high.")
+
+
 def pose_block(part):
+    b = _pose_block_core(part)
+    return (b + _BODY_RULE) if b else b
+
+
+def _pose_block_core(part):
     """the POSITION PLAN lines for one part (empty when the part has no plan)."""
     pp = (part or {}).get("pose")
     if not pp or not pp.get("steps"):
@@ -4047,6 +4060,30 @@ def sex_density(t):
     return len(_SEX_DENS_RE.findall(t)) * 1000.0 / len(t)
 
 
+_BD_FACE = re.compile(r"หลับตา|ตาปรือ|ตาพร่า|ตาเยิ้ม|ตาเหลือก|ตาลอย|แววตา|สายตา|หน้าแดง|แก้มแดง|ใบหน้า(?:แดง|ร้อน|บิด)|หน้า(?:ร้อน|บิด)|กัดริมฝีปาก|กัดปาก|ริมฝีปากสั่น|เม้มปาก|ขมวดคิ้ว|คิ้วขมวด|น้ำตาคลอ|อ้าปากค้าง|หายใจหอบ|หอบ|ลมหายใจ|สีหน้า")
+_BD_MOVE = re.compile(r"นม(?:กระเพื่อม|สั่น|แกว่ง|ไหว|เด้ง|ยวบ|กระเด้ง)|(?:หน้าอก|เนินอก|ถันคู่)(?:กระเพื่อม|สั่น|แกว่ง|เด้ง|ขึ้นลง)|สะโพก(?:ยก|ส่าย|กระแทก|โยก|สั่น)|เอว(?:บิด|ส่าย|แอ่น)|แอ่นหลัง|แอ่นตัว|ตัวโก่ง|เนื้อ(?:สั่น|ระริก)|ท้องน้อย(?:กระตุก|สั่น)|หัวนม(?:แข็ง|ชู)|ก้น(?:กระเพื่อม|สั่น|กระเด้ง)")
+_BD_SPASM = re.compile(r"เกร็ง|กระตุก|สั่นเทา|สั่นสะท้าน|ตัวสั่น|ขาสั่น|ต้นขาสั่น|นิ้วเท้างอ|นิ้วเท้าจิก|จิกเล็บ|จิกผ้า|บีบรัด|ตอดรัด|หดเกร็ง|ขนลุก|เหงื่อ|สั่นระริก")
+BODY_MIN_PER500 = 4.0   # R119: body-state details (face/eyes + motion + clench/twitch) a sex part must carry per 500 Thai words
+
+
+def body_detail_n(t):
+    t = t or ""
+    return len(_BD_FACE.findall(t)) + len(_BD_MOVE.findall(t)) + len(_BD_SPASM.findall(t))
+
+
+def body_detail_ok(t):
+    """enough raw body-state description, covering all three groups (face/eyes, motion, clench/twitch) once the part is long enough."""
+    w = max(1, body_words("# x\n" + (t or "")))
+    if w < 250:
+        return True
+    n = body_detail_n(t)
+    if n * 500.0 / w < BODY_MIN_PER500:
+        return False
+    if w >= 450 and not (_BD_FACE.search(t) and _BD_MOVE.search(t) and _BD_SPASM.search(t)):
+        return False
+    return True
+
+
 CALM_DENS_MAX = 3.5   # an ordinary (non-sexual) scene may not exceed this many explicit sex words per 1000 characters
 DUP_PART_MAX = 0.05   # at most this share of a part's long paragraphs may repeat word for word
 
@@ -4109,6 +4146,8 @@ def aw_run(b, cid, key):
                         why.append("it had only %d%% spoken lines but this PEAK part needs at least %d%%: write at least %d quoted lines (moans, dirty talk, orders, answers) and keep every narration paragraph to ONE short sentence" % (int(quote_share(cand[1]) * 100), int(DLG_MIN * 100), max(12, int(parts[i]["words"] * 45 / 1000))))
                     if need_sex and sex_density(cand[1]) < SEX_DENS_MIN:
                         why.append("it did not stay on the sex: this part must be the sexual act itself from the first sentence to the last, with the body parts named (ควย, หี, นม, หัวนม, น้ำเงี่ยน) in nearly every paragraph and no drifting into work, family, memories or chat")
+                    if need_sex and not body_detail_ok(cand[1]):
+                        why.append("it did not show the bodies enough: in every sexual step add short raw clauses about the faces and eyes (แววตา, flushed cheeks, biting lip, eyes rolling), the body in motion (นมกระเพื่อม / นมเด้ง, hips rocking, back arching) and the clenching and twitching (ขาสั่น, เกร็ง, กระตุก, ตอดรัด, toes curling), at least %d such details in this part, all different words" % max(4, int(parts[i]["words"] * BODY_MIN_PER500 / 500) + 1))
                     if need_calm and sex_density(cand[1]) > CALM_DENS_MAX:
                         why.append("this is an ORDINARY scene (no sex yet): remove the explicit sex words and acts, keep it to talk, atmosphere, glances and light touches")
                     if anatomy_issues(cand[1], info0):
@@ -4162,9 +4201,9 @@ def aw_run(b, cid, key):
                         job.setdefault("raw_dup", []).append(round(dup_ratio(t, cur0), 3))
                         job.setdefault("raw_anat", []).append(anatomy_issues(t, info0))
                         job.setdefault("raw_untag", []).append(untag_t)
-                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)), bool(untag_t) or fh_t or bool(fam_t) or bool(pos_t) or part_too_long(t, parts[i])) - min(1.2, 0.3 * len(pos_t))   # R78: the version with fewer plan problems wins when none is clean
+                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)), bool(untag_t) or fh_t or bool(fam_t) or bool(pos_t) or part_too_long(t, parts[i])) - min(1.2, 0.3 * len(pos_t)) - (0.3 if (need_sex and not body_detail_ok(t)) else 0.0)   # R78: the version with fewer plan problems wins when none is clean
                     ok_t = ((not need_dlg or quote_share(t) >= DLG_MIN) and (not need_sex or sex_density(t) >= SEX_DENS_MIN)
-                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0) and not untag_t and not fh_t and not fam_t and not pos_t and not part_too_long(t, parts[i]))
+                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and (not need_sex or body_detail_ok(t)) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0) and not untag_t and not fh_t and not fam_t and not pos_t and not part_too_long(t, parts[i]))
                     if cand is not None:
                         job["retries"] = job.get("retries", 0) + 1
                         if sc_t >= cand[0]:
