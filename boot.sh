@@ -3,7 +3,7 @@
 # Idempotent: reuses llama.cpp build + model already on /workspace.
 B=/workspace/novel_llm
 REPO=https://raw.githubusercontent.com/patet70-hash/novel-studio-app/main
-SHA_APP=e4f2eff5cb50b5cc50fc82321e83545e3806a7d31efc7bc08bb31fae4c9a92e2
+SHA_APP=8fea191c54f2e064798f6500dd5bd4321ea0786b6c38c12cc6fbd0d4c8d9ae02
 SHA_IDX=a4d6959988d648a0d93393a1a7589118426c44dbb3bbfca8762f57b944ac45a3
 mkdir -p $B/models $B/novel $B/app
 log(){ echo "[$(date -u +%H:%M:%S)] $*"; }
