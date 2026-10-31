@@ -1708,9 +1708,29 @@ _BODY_RULE = (" BODY STATE (R119): in EVERY step with sexual activity show, in p
               "attribute each to the right person by name. Keep these as short clauses inside the action paragraphs so the dialogue share stays high.")
 
 
+_BODY_STEP = [
+    "BODY DETAIL REQUIRED IN THIS STEP: her breasts bouncing / jiggling / swaying with the rhythm (นมกระเพื่อม, นมเด้ง, นมแกว่ง) and her hips or back moving, in one short clause",
+    "BODY DETAIL REQUIRED IN THIS STEP: her face and eyes (expression, gaze แววตา, flushed cheeks, biting her lip, eyes rolling or closing) and his face too, in one short clause",
+    "BODY DETAIL REQUIRED IN THIS STEP: clenching and twitching (legs trembling, pussy clamping ตอดรัด, muscles tensing เกร็ง, twitching กระตุก, toes curling, nails digging in), in one short clause",
+]
+
+
+def _add_step_details(b, part):
+    """R121: the code assigns each step a different required body detail (rotating breasts-in-motion / face and eyes / clench and twitch) so the groups cannot be skipped."""
+    pp = (part or {}).get("pose") or {}
+    off = sum(ord(c) for c in str(pp.get("id") or part.get("words") or "x")) if part else 0
+    out = []
+    for ln in b.split("\n"):
+        m = re.match(r"STEP (\d+) \[", ln)
+        if m and "rests beside them" not in ln and "HOW THEY GET THERE: right after he comes" not in ln:
+            ln = ln + " | " + _BODY_STEP[(int(m.group(1)) + off) % 3] + "."
+        out.append(ln)
+    return "\n".join(out)
+
+
 def pose_block(part):
     b = _pose_block_core(part)
-    return (b + _BODY_RULE) if b else b
+    return (_add_step_details(b, part) + _BODY_RULE) if b else b
 
 
 def _pose_block_core(part):
