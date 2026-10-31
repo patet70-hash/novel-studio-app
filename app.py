@@ -3813,6 +3813,19 @@ def family_issues(text, info):
             m = re.search(r"ให้(?:%s)(?:อม|เลีย|ดูด|ชัก|จับ)[\u0E01-\u0E4E]{0,3}(?:ควย|ดุ้น|หัวควย)" % mr, p)   # R58: "ให้ก้องอมควยชั้น" - a man ordering a man to suck
             if m:
                 out.append("ชายกับชาย (บทพูด): " + p[:50])
+        # R133 (31 Oct, r134-sr 4 men + 2 women: “เอก... มาดูดควยกูหน่อย” ธนาสั่ง / “เอก... ดูดควยเก่งชิบหายเลย” / “เอก... ควยเธอใหญ่จังเลย”): a quoted line that opens by calling a MAN
+        # and then orders / praises a cock act or his cock (no woman named in the line) is man-with-man talk
+        wmr = "|".join(re.escape(x) for x in sorted([n for n, v in info.items() if n and v.get("g") == "F"], key=len, reverse=True))
+        for p in paras:
+            for qm in re.finditer(r"\u201c(%s)[\s.\u2026,]+([^\u201d]{0,60})\u201d" % mr, p):
+                body_ = qm.group(2)
+                if wmr and re.search(wmr, body_):
+                    continue
+                if re.search(r"ค่ะ|คะ|ชั้น|หนู|ดิฉัน", body_) or re.search((r"%s|เธอ" % wmr) if wmr else r"เธอ", p[qm.end():qm.end() + 14]):
+                    continue   # spoken BY a woman (her speech marks, or a woman in the tag): she may praise a man's cock
+                if re.search(r"(?:ดูด|อม|เลีย|ชัก|จับ|ลูบ|เสียบ)[\u0E01-\u0E4E]{0,3}(?:ควย|หัวควย|ดุ้น)", body_) and not re.search(r"ดู(?:สิ|ซิ|นั่น|นะ)|ดูเธอ|ดูหล", body_) or re.search(r"(?:ควย|ดุ้น)(?:ของ)?(?:เธอ|มึง|คุณ|นาย)", body_):
+                    out.append("ชายกับชาย (บทพูด): " + qm.group(0)[:50])
+                    break
         for p in paras:
             m = re.search(r"\u201c(?:พ่อ|พี่)[^\u201d]{0,12}ควย(?:ของ)?(?:พ่อ|พี่)", p)
             if m:
