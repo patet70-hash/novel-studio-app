@@ -867,9 +867,9 @@ def _line_kind(st):
         return "F3"
     if re.search(r"ปาก|ลำคอ|ลงคอ", st):
         return "F1"
-    if re.search(r"ร่องอก|ร่องนม|หนีบ|ระหว่างนม|หว่างอก", st):
+    if re.search(r"ร่องอก|ร่องนม|หนีบ|ระหว่างนม|หว่างอก|ระหว่างทรวงอก|ทรวงอก", st):
         return "F4"
-    if re.search(r"ในมือ|ใส่มือ|คามือ|ท่วมมือ|ชุ่มมือ|เปื้อนมือ|ล้นมือ|มือของเธอ|มือเธอ", st) and not re.search(r"นม(?!ือ)|หน้าอก", st):
+    if re.search(r"ในมือ|ใส่มือ|คามือ|ท่วมมือ|ชุ่มมือ|เปื้อนมือ|ล้นมือ|มือของเธอ|มือเธอ|นิ้วมือ|ผ่านนิ้ว|ฝ่ามือ", st) and not re.search(r"นม(?!ือ)|หน้าอก", st):
         return "F5"
     return "F2"
 
@@ -2355,7 +2355,7 @@ def strip_repeat_cum(text, prior, pp):
     allowed = pp.get("nfin") or {}   # R96: how many times each man comes in the whole scene (1 for a short scene, 2 for a proper one)
 
     def pron_owner(st, prev):
-        if len(kinds) < 2 or any(x in st for x in men):
+        if not kinds or any(x in st for x in men):
             return None
         cm_ = _MALE_CUM_LINE.search(st)
         if not cm_ or (wn_ and wn_ in st[:cm_.start()]) or re.match(r"\s*เธอ", st):
@@ -2364,6 +2364,8 @@ def strip_repeat_cum(text, prior, pp):
         cands = [x for x in men if lk in kinds.get(x, ())]
         if prev[0] in cands and prev[1] <= 2:
             return prev[0]
+        if len(kinds) < 2:
+            return None   # R98: with ONE planned man in the part a nameless line is his only when the man named just before it is he (r98-dp: 'เขาถอยควยออก... น้ำควยพุ่งเปื้อนแผ่นหลัง' + 'น้ำเชื้อของปกรณ์สาด...' came out as two finishes)
         return cands[0] if len(cands) == 1 else None
 
     came_n, first_at = {}, {}
