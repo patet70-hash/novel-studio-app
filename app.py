@@ -1224,6 +1224,32 @@ def make_group3_plan(nbeats, rng, men, table=None, dp=False, tail_ok=True, round
     return out
 
 
+_ACT_OF = {   # R107: what each finish kind is, in words the model cannot mix up (used for every multi-man finish step, any cast, any story)
+    "F1": ("is the only one in her mouth", "in her mouth"),
+    "F2": ("is the only one who pulls out and finishes outside her", "on her body"),
+    "F3": ("is the only one inside her pussy", "inside her pussy"),
+    "F4": ("is the only one with his cock between her breasts (the titjob is his alone)", "on her breasts and face"),
+    "F5": ("is the only one with his cock in her hand (the handjob is his alone)", "in her hand"),
+}
+
+
+def _act_binding(fin):
+    """R107 (user, 31 Oct: fixes must be principles that work for every scene and every novel): in a finish step where several men come, bind each man to his OWN act and his own climax so the model cannot give one man's act to another (r107-dp: the planned titjob man was written in the mouth act and the mouth man in the titjob). Works for any men names and any kinds; men with the same kind are not bound (nothing to swap)."""
+    if not isinstance(fin, dict) or len(fin) < 2:
+        return ""
+    cnt = {}
+    for k_ in fin.values():
+        cnt[k_] = cnt.get(k_, 0) + 1
+    parts, ends = [], []
+    for nm, k_ in fin.items():
+        if k_ in _ACT_OF and cnt[k_] == 1:
+            parts.append("%s %s" % (nm, _ACT_OF[k_][0]))
+            ends.append("%s's cum lands %s" % (nm, _ACT_OF[k_][1]))
+    if len(parts) < 2:
+        return ""
+    return " | FIXED ARRANGEMENT for this whole step (nobody swaps acts): %s. Write each man's own act and his own climax in it, one after another: %s." % ("; ".join(parts), "; ".join(ends))
+
+
 def pose_block_group3(part):
     pp = part["pose"]
     t = pose_table()
@@ -1250,12 +1276,7 @@ def pose_block_group3(part):
                 ln += " | " + " ; ".join("%s: %s" % (nm, (t.get(fid) or {}).get("d", "")) + ((" (the cum lands on her %s)" % st["place"][nm]) if (st.get("place") or {}).get(nm) else "") for nm, fid in fin.items())
                 pl = {"F3": "is between her legs with his cock in her pussy", "F1": "kneels at her head with his cock at her lips", "F2": "kneels beside her with his cock in his own hand"}
                 ar = [("%s %s" % (nm, pl[fid])) for nm, fid in fin.items() if fid in pl]
-                kf = sorted(fin.values())
-                if kf == ["F1", "F4", "F5"]:   # R106 (r107-dp: ก้อง was written doing the titjob that ธนา was planned for, ธนา's finish came from a template line): bind each man to his own act
-                    who4 = [nm for nm, f_ in fin.items() if f_ == "F4"][0]
-                    who1 = [nm for nm, f_ in fin.items() if f_ == "F1"][0]
-                    who5 = [nm for nm, f_ in fin.items() if f_ == "F5"][0]
-                    ln += " | FIXED ARRANGEMENT for this whole step (nobody swaps acts): ONLY %s has his cock between her breasts (the titjob is HIS and nobody else's); ONLY %s is in her mouth; ONLY %s has his cock in her hand. Write each man's own act and his own climax in it, one after another: %s's cum lands on her breasts and face, %s's in her mouth, %s's in her hand." % (who4, who1, who5, who4, who1, who5)
+                ln += _act_binding(fin)   # R107: generic - any set of first/second-round kinds, any men
                 if len(ar) == 3:
                     ln += " | FIXED ARRANGEMENT for this whole step (nobody changes place, nobody swaps): %s is on her back; %s. Only the man at her head is ever in her mouth; only the man between her legs is ever in her pussy; write the three climaxes one after another in this arrangement." % (W, "; ".join(ar))
         elif st.get("ab"):
@@ -1318,6 +1339,7 @@ def pose_block_group(part):
                 for nm, fid in fin.items():
                     parts_.append("%s: %s" % (nm, (t.get(fid) or {}).get("d", "")) + ((" (the cum lands on her %s)" % st["place"][nm]) if (st.get("place") or {}).get(nm) else ""))
                 ln += " | " + " ; ".join(parts_)
+                ln += _act_binding(fin)
         else:
             d = row.get("d", "")
             ln = "STEP %d [%s]: ONLY %s is with %s in this step (in the description below 'he' / 'his' means %s)%s: %s" % (
