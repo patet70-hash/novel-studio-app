@@ -2183,9 +2183,19 @@ def strip_repeat_cum(text, prior, pp):
                         return x, True
             return None, False
         if _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
-            hits = sorted((st.find(x), x) for x in men if x in st)
+            # R92 (r91-dp: “ลลิตากลืนน้ำควย... ปกรณ์และก้องมองลงมา” made ปกรณ์ 'already come' and his real finish was cut): the owner is the man named BEFORE the cum word
+            # (nearest one, with no woman's name between) or in "น้ำเชื้อของ<man>"; a man only mentioned after it is a bystander
+            cm = _MALE_CUM_LINE.search(st)
+            pre = st[:cm.start()]
+            hits = [(pre.rfind(x), x) for x in men if x in pre]
+            wn = cast.get("W")
             if hits:
-                return hits[0][1], False
+                at, who = max(hits)
+                if not (wn and wn in pre[at:]):
+                    return who, False
+            for x in men:
+                if re.search(r"(?:น้ำเชื้อ|น้ำควย)ของ" + re.escape(x), st):
+                    return x, False
         return None, False
 
     came = set()
