@@ -2230,6 +2230,27 @@ def echo_n(t):
     return echo_runs(split_dialogue(t or ""))
 
 
+def short_run_n(t, minrun=8, maxlen=26):
+    """R132 (31 Oct, r133-g6: 4 men + 2 women ended with 28 one-clause lines like 'มุกยิ้ม' / 'ลลิตาพยักหน้า' / 'ตกลง'): number of lines that sit in runs of >=minrun consecutive non-empty
+    lines of at most maxlen characters (quote marks and spaces not counted). Baseline over 11 books: runs <=5 in every 1-3 man scene, 17 and 28 in the two 6-person scenes."""
+    n = cur = 0
+    for ln in (t or "").split("\n"):
+        z = re.sub(r"[\s\u201c\u201d\"]", "", ln)
+        if not z:
+            continue
+        if ln.lstrip().startswith("#"):
+            continue
+        if len(z) <= maxlen:
+            cur += 1
+        else:
+            if cur >= minrun:
+                n += cur
+            cur = 0
+    if cur >= minrun:
+        n += cur
+    return n
+
+
 def loop_n(t):
     """R129 (31 Oct, r131-nt part 1: six lines 'แต่เธอต้อง... ก่อน' ping-ponged): number of quoted lines in a run of >=4 consecutive dialogue-only lines where, inside a window of 10 lines,
     >=4 long lines (>=14 chars without punctuation) start with the same 6 characters. Narration or a long tag breaks the run."""
@@ -4294,6 +4315,8 @@ def aw_run(b, cid, key):
                         why.append("it was far too long: write about %d Thai words and never more than %d: fewer repeated body-part descriptions and fewer fillers, keep the plan steps and the ending" % (int(parts[i]["words"] * 0.85), int(parts[i]["words"])))
                     if echo_n(cand[1]):
                         why.append("it had a long run of one-word lines echoed back and forth (like “อม” / “ดูด” / “แรง” / “หมด”): never answer a line by repeating its word; write real sentences, give each line new content, and put an action beat of the body between every two or three lines")
+                    if short_run_n(cand[1]):
+                        why.append("it had a long run of tiny one-clause lines in a row (like “มุกยิ้ม” / “ลลิตาพยักหน้า” / “ตกลง”): never write more than 3 such short lines in a row; write full paragraphs with the bodies, the touches and the feelings, and when the scene is winding down write ONE closing paragraph of 3-5 sentences instead of a chain of nods and smiles")
                     if loop_n(cand[1]):
                         why.append("its dialogue looped: several lines in a row started with the same words and just swapped the names (like 'แต่เธอต้องให้ธนาก่อน' / 'แต่เธอต้องให้ปกรณ์ก่อน'): every line must say something NEW, move the scene forward, and have an action beat of the bodies between every two or three lines")
                     if untag_n(cand[1]):
@@ -4325,7 +4348,7 @@ def aw_run(b, cid, key):
                     t = trim_to_paragraph(t)
                 if t and not t.lstrip().startswith("{") and "```" not in t and len(t) > 200:
                     untag_t = untag_n(t)
-                    fh_t = formula_heavy(t) or bool(echo_n(t)) or bool(loop_n(t))   # R54: an echo loop counts like a formula-heavy part
+                    fh_t = formula_heavy(t) or bool(echo_n(t)) or bool(loop_n(t)) or bool(short_run_n(t))   # R54: an echo loop counts like a formula-heavy part
                     fam_t = family_issues(t, info0)
                     pos_t = posture_issues(t, _is_group(parts[i])) + plan_issues(t, parts[i])
                     if attempt == 0:
