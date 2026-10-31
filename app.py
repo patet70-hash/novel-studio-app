@@ -2641,11 +2641,23 @@ def ensure_finish_lines(text, prior, pp, fallback=True):
             qm_ = QUOTE_RE.match(st)
             if qm_:
                 st = st[qm_.end():].strip()   # R102 (r103-dp: “ชั้นจะแตกให้ดู” เธอตอบก่อนจะเขย่าจนน้ำควยพุ่งออกมาเต็มฝ่ามือ was narration too, a template line was added): narration after a leading quote counts
-            if not st or not _MALE_CUM_LINE.search(st) or _her_only(st):
+            if not st or _her_only(st):
                 continue
-            if kind_of(st) not in kinds[who]:
+            named = sorted((st.find(x), x) for x in men if x in st)
+            if len(named) >= 2:   # R108 (r108-dp: one line 'ธนาแตกรัวๆ ... ปกรณ์แตกรัวๆ ... ก้องแตกลงปาก' was judged as one kind, so each man got a second, template line): a line that names several men is judged clause by clause, each man by his own clause
+                pos = [p_ for p_, x in named if x == who]
+                if not pos:
+                    continue
+                nxt = [p_ for p_, x in named if p_ > pos[0] and x != who]
+                st = st[pos[0]:(nxt[0] if nxt else len(st))].strip()
+                if not (_MALE_CUM_LINE.search(st) or re.match(re.escape(who) + r"\s*(?:ก็)?\s*แตก", st)):
+                    continue
+            elif not _MALE_CUM_LINE.search(st):
                 continue
-            cm = _MALE_CUM_LINE.search(st)
+            k_ = kind_of(st)
+            if k_ not in kinds[who] and not (k_ == "F2" and "F4" in kinds[who] and re.search(r"หน้าอก|นม(?!ือ)|ร่องอก", st)):   # R108: cum 'on her chest and face' is the titjob finish too
+                continue
+            cm = _MALE_CUM_LINE.search(st) or re.search(re.escape(who), st)
             near = [x for x in men if x in st[:cm.end() + 10]]   # R98: men named before the cum words or right after them ('น้ำควยของธนา'); a name far after belongs to the next sentence
             if (who in near) or not near:
                 return True
