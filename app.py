@@ -4051,6 +4051,55 @@ def tag_bare_quotes(text, pp):
     return "\n".join(lines)
 
 
+_VOC_SKIP = re.compile(r"ช่วย|จับ|รอ|เดี๋ยว|ไปหา|มาหา|หาย|ถาม|บอก|เห็น|ดู(?!ด)|ฟัง|เรียก|ได้ยิน")   # a request / address to ANOTHER man: left alone
+_VOC_SEX = re.compile(r"แรง|เสียว|ใหญ่|ลึก|ยัด|เย็ด|กระแทก|ซอย|เร็ว|ตอด|ชอบ|อม|เลีย|ดูด|เข้ามา|เข้าไป|ขย่ม|จะแตก|ไม่ไหว|เงี่ยน|แข็ง|สุด")
+
+
+def fix_vocative(text, pp, log=None):
+    """R125 (user 31 Oct item 4; measured on 6 chapters: 13 of 123 vocatives were another man's name): a line where HER words talk to the man who is doing it to her
+    ("แรงมากเลยธนา" while ก้อง is the one in the narration) gets the name of that man. Only when ALL hold: the quote is hers (tag names her / she, no man), the quote ends or starts
+    with ONE cast man's name used as a call (not "ของธนา", "กว่าธนา", "ให้ธนา"), the quote is about the act (sex words) and asks nothing of another man (ช่วย / จับ / รอ ...),
+    and the last 3 narration lines + the tag name EXACTLY ONE man, who is not the called one. Anything else is left alone."""
+    men = _pose_men(pp)
+    if len(men) < 2 or not text:
+        return text
+    rx = "|".join(re.escape(x) for x in sorted(men, key=len, reverse=True))
+    lines = text.split("\n")
+    for i, ln in enumerate(lines):
+        m = re.match(r"^\s*([\u201c\"][^\u201d\"\n]+[\u201d\"])(.*)$", ln)
+        if not m:
+            continue
+        q, tag = m.group(1), m.group(2)
+        head = tag[:30]
+        if not re.search(r"ลลิ?ตา|เธอ", head) or re.search(rx, head):
+            continue
+        if not _VOC_SEX.search(q) or _VOC_SKIP.search(q):
+            continue
+        calls = [mm for mm in re.finditer(r"(?:(?<=[\u201c\"\s.\u2026,!?])|(?<=เลย)|(?<=นะ)|(?<=สิ)|(?<=ซิ)|(?<=ค่ะ)|(?<=คะ)|(?<=ละ)|(?<=จัง)|(?<=มาก)|(?<=ไหว)|(?<=อ่ะ)|(?<=เนี่ย))(?:พี่|คุณ|น้อง)?(%s)(?=[\s.\u2026,!?\u201d\"]|$)" % rx, q) if not re.search(r"(?:ของ|กว่า|ให้|กับ|เหมือน)$", q[:mm.start(1)].rstrip("พี่คุณน้อง"))]
+        called = {c.group(1) for c in calls}
+        if len(called) != 1:
+            continue
+        ctx, seen = [tag], 0
+        for j in range(i - 1, max(-1, i - 8), -1):
+            pv = lines[j].strip()
+            if not pv or pv[0] in "\u201c\"":
+                continue
+            ctx.append(pv)
+            seen += 1
+            if seen >= 3:
+                break
+        named = {mm.group(0) for p_ in ctx for mm in re.finditer(rx, re.sub(r"เสียง(?:%s)" % rx, "เสียง", p_))}
+        x = next(iter(called))
+        if len(named) != 1 or x in named:
+            continue
+        y = next(iter(named))
+        q2 = q[:calls[0].start(1)] + y + q[calls[0].end(1):] if len(calls) == 1 else re.sub(r"(?<![\u0E01-\u0E4E])%s(?![\u0E01-\u0E4E])" % re.escape(x), y, q)
+        lines[i] = ln.replace(q, q2, 1)
+        if log is not None:
+            log.append("%s->%s" % (x, y))
+    return "\n".join(lines)
+
+
 def fix_name_typos(text, names, count_only=False):
     n = 0
     # R24 (29 Oct): a name with ONE extra repeated consonant (ลลลิตา for ลลิตา, seen ×12 in R20/R23) is repaired first
@@ -4289,6 +4338,9 @@ def aw_run(b, cid, key):
                 part = fix_her_fluid_place(part)
                 part = fix_name_vowel(part, names)
                 part = tag_bare_quotes(part, parts[i].get("pose"))
+                _vl = []
+                part = fix_vocative(part, parts[i].get("pose"), _vl)
+                job.setdefault("vocfix", []).append([i + 1] + _vl)   # R125 instrumentation: wrong-name calls repaired in this part
                 part = fix_male_pretty(part, parts[i].get("pose"))
                 part = strip_repeat_cum(part, cur[_spos:], parts[i].get("pose"))
                 _p1 = part
