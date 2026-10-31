@@ -3211,11 +3211,16 @@ def aw_run(b, cid, key):
                 _scn = parts[i].get("scene")
                 _spos = scene_pos.setdefault(_scn, len(cur))
                 _before = len(part)
+                _p0 = part
                 part = strip_repeat_cum(part, cur[_spos:], parts[i].get("pose"))
+                _p1 = part
                 part = fix_finish_place(part, parts[i].get("pose"))
+                _p2 = part
                 part = strip_man_on_man(part, char_info(b))
                 if len(part) < _before:
-                    job.setdefault("repeatcum", []).append([i + 1, _before - len(part)])   # instrumentation: parts where a repeated finish was cut
+                    # R91 instrumentation: [part, chars cut by strip_repeat_cum, by fix_finish_place, by strip_man_on_man, up to 3 samples of the removed lines]
+                    _gone = [x.strip()[:90] for x in _p0.split("\n") if x.strip() and x not in part.split("\n")][:3]
+                    job.setdefault("repeatcum", []).append([i + 1, len(_p0) - len(_p1), len(_p1) - len(_p2), len(_p2) - len(part), _gone])
             except Exception:
                 pass
             tail = cur.rstrip()[-60:]
