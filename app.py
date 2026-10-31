@@ -1347,7 +1347,7 @@ def pose_block_group3(part):
     if not any(_pose_kind(t, x["id"]) == "finish" for x in pp["steps"]):   # R80 (r79-dp: a man came in beat 2 and again at the end)
         L.append("NOBODY COMES IN THIS PART: no man ejaculates here and none shouts that he HAS come; do not write แตกแล้ว, น้ำเชื้อ, น้ำควย or ปล่อยน้ำ for any man (only her climax may happen); a man may at most say he is close.")
     L.append("PLAN RULES: each man's cock is in ONE place at a time; her mouth holds ONE cock at a time, her pussy ONE cock (TWO cocks only in the double-penetration step), her anus never, each hand at most one cock; the men NEVER touch, kiss, lick or rub each other; a man comes only at his CLIMAX step; after he comes he is soft and rests (he may kiss her and touch her with his hands) until a recovery step; the woman has a pussy only and the men a cock only; keep every paragraph to one position; every spoken line that uses ผม, กู, มึง or ครับ is followed by a tag naming the man who says it (“...” ก้องครางเสียงแหบ).")
-    L.append("SPEAKING RULES (four people are talking): every spoken line is said by exactly ONE person and its tag names that person (%s, %s, %s or %s). Her moans, her climax and her requests are said by %s ONLY, tagged to her, never to a man. The men speak TO her or about her; the three men never speak vulgar or insulting words to each other and never talk about each other's body (between themselves only a short plain line such as asking the other to wait or to move). A man never calls himself by his own name and never speaks of himself in the third person. She never says กู or มึง; the men never say ชั้น. In the narration three men are present, so never write a bare 'เขา' for a man: write his name; and do not repeat 'ควยของ…' in every sentence (at most twice per paragraph, otherwise just say what he does). 'ให้หมด' goes only with a liquid (กลืนให้หมด, กินน้ำควยให้หมด), never with a body part (never 'ดูดควยให้หมด')." % (men[0], men[1], men[2], W, W))
+    L.append("SPEAKING RULES (four people are talking): every spoken line is said by exactly ONE person and its tag names that person (%s, %s, %s or %s). Her moans, her climax and her requests are said by %s ONLY, tagged to her, never to a man. The men speak TO her or about her; the three men never speak vulgar or insulting words to each other and never talk about each other's body (between themselves only a short plain line such as asking the other to wait or to move). A man never calls himself by his own name and never speaks of himself in the third person. She never says กู or มึง; the men never say ชั้น. In the narration three men are present, so never write a bare 'เขา' for a man: write his name; and do not repeat 'ควยของ…' in every sentence (at most twice per paragraph, otherwise just say what he does). 'ให้หมด' goes only with a liquid (กลืนให้หมด, กินน้ำควยให้หมด), never with a body part (never 'ดูดควยให้หมด')." % (men[0], men[1], men[2], W, W) + _SPEAK_FULL)
     return " ".join(L[:1]) + "\n" + "\n".join(L[1:])
 
 
@@ -1636,7 +1636,7 @@ def pose_block_quad(part):
         for w in st.get("wc", []):
             ln += " | %s CLIMAXES in this step: show it plainly" % w + ((" and SQUIRTS: a jet of clear fluid shoots out of her pussy (over a hand / a face / her thighs / the sheet), write the spray and the wet mess") if w in st.get("sqw", []) else "")
         L.append(ln)
-    L.append("The finish steps are written exactly as listed: no man comes in a part that has no finish step.")
+    L.append("The finish steps are written exactly as listed: no man comes in a part that has no finish step." + _SPEAK_FULL)
     return "\n".join(L)
 
 
@@ -1696,7 +1696,7 @@ def pose_block_group(part):
         L.append("NOBODY COMES IN THIS PART: no man ejaculates here and none shouts that he HAS come; do not write แตกแล้ว, น้ำเชื้อ, น้ำควย or ปล่อยน้ำ for any man (only her climax may happen); a man may at most say he is close.")
     L.append("PLAN RULES: each man's cock is in ONE place at a time; her mouth holds ONE cock at a time, her pussy ONE cock (TWO cocks only in the double-penetration step), her anus never; the men NEVER touch, kiss, lick or rub each other; a man comes only at his CLIMAX step; after he comes he is soft and rests (he may kiss her and touch her with his hands) until a recovery step; the woman has a pussy only and the men a cock only; keep every paragraph to one position; every spoken line that uses ผม, กู, มึง or ครับ is followed by a tag naming the man who says it (“...” ก้องครางเสียงแหบ).")
     if os.environ.get("NOVEL_GSPEAK", "1") != "0":   # R48 (29 Oct): speaker / address rules for three-person scenes
-        L.append("SPEAKING RULES (three people are talking): every spoken line is said by exactly ONE person and its tag names that person (%s, %s or %s). Her moans, her climax and her requests are said by %s ONLY, tagged to her, never to a man. The men speak TO her or about her; %s and %s never speak vulgar or insulting words to each other and never talk about each other's body (between themselves only a short plain line such as asking the other to wait or to move). A man never calls himself by his own name and never speaks of himself in the third person. She never says กู or มึง; the men never say ชั้น. In the narration two men are present, so never write a bare 'เขา' for a man: write his name; and do not repeat 'ควยของ…' in every sentence (at most twice per paragraph, otherwise just say what he does). 'ให้หมด' goes only with a liquid (กลืนให้หมด, กินน้ำควยให้หมด), never with a body part (never 'ดูดควยให้หมด')." % (A, B, W, W, A, B))
+        L.append("SPEAKING RULES (three people are talking): every spoken line is said by exactly ONE person and its tag names that person (%s, %s or %s). Her moans, her climax and her requests are said by %s ONLY, tagged to her, never to a man. The men speak TO her or about her; %s and %s never speak vulgar or insulting words to each other and never talk about each other's body (between themselves only a short plain line such as asking the other to wait or to move). A man never calls himself by his own name and never speaks of himself in the third person. She never says กู or มึง; the men never say ชั้น. In the narration two men are present, so never write a bare 'เขา' for a man: write his name; and do not repeat 'ควยของ…' in every sentence (at most twice per paragraph, otherwise just say what he does). 'ให้หมด' goes only with a liquid (กลืนให้หมด, กินน้ำควยให้หมด), never with a body part (never 'ดูดควยให้หมด')." % (A, B, W, W, A, B) + _SPEAK_FULL)
     return " ".join(L[:1]) + "\n" + "\n".join(L[1:])
 
 
@@ -2145,6 +2145,9 @@ def anatomy_line(cast_info):
     return s
 
 
+_SPEAK_FULL = " DIALOGUE QUALITY: no chains of one-to-three-word lines (\"เร็ว...\" \"ใกล้แล้ว\" \"แตก!\"): most spoken lines are full natural sentences of at least eight words; when more than two people are present EVERY spoken line is followed by a tag naming who says it; she calls by name the man who is doing it to her at that moment, not a man who is only watching."
+
+
 UNTAG_RUN = 8   # this many (or more) consecutive spoken lines with no narration or speaker tag between them = nobody can tell who talks (ch01 ending: ~100 such lines)
 _PURE_Q = re.compile(r"^\s*[“\"][^”\"\n]+[”\"][\s.!?…]*$")
 
@@ -2215,6 +2218,7 @@ def kin_line(info, present, kin=None):
 
 
 LEN_SCALE = float(os.environ.get("NOVEL_LENSCALE", "0.9"))  # R21 switch (default unchanged 0.9); chapters came out at ~110% of target (ch03-08: 5,191 / 5,286 / 6,011 / 5,980 / 5,872 / 5,858 words for 5,000): ask for 10% less
+G4_LEN = float(os.environ.get("NOVEL_G4LEN", "0.8"))   # R117 (r119-dp: 4 men + 2 women came out at 125% of target, 2x the words asked per part): ask for less in the six-person parts
 G_LEN = float(os.environ.get("NOVEL_GLEN", "1.0"))  # R50 switch: extra length factor for group (2 men + 1 woman) parts
 
 
@@ -2235,7 +2239,7 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     else:
         lines.append("WRITE: scene %d of %d%s." % (p["scene"], p["scenes"], (", beat %d of %d of this scene" % (p["beat"], p["beats"])) if p["beats"] > 1 else ""))
         lines.append("PLAN OF THIS SCENE (Thai): " + p["text"])
-    ls_ = LEN_SCALE * (G_LEN if _is_group(p) else 1.0)   # R50 (29 Oct): three-person parts overshoot by ~23% even at LENSCALE 0.6 (R45/R48/R49): ask for less
+    ls_ = LEN_SCALE * (G_LEN if _is_group(p) else 1.0) * (G4_LEN if ((p.get("pose") or {}).get("g") == 4) else 1.0)   # R50 (29 Oct): three-person parts overshoot by ~23% even at LENSCALE 0.6 (R45/R48/R49): ask for less
     lines.append("LENGTH: about %d Thai words (never more than %d)." % (int(p["words"] * ls_), int(p["words"] * ls_ * 1.2)))
     ci_list = [(n.split(" (")[0], info.get(n.split(" (")[0]) or {}) for n in dict.fromkeys(cast)]
     al = anatomy_line(ci_list) if is_sexual_text(p.get("text")) else ""
@@ -2791,11 +2795,19 @@ def strip_repeat_cum(text, prior, pp):
     came_n, first_at = {}, {}
     EVENT = 6   # lines: everything of one man's finish (announcement, narration, swallow) lies within this window; a later line of his is a new finish
 
-    def verdict(o, k, spoken=False):
+    expl_at = {}
+
+    def verdict(o, k, spoken=False, expl=False):
         """'keep' / 'drop' for a finish line of man o at line k (and register it)."""
         if o in first_at:
             d = k - first_at[o]
             if d <= 1:
+                # R117 (r119-dp: "ปกรณ์ขยับควยในมือเธอ...จนแตก น้ำเชื้อ...ล้นมือของเธอ" then the very next line "ปกรณ์ถึงจุดแตก น้ำเชื้อไหลลงมือของมุก"): two narrated
+                # "he comes" lines in a row are one finish told twice, with different details: the second goes
+                if expl and not spoken and expl_at.get(o) is not None and k - expl_at[o] <= 2:
+                    return "drop"
+                if expl and not spoken:
+                    expl_at[o] = k
                 return "keep"       # the lines right after the first announcement are the same finish
             if d <= EVENT:
                 return "drop"       # told again inside the same finish
@@ -2804,6 +2816,8 @@ def strip_repeat_cum(text, prior, pp):
             return "drop"
         came_n[o] = came_n.get(o, 0) + 1
         first_at[o] = k
+        if expl and not spoken:
+            expl_at[o] = k
         return "keep"
 
     k = 0
@@ -2830,7 +2844,8 @@ def strip_repeat_cum(text, prior, pp):
             o, spoken = pron_owner(st, prev_n), False
         _nm = [x for x in men if x in st]
         prev_n = (min(_nm, key=lambda x: st.find(x)), 0) if _nm else (prev_n[0], prev_n[1] + 1)
-        if o and verdict(o, k, spoken) == "drop":
+        _expl = bool(re.search(r"ถึงจุดแตก|จนแตก|แตกแล้ว|แตกออกมา|ถึงจุดสุดยอด", st)) and not QUOTE_RE.match(st)
+        if o and verdict(o, k, spoken, _expl) == "drop":
             drop_next = o if spoken else None
             continue
         if (drop_next and not QUOTE_RE.match(st) and _MALE_CUM_LINE.search(st) and not _her_only(st) and not any(x in st for x in men)
@@ -3899,6 +3914,61 @@ def _name_variant_res(names):
     return res
 
 
+_NAME_VERBS = "ร้อง|ครวญ|คราง|พูด|กล่าว|ตอบ|ถาม|กระซิบ|หัวเราะ|ยิ้ม|ส่ายหน้า|เงยหน้า|หอบ|เอ่ย|ตะโกน|หลับตา|ครางลั่น|สะดุ้ง|เกร็ง|ซบ|กอด|จูบ|มอง"
+
+
+def fix_name_vowel(text, names):
+    """R117 (r118-dp: "ลลิตร้อง"): a name that lost its final vowel right before a speech / body verb gets it back (ลลิต+ร้อง -> ลลิตา+ร้อง)."""
+    for nm, th in names:
+        for w in {x for x in (nm, th) if x}:
+            if len(w) >= 3 and re.match(r"^[\u0E01-\u0E4E]+[\u0E30\u0E32\u0E35]$", w) and not re.search(r"[A-Za-z\s]", w):
+                text = re.sub(r"%s(?=(?:%s))" % (re.escape(w[:-1]), _NAME_VERBS), w, text)
+    return text
+
+
+_BARE_F = re.compile(r"ค่ะ|คะ|นะจ๊ะ|(?<![ก-ฮ])ชั้น(?!วาง|ที่|หนึ่ง|สอง|ล่าง|บน)|(?<![ก-ฮ])หนู(?!ตัว)")
+_BARE_M = re.compile(r"(?<![ก-ฮ])กู(?!เก|รู|เกิ)|มึง|ครับ|(?<![ก-ฮ])ผม(?!ยาว|สั้น|ของเธอ|เปียก)")
+
+
+def tag_bare_quotes(text, pp):
+    """R117 (r118-dp, user 31 Oct: lines with no speaker): in a part with 3+ people a quote alone on its line gets a tag when the words themselves tell who talks:
+    a woman's words (ชั้น / ค่ะ / คะ) when exactly ONE woman is in the scene -> her name; a man's words (กู / มึง / ผม / ครับ and no ค่ะ / ชั้น) when the narration
+    just before (the last 3 lines that are not quotes) names exactly ONE man of the cast -> his name. Otherwise the line is left alone."""
+    cast = (pp or {}).get("cast") or {}
+    men = _pose_men(pp)
+    women = [x for x in (cast.get("women") or [cast.get("W"), cast.get("W2")]) if x]
+    if len(men) < 2 or not text:
+        return text
+    rx = "|".join(re.escape(x) for x in sorted(men, key=len, reverse=True))
+    verbs_f = ["กระซิบเสียงแผ่ว", "ครางเสียงสั่น", "เอ่ยเสียงหวาน", "พูดเสียงสั่น"]
+    verbs_m = ["พูดเสียงทุ้ม", "กระซิบข้างหู", "ครางเสียงแหบ", "เอ่ยเสียงต่ำ"]
+    lines = text.split("\n")
+    k_f = k_m = 0
+    for i, ln in enumerate(lines):
+        if not _PURE_Q.match(ln):
+            continue
+        q = ln.strip()
+        fem, mal = bool(_BARE_F.search(q)), bool(_BARE_M.search(q))
+        if fem and not mal and len(women) == 1:
+            lines[i] = ln.rstrip() + " " + women[0] + verbs_f[k_f % 4]
+            k_f += 1
+        elif mal and not fem:
+            near, seen = [], 0
+            for j in range(i - 1, max(-1, i - 8), -1):
+                pv = lines[j].strip()
+                if not pv or pv.startswith("“") or pv.startswith('"'):
+                    continue
+                near.append(pv)
+                seen += 1
+                if seen >= 3:
+                    break
+            named = {m.group(0) for p in near for m in re.finditer(rx, re.sub(r"เสียง(?:%s)" % rx, "เสียง", p))}
+            if len(named) == 1:
+                lines[i] = ln.rstrip() + " " + next(iter(named)) + verbs_m[k_m % 4]
+                k_m += 1
+    return "\n".join(lines)
+
+
 def fix_name_typos(text, names, count_only=False):
     n = 0
     # R24 (29 Oct): a name with ONE extra repeated consonant (ลลลิตา for ลลิตา, seen ×12 in R20/R23) is repaired first
@@ -4107,6 +4177,8 @@ def aw_run(b, cid, key):
                 _p0 = part
                 part = name_cum_owner(part, parts[i].get("pose"))
                 part = fix_her_fluid_place(part)
+                part = fix_name_vowel(part, names)
+                part = tag_bare_quotes(part, parts[i].get("pose"))
                 part = fix_male_pretty(part, parts[i].get("pose"))
                 part = strip_repeat_cum(part, cur[_spos:], parts[i].get("pose"))
                 _p1 = part
