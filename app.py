@@ -812,12 +812,12 @@ _TJ_LIE_RE = re.compile(r"นอนหงาย[^\n]{0,12}หนีบนม|ห
 
 
 def tj_variant(txt, rng):
-    """0 = she lies on her back, 1 = he stands, 2 = he sits; the author's words win, else a 50/50 draw between the old and the new way (the new way: stand / sit 50/50)."""
+    """0 = she lies on her back, 1 = he stands, 2 = he sits; the author's words win, else a draw, the three ways equally likely."""
     if _TJ_LIE_RE.search(txt or ""):
         return 0
     if _TJ_KNEEL_RE.search(txt or ""):
         return 1 if re.search(r"ยืน", txt) and not re.search(r"นั่ง", txt) else (2 if re.search(r"นั่ง", txt) and not re.search(r"ยืน", txt) else rng.choice((1, 2)))
-    return 0 if rng.random() < 0.5 else rng.choice((1, 2))
+    return rng.choice((0, 1, 2))   # user 10:44: the three ways equally likely
 
 
 POSE_START = ("A2", "B1", "B2", "A3", "B3")   # first steps of a scene
