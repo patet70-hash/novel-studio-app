@@ -749,6 +749,7 @@ POSE_TABLE = {
     "C4": {"n": "หญิงนั่งบนหน้า", "k": "oral", "d": "face-sitting: he lies on his back, she kneels over his face (facing his feet or his head) holding the headboard or his hands, his tongue and lips on her pussy and clit; his cock is not involved", "m": "ดึงเธอขึ้นมาคร่อมหน้า", "next": ["D2", "D3", "D1", "E1"]},
     "C5": {"n": "ชายเลียหีจากด้านหลัง", "k": "oral", "d": "she is on her hands and knees (or lies face down with her hips raised), he lies or kneels behind her with his face between her buttocks, licking her pussy and clit, fingers allowed; his cock is not involved", "m": "จับเธอคุกเข่าคว่ำหน้าแล้วก้มเลียจากด้านหลัง", "next": ["E1", "E2", "D8", "E4", "D1"]},
     "C6": {"n": "หนีบควยด้วยนม", "k": "warm", "d": "titfuck: she lies on her back (or kneels), he kneels astride her chest and slides his cock between her breasts which she presses together with both hands, the tip near her chin or lips; his cock touches nothing else; no penetration", "m": "ให้เธอนอนหงาย แล้วคุกเข่าคร่อมอกเธอ", "next": ["C1", "C2", "D1", "D2", "E1"]},
+    "C7": {"n": "หญิงชักว่าวด้วยมือ", "k": "warm", "d": "handjob: he sits on the bed edge (or lies back), she kneels or sits beside him and strokes his cock with one hand (the other hand on his thigh or chest), slow then faster, kissing him or looking up at him; his cock touches only her hand; no penetration", "m": "ให้เธอคุกเข่าข้างเขาแล้วกำควยด้วยมือ", "next": ["C1", "C2", "C6", "D1", "D2", "E1"]},
     "D6": {"n": "นอนตะแคงเผชิญหน้า", "k": "pen", "d": "face to face on their sides: both lie on their sides looking at each other, her upper leg over his hip, cock in her pussy from the front, kissing", "m": "พลิกเธอนอนตะแคงหันหน้าเข้าหากัน", "next": ["D1", "D7", "E2", "D2"]},
     "D7": {"n": "ท่ากรรไกร", "k": "pen", "d": "scissors: he lies on his side and she lies on her other side facing away at an angle, their legs interlaced like scissors, hips pressed together, cock in her pussy", "m": "ให้เธอนอนตะแคงเอาขาสอดไขว้กับเขา", "next": ["D6", "E2", "D1"]},
     "D8": {"n": "นอนคว่ำ", "k": "pen", "d": "prone: she lies flat on her stomach with her legs together, he lies on top of her back (behind her), cock in her pussy from behind, his hands under her shoulders or on the bed", "m": "ให้เธอนอนคว่ำแล้วขึ้นคร่อมทับด้านหลัง", "next": ["E1", "E4", "D1"]},
@@ -767,12 +768,14 @@ POSE_TABLE = {
     "F1": {"n": "แตกในปาก", "k": "finish", "d": "he comes in her mouth: she kneels or lies with his cock at her lips; describe the orgasm and what she does with it", "m": "ดึงควยออกจากหีแล้วให้เธอคุกเข่าอ้าปากรอ", "next": []},
     "F2": {"n": "แตกนอก", "k": "finish", "d": "he pulls out and comes on her belly, breasts or back; describe the orgasm", "m": "ดึงควยออกมา", "next": []},
     "F3": {"n": "แตกใน", "k": "finish", "d": "he comes deep inside her pussy and stays inside for a moment; describe the orgasm", "m": "", "next": []},
+    "F4": {"n": "หนีบนมจนแตก", "k": "finish", "d": "titjob finish: she lies on her back (or kneels), he kneels astride her chest with his cock between her breasts which she presses together with both hands, he thrusts between them until he comes: the cum lands in her cleavage and splashes on her breasts and her face; describe the orgasm and the mess on her breasts and face (nothing enters her pussy or mouth in this step)", "m": "ให้เธอนอนหงายแล้วคุกเข่าคร่อมอกเธอ", "next": []},
+    "F5": {"n": "ชักมือจนแตก", "k": "finish", "d": "handjob finish: she kneels or sits beside him and strokes his cock with her hand (kissing him or looking up at him) until he comes in her hand: the cum spills over her hand and fingers; describe the orgasm and her hand (nothing enters her pussy or mouth in this step)", "m": "ให้เธอคุกเข่าข้างเขาแล้วกำควยด้วยมือ", "next": []},
     "G1": {"n": "กอดหลังจบ", "k": "after", "d": "afterglow: a short hug, breathing, a kiss (2-3 sentences only)", "m": "", "next": []},
 }
 
 
 _EDGE_ADD = {   # R52: where the new poses can be reached from (old poses keep their own edges)
-    "B1": ["C6", "C4", "D9", "D10"], "B2": ["C6", "C4", "D6"], "C1": ["C6", "D10"], "C2": ["D9", "D6", "C5"],
+    "B1": ["C6", "C7", "C4", "D9", "D10"], "B2": ["C6", "C7", "C4", "D6"], "C1": ["C6", "C7", "D10"], "C2": ["D9", "D6", "C5"],
     "D1": ["D6", "D9", "D12"], "D2": ["D10", "D12", "D6"], "D3": ["D11"], "D4": ["D9"], "D5": ["D10", "D12"],
     "E1": ["E4", "D8", "C5"], "E2": ["D7", "D6", "D8"], "E3": ["E6", "E5"],
     "R1": ["C4", "D6", "D8", "D10"], "R2": ["C4", "D6", "D8", "D10"], "R3": ["C4", "D6", "D8", "D10"], "R4": ["C4", "D6", "D8", "D10"],
@@ -833,14 +836,68 @@ for _pid, _add in {"M1": ["M10", "M13", "M14"], "M2": ["M10", "M11", "M12"], "M3
 _SOLO_PEN = ["D1", "D2", "D4", "E1", "E2", "D5"]
 
 
-def make_pose_plan(nbeats, rng, table=None):
+# R96 (31 Oct, user): how many times a man comes depends on the scene. A short, hurried scene (< 4 beats, ~2,000 words) = once; a proper scene (house / resort / hotel,
+# 4+ beats) = twice: the FIRST time is the early one (mouth, titjob until he comes between her breasts, or handjob until he comes in her hand), the SECOND is after the sex
+# (inside her pussy, or pulled out onto her belly / breasts / back). She may come as often as she likes. The summary can override: "แตกครั้งเดียว" / "แตกสองครั้ง".
+_FIRST_KINDS = ("F1", "F5", "F4")
+_SECOND_KINDS = ("F3", "F2")
+ONCE_RE = re.compile(r"แตก(?:แค่|เพียง)?ครั้งเดียว|ครั้งเดียวจบ|แตก\s*1\s*ครั้ง|จบในครั้งเดียว")
+TWICE_RE = re.compile(r"แตก(?:สอง|2)\s*ครั้ง|แตกอีก(?:รอบ|ครั้ง)|สองรอบ|2\s*รอบ|สองครั้ง")
+
+
+def _first_fins(t, rng, names):
+    """first-round finish kinds {man: F1/F4/F5}; the titjob (F4) goes to at most one man (he kneels over her chest: one at a time)."""
+    pool = [x for x in _FIRST_KINDS if x in t] or ["F1"]
+    out, f4 = {}, False
+    for nm in names:
+        c = [x for x in pool if not (x == "F4" and f4)] or ["F1"]
+        k = rng.choice(c)
+        f4 = f4 or k == "F4"
+        out[nm] = k
+    return out
+
+
+def _second_pool(t):
+    return [x for x in _SECOND_KINDS if x in t] or ["F3"]
+
+
+def _line_kind(st):
+    """which kind of finish a narration line shows: F3 inside her pussy, F1 mouth, F5 in her hand, F4 between her breasts, else F2 (outside)."""
+    if _INSIDE_HER.search(st) or re.search(r"ในหี|ข้างใน|ภายใน", st):
+        return "F3"
+    if re.search(r"ปาก|ลำคอ|ลงคอ", st):
+        return "F1"
+    if re.search(r"ร่องอก|ร่องนม|หนีบ|ระหว่างนม|หว่างอก", st):
+        return "F4"
+    if re.search(r"ในมือ|ใส่มือ|คามือ|ท่วมมือ|ชุ่มมือ|เปื้อนมือ|ล้นมือ|มือของเธอ|มือเธอ", st) and not re.search(r"นม(?!ือ)|หน้าอก", st):
+        return "F5"
+    return "F2"
+
+
+def _finish_counts(plan):
+    """{man: how many finish steps he has in the whole scene plan} (a common step with a fin dict counts for each man in it, a `who` step for him)."""
+    cnt = {}
+    for bt in plan:
+        for st in bt:
+            if isinstance(st.get("fin"), dict):
+                for nm in st["fin"]:
+                    cnt[nm] = cnt.get(nm, 0) + 1
+            elif st.get("who") and st.get("id") in ("F1", "F2", "F3", "F4", "F5"):
+                cnt[st["who"]] = cnt.get(st["who"], 0) + 1
+    return cnt
+
+
+def make_pose_plan(nbeats, rng, table=None, rounds=None):
     """one scene's chain of steps, split per beat. Each step {"id", "w": bool (she climaxes here)}. Rules: starts with a warm-up step; an
     oral/penetration step never follows a man's climax without a recovery step; the scene ends with the man's finish; every legal edge follows
     the table's "next". Returns a list (one list of steps per beat)."""
     t = table or pose_table()
     nbeats = max(1, int(nbeats))
     S = max(4, 2 * nbeats)
-    mids = 0 if nbeats < 3 else rng.randint(0, 1 if nbeats < 5 else 2)
+    if rounds is None:
+        mids = 0 if nbeats < 3 else rng.randint(0, 1 if nbeats < 5 else 2)
+    else:
+        mids = 1 if (rounds == 2 and nbeats >= 3) else 0   # R96: one finish + recovery in the middle for a proper scene
     core = S - 1 - 2 * mids
     segs = [core // (mids + 1) + (1 if i < core % (mids + 1) else 0) for i in range(mids + 1)]
     chain = []
@@ -867,11 +924,17 @@ def make_pose_plan(nbeats, rng, table=None):
             chain.append({"id": pick})
             prev = pick
         if si < mids:
-            chain.append({"id": rng.choice([x for x in t if _pose_kind(t, x) == "finish"] or ["F3"])})
+            if rounds is None:
+                chain.append({"id": rng.choice([x for x in t if _pose_kind(t, x) == "finish"] or ["F3"])})
+            else:
+                chain.append({"id": rng.choice([x for x in _FIRST_KINDS if x in t] or ["F1"]), "rd": 1})
             chain.append({"id": rng.choice([x for x in t if _pose_kind(t, x) == "recover"] or ["R1"])})
             prev = chain[-1]["id"]
     fin = [x for x in t if _pose_kind(t, x) == "finish"] or ["F3"]
-    chain.append({"id": rng.choice(fin)})
+    if rounds == 2 and mids:
+        chain.append({"id": rng.choice(_second_pool(t)), "rd": 2})
+    else:
+        chain.append({"id": rng.choice(fin)})
     # her climaxes: on one or two oral/penetration steps that are not the first; at least one before the final finish
     act = [i for i, c in enumerate(chain[:-1]) if _pose_kind(t, c["id"]) in ("oral", "pen") and i > 0]
     if act:
@@ -897,8 +960,9 @@ def make_quickie_plan(nbeats, rng, table=None):
     finish in her mouth or on her body. No climax of hers is required (she does it for him). Steps carry q=True."""
     t = table or pose_table()
     start = rng.choice([x for x in ("A1", "B1", "B2", "A2") if x in t] or ["B1"])
-    giver = rng.choice([x for x in ("C1", "C6") if x in t] or ["C1"])
-    fin = rng.choice([x for x in ("F1", "F2") if x in t] or ["F2"])
+    giver = rng.choice([x for x in ("C1", "C6", "C7") if x in t] or ["C1"])
+    # R96 (user: titjob / handjob can stand alone, like sucking him until he comes in her mouth): the finish follows the giver
+    fin = rng.choice([x for x in {"C1": ("F1", "F2"), "C6": ("F4", "F2"), "C7": ("F5", "F2")}.get(giver, ("F1", "F2")) if x in t] or ["F2"])
     chain = [{"id": start}, {"id": giver}, {"id": fin, "q": True}]
     nb = max(1, int(nbeats))
     out, n = [], len(chain)
@@ -907,7 +971,7 @@ def make_quickie_plan(nbeats, rng, table=None):
     return out
 
 
-def make_group_plan(nbeats, rng, A, B, table=None, dp=False, tail_ok=True):
+def make_group_plan(nbeats, rng, A, B, table=None, dp=False, tail_ok=True, rounds=1):
     """one scene's chain for one woman and two men A, B (names). Steps: {"id", "w", "who"?, "fin"?}. Shape: warm-up for both, group steps (her
     climax in one or two), then (3+ beats) the first man comes and rests while the second continues alone, then he comes too; with 5+ beats a
     recovery of both, another group step and a last common finish. Two beats: warm-up, two group steps, one common finish. Both men always come."""
@@ -942,9 +1006,33 @@ def make_group_plan(nbeats, rng, A, B, table=None, dp=False, tail_ok=True):
         prev[0] = p
 
     fins = [x for x in t if _pose_kind(t, x) == "finish"] or ["F3"]
-    for _ in range(ng):
+    two = rounds == 2 and n >= 3
+    for _ in range(0 if two else ng):
         add_group()
-    if n < 3:
+    if two:
+        # R96: round 1 (early: mouth / titjob / handjob for each man, together), a recovery, group steps, round 2 (after the sex: inside / outside, one man after the other)
+        oral = [x for x in G["M1"]["next"] if x in G and G[x]["k"] == "oral"]
+        if oral:
+            pk = rng.choice(oral)
+            used[pk] = 1
+            chain.append({"id": pk})
+            prev[0] = pk
+        else:
+            add_group()
+        chain.append({"id": "FB", "fin": _first_fins(t, rng, [first, second]), "rd": 1})
+        chain.append({"id": "RB"})
+        prev[0] = "RB"
+        for _ in range(max(1, S - 8)):
+            add_group()
+        pool2 = _second_pool(t)
+        chain.append({"id": rng.choice(pool2), "who": first, "rd": 2})
+        sp = None
+        for _ in range(2 if n >= 5 else 1):
+            c = [x for x in ((t.get(sp) or {}).get("next", []) if sp else _SOLO_PEN) if x in _SOLO_PEN and x != sp] or _SOLO_PEN
+            sp = rng.choice(c)
+            chain.append({"id": sp, "who": second})
+        chain.append({"id": rng.choice(pool2), "who": second, "rd": 2})
+    elif n < 3:
         k = rng.sample(["F1", "F2", "F3"], 2)
         chain.append({"id": "FB", "fin": {first: k[0], second: k[1]}})
     else:
@@ -1000,7 +1088,7 @@ TRIO_TABLE = {
 }
 
 
-def make_group3_plan(nbeats, rng, men, table=None, dp=False, tail_ok=True):
+def make_group3_plan(nbeats, rng, men, table=None, dp=False, tail_ok=True, rounds=1):
     """one scene's chain for one woman and three men (names list). Steps: {"id", "w", "r": [A,B,C] roles, "who", "ab"/"rest", "fin"}.
     Shape: warm-up and trio steps with all three men; (3+ beats) the first man comes and rests while the other two continue with the two-men table;
     the second comes and rests while the third continues alone; the third comes. 5+ beats add a recovery of all three, one more trio step and a last
@@ -1039,9 +1127,32 @@ def make_group3_plan(nbeats, rng, men, table=None, dp=False, tail_ok=True):
 
     fins = [x for x in t if _pose_kind(t, x) == "finish"] or ["F3"]
     ngr = 2 if n < 3 else (1 if n == 3 else 3)   # R72: 4+ beats get three trio steps so the double-penetration pose (needs two oral/pen steps before it) can actually come up
-    for _ in range(ngr):
+    two = rounds == 2 and n >= 3
+    for _ in range(0 if two else ngr):
         add_trio()
-    if n < 3:
+    if two:
+        # R96: round 1 (early, all three: mouth / titjob (one man) / handjob), a recovery, trio steps, then round 2 one man after the other (inside / outside)
+        oral = [x for x in TRIO_TABLE["T1"]["next"] if x in TRIO_TABLE and TRIO_TABLE[x]["k"] == "oral"]
+        if oral:
+            pk = rng.choice(oral)
+            used[pk] = 1
+            chain.append({"id": pk, "r": roles()})
+            prev[0] = pk
+        else:
+            add_trio()
+        chain.append({"id": "FT", "r": list(order), "fin": _first_fins(t, rng, order), "rd": 1})
+        chain.append({"id": "RT", "r": roles()})
+        prev[0] = "RT"
+        for _ in range(2):
+            add_trio()
+        pool2 = _second_pool(t)
+        chain.append({"id": rng.choice(pool2), "who": m1, "rd": 2})
+        gp = [x for x in GROUP_TABLE if GROUP_TABLE[x]["k"] in ("oral", "pen") and x != "M7"]
+        chain.append({"id": rng.choice(gp), "ab": [m2, m3], "rest": [m1]})
+        chain.append({"id": rng.choice(pool2), "who": m2, "rd": 2})
+        chain.append({"id": rng.choice(_SOLO_PEN), "who": m3})
+        chain.append({"id": rng.choice(pool2), "who": m3, "rd": 2})
+    elif n < 3:
         k = ["F1", "F2", "F3"]
         rng.shuffle(k)
         chain.append({"id": "FT", "r": list(order), "fin": dict(zip(order, k))})
@@ -1121,6 +1232,10 @@ def pose_block_group3(part):
             ln += " | THIS STEP MUST CONTAIN, each in its own short paragraph and in this order: (1) %s is already in her pussy; (2) %s slowly eases his cock into the SAME pussy beside it (ดันควยเข้าไปในหีพร้อมกับอีกคน), her pussy is stretched full with TWO cocks (ควยสองแท่งในหีเดียว), she gasps and asks them to go slow; (3) then both move together while %s is in her mouth. Use the words สองแท่ง and พร้อมกัน. Nothing goes in her anus." % (rr[0], rr[1], rr[2])
         if pid == "FT":
             ln += " | ALL THREE MEN'S CLIMAX happens here and only here."
+            if st.get("rd") == 1:
+                ln += ' | THIS IS THE FIRST TIME EACH OF THEM COMES IN THIS SCENE (an early finish, before the real sex): write it fully, then they rest and are soft; each comes AGAIN later in the scene.'
+        if st.get("rd") == 2 and kind == "finish":
+            ln += ' | THIS IS HIS SECOND TIME COMING IN THIS SCENE (after the sex): write it as the real climax of the scene, in the way given for this step.'
         if kind == "recover":
             ln += " | The men stay soft until the end of this step; nobody penetrates anyone in it."
         L.append(ln)
@@ -1173,6 +1288,10 @@ def pose_block_group(part):
             ln += " | THIS STEP MUST CONTAIN, each in its own short paragraph and in this order: (1) %s is already in her pussy; (2) %s slowly eases his cock into the SAME pussy beside it (ดันควยเข้าไปในหีพร้อมกับอีกคน), her pussy is stretched full with TWO cocks (ควยสองแท่งในหีเดียว), she gasps and asks them to go slow; (3) then both move together. Use the words สองแท่ง and พร้อมกัน. Nothing goes in her anus." % (A, B)
         if kind == "finish" and pid == "FB":
             ln += " | BOTH MEN'S CLIMAX happens here and only here."
+            if st.get("rd") == 1:
+                ln += ' | THIS IS THE FIRST TIME BOTH MEN COME IN THIS SCENE (an early finish, before the real sex): write it fully, then they rest and are soft; each comes AGAIN later in the scene.'
+        if st.get("rd") == 2 and kind == "finish":
+            ln += ' | THIS IS HIS SECOND TIME COMING IN THIS SCENE (after the sex): write it as the real climax of the scene, in the way given for this step.'
         if kind == "recover":
             ln += " | The men stay soft until the end of this step; nobody penetrates anyone in it."
         L.append(ln)
@@ -1229,6 +1348,10 @@ def pose_block(part):
                 ln += " | WHERE HE COMES: in her mouth (narrate it in her mouth, not on her body)."
             elif pp.get("fin") == "F3":
                 ln += " | WHERE HE COMES: deep inside her pussy."
+        if kind == "finish" and st.get("rd") == 1:
+            ln += " | THIS IS THE FIRST TIME HE COMES IN THIS SCENE (an early finish, before the real sex): write it fully, then he rests and is soft; he comes AGAIN later in the scene."
+        elif kind == "finish" and st.get("rd") == 2:
+            ln += " | THIS IS HIS SECOND TIME COMING IN THIS SCENE (after the sex): write it as the real climax of the scene."
         if kind == "recover":
             ln += " | He stays soft until the end of this step; nobody may penetrate him in it."
         L.append(ln)
@@ -1256,6 +1379,10 @@ def _plan_sig(plan):
 def finish_wanted(txt):
     """R63 (29 Oct, R62): where the author says he comes ('แตกในปาก', 'แตกบนก้น', 'แตกใน…หี') decides the finish step of the plan (F1 mouth / F2 outside / F3 inside); '' = free."""
     t = txt or ""
+    if re.search(r"หนีบนม(?:จน)?แตก|ทิตจ็อบ|ทิตจอบ|titjob|tit\s*job|แตกคา(?:ร่อง)?นม|แตก(?:ใส่|บน|ที่)ร่องนม|แตก(?:ใส่|บน|ที่)นมและหน้า|แตกเปื้อนนม", t, re.I):   # R96: titjob until he comes (cum on her breasts and face)
+        return "F4"
+    if re.search(r"แตกคามือ|แตก(?:ใส่|ใน)มือ|handjob|hand\s*job|ชักว่าว(?:จน)?แตก|ใช้มือ(?:ชัก)?จนแตก", t, re.I):   # R96: handjob until he comes in her hand
+        return "F5"
     if re.search(r"แตก(?:ใน)?ปาก|ใส่ปาก|เข้าปาก|น้ำแตกที่ปาก|ลงคอ", t):
         return "F1"
     if re.search(r"แตกใน(?!ปาก)|ข้างในหี|ปล่อยใน|หลั่งใน|ฝังน้ำ|แตกข้างใน|น้ำแตกในหี", t):
@@ -1278,7 +1405,7 @@ def finish_wanted_men(txt, names):
     {name: (kind F1/F2/F3, place)} for the men the text names, others free."""
     out = {}
     for nm in names:
-        m = re.search(re.escape(nm) + r"\s*(แตก\S{0,16})", txt or "")
+        m = re.search(re.escape(nm) + r"\s*((?:แตก|หนีบนม(?:จน)?แตก|ทิตจ็อบ(?:จน)?แตก|ชักว่าว(?:จน)?แตก|handjob|titjob)\S{0,16})", txt or "", re.I)
         if not m:
             continue
         chunk = m.group(1)
@@ -1293,16 +1420,21 @@ def finish_wanted_men(txt, names):
 
 def apply_men_finish(plan, wanted):
     """overwrite the finish kinds of the named men in a group plan (beats -> steps) and remember the place of an outside finish."""
+    two = any(st.get("rd") for bt in plan for st in bt)   # R96: a two-round scene: a named early kind (mouth / titjob / handjob) is the first round, a named inside / outside kind is the second
     for bt in plan:
         for st in bt:
             fin = st.get("fin")
             if isinstance(fin, dict):
                 for nm in list(fin):
                     if nm in wanted:
+                        if two and not (st.get("rd") == 1 and wanted[nm][0] in _FIRST_KINDS):
+                            continue
                         fin[nm] = wanted[nm][0]
                         if wanted[nm][1]:
                             st.setdefault("place", {})[nm] = wanted[nm][1]
-            elif st.get("who") in wanted and st["id"] in ("F1", "F2", "F3"):
+            elif st.get("who") in wanted and st["id"] in ("F1", "F2", "F3", "F4", "F5"):
+                if two and (st.get("rd") != 2 or wanted[st["who"]][0] in _FIRST_KINDS):
+                    continue
                 st["id"] = wanted[st["who"]][0]
                 if wanted[st["who"]][1]:
                     st.setdefault("place", {})[st["who"]] = wanted[st["who"]][1]
@@ -1361,20 +1493,27 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         group = group or group3
         quick = (not group) and bool(QUICKIE_RE.search(txt))
         want_fin = finish_wanted(txt)
+        # R96 (31 Oct, user): a proper scene (4+ beats ~ 2,000+ words) = each man comes twice (early: mouth / titjob / handjob, then after the sex: inside / outside); a short one = once
+        rounds = 1 if (quick or ONCE_RE.search(txt) or len(ps) < 4) else 2
+        if TWICE_RE.search(txt) and not quick and not ONCE_RE.search(txt) and len(ps) >= 3:
+            rounds = 2
         pick = None
         for k in range(60):
             rng = random.Random(zlib.crc32(("%s|%s|%d|%d|%d" % (b, cid, sc, salt, k)).encode("utf-8")))
             if group3:
-                plan = make_group3_plan(len(ps), rng, men, t, dp=dp_wanted(txt), tail_ok=not finish_wanted_men(txt, men))
+                plan = make_group3_plan(len(ps), rng, men, t, dp=dp_wanted(txt), tail_ok=False, rounds=rounds)
             elif group:
-                plan = make_group_plan(len(ps), rng, men[0], men[1], t, dp=dp_wanted(txt), tail_ok=not finish_wanted_men(txt, men))
+                plan = make_group_plan(len(ps), rng, men[0], men[1], t, dp=dp_wanted(txt), tail_ok=False, rounds=rounds)
             elif quick:
                 plan = make_quickie_plan(len(ps), rng, t)
             else:
-                plan = make_pose_plan(len(ps), rng, t)
+                plan = make_pose_plan(len(ps), rng, t, rounds=rounds)
             sig = _plan_sig(plan)
-            if want_fin and not group and k < 50 and sig[-1].split(":")[0] != want_fin:
-                continue   # R63: the author named the place he comes: keep drawing seeds until the plan ends there (fallback after 50 draws)
+            if want_fin and not group:
+                fins_ = [st["id"] for bt in plan for st in bt if _pose_kind(t, st["id"]) == "finish"]
+                chk = fins_[0] if (rounds == 2 and want_fin in _FIRST_KINDS and fins_) else sig[-1].split(":")[0]
+                if k < 50 and chk != want_fin:
+                    continue   # R63: the author named the place he comes: keep drawing seeds until the plan ends there (fallback after 50 draws); R96: a named early kind is the first round
             if sig in seen:
                 continue
             if k < 40 and (sig[:2] in seen_open or (last_fin and sig[-1] == last_fin and len(t) > 12)):
@@ -1393,13 +1532,14 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         carry = want if (want and want in txt) else None
         for p, steps in zip(ps, plan):
             p["pose"] = {"steps": steps, "prev": prev}
-            if want_fin and not group:
+            if want_fin and not group and not (rounds == 2 and want_fin in _FIRST_KINDS):
                 p["pose"]["fin"] = want_fin
                 if finish_place(txt):
                     p["pose"]["place"] = finish_place(txt)
             if quick:
                 p["pose"]["quick"] = True
             if group:
+                p["pose"]["nfin"] = _finish_counts(plan)   # R96: how many times each man comes in the whole scene (the repeat-cum check allows exactly that many)
                 p["pose"]["g"] = 3 if group3 else True
                 p["pose"]["cast"] = {"men": list(men), "W": women[0]} if group3 else {"A": men[0], "B": men[1], "W": women[0]}
             if carry and p is ps[0]:
@@ -2201,21 +2341,18 @@ def strip_repeat_cum(text, prior, pp):
 
     # R94 (r93-dp: ก้อง's real finish "เขาดันควย...ปล่อยน้ำเชื้อออกมาเต็มในหีของเธอ" was cut as a bare line after another man's duplicate announcement, and ธนา's nameless
     # "น้ำเชื้ออุ่นๆ พุ่งพล่านออกมาเต็มปากเธอ" was not counted so he came twice): a cum line with NO man's name belongs to the man whose planned finish kind matches what the line says
-    kinds = {}
+    kinds = {}   # man -> the kinds of finish he has in this part (a man can have the early one and the late one in one part)
     for st_ in pp.get("steps", []):
         f_ = st_.get("fin")
         if isinstance(f_, dict):
-            kinds.update({nm: k_ for nm, k_ in f_.items() if k_ in ("F1", "F2", "F3")})
-        elif st_.get("who") and st_.get("id") in ("F1", "F2", "F3"):
-            kinds[st_["who"]] = st_["id"]
+            for nm, k_ in f_.items():
+                if k_ in ("F1", "F2", "F3", "F4", "F5"):
+                    kinds.setdefault(nm, set()).add(k_)
+        elif st_.get("who") and st_.get("id") in ("F1", "F2", "F3", "F4", "F5"):
+            kinds.setdefault(st_["who"], set()).add(st_["id"])
     wn_ = cast.get("W")
-
-    def line_kind(st):
-        if _INSIDE_HER.search(st) or re.search(r"ในหี|ข้างใน|ภายใน", st):
-            return "F3"
-        if re.search(r"ปาก|ลำคอ|ลงคอ", st):
-            return "F1"
-        return "F2"
+    line_kind = _line_kind
+    allowed = pp.get("nfin") or {}   # R96: how many times each man comes in the whole scene (1 for a short scene, 2 for a proper one)
 
     def pron_owner(st, prev):
         if len(kinds) < 2 or any(x in st for x in men):
@@ -2223,20 +2360,41 @@ def strip_repeat_cum(text, prior, pp):
         cm_ = _MALE_CUM_LINE.search(st)
         if not cm_ or (wn_ and wn_ in st[:cm_.start()]) or re.match(r"\s*เธอ", st):
             return None
-        cands = [x for x in men if kinds.get(x) == line_kind(st)]
+        lk = line_kind(st)
+        cands = [x for x in men if lk in kinds.get(x, ())]
         if prev[0] in cands and prev[1] <= 2:
             return prev[0]
         return cands[0] if len(cands) == 1 else None
 
-    came = set()
+    came_n, first_at = {}, {}
+    EVENT = 6   # lines: everything of one man's finish (announcement, narration, swallow) lies within this window; a later line of his is a new finish
+
+    def verdict(o, k):
+        """'keep' / 'drop' for a finish line of man o at line k (and register it)."""
+        if o in first_at:
+            d = k - first_at[o]
+            if d <= 1:
+                return "keep"       # the lines right after the first announcement are the same finish
+            if d <= EVENT:
+                return "drop"       # told again inside the same finish
+        if came_n.get(o, 0) >= allowed.get(o, 1):
+            return "drop"           # he has come as often as the plan lets him in this scene
+        came_n[o] = came_n.get(o, 0) + 1
+        first_at[o] = k
+        return "keep"
+
+    k = 0
     for ln in (prior or "").split("\n"):
+        if not ln.strip():
+            continue
+        k += 1
         o, _ = owner(ln.strip())
         if o:
-            came.add(o)
+            verdict(o, k)
+    for o_ in list(first_at):
+        first_at[o_] = -999   # a finish of an earlier part is over: any further finish of his in this part is judged by the count alone
     out = []
     drop_next = None
-    first_at = {}
-    k = 0
     prev_n = (None, 9)
     for ln in (text or "").split("\n"):
         st = ln.strip()
@@ -2249,17 +2407,14 @@ def strip_repeat_cum(text, prior, pp):
             o, spoken = pron_owner(st, prev_n), False
         _nm = [x for x in men if x in st]
         prev_n = (min(_nm, key=lambda x: st.find(x)), 0) if _nm else (prev_n[0], prev_n[1] + 1)
-        if o and o in came and not (o in first_at and k - first_at[o] <= 1):   # the lines right after his first announcement are the same finish
+        if o and verdict(o, k) == "drop":
             drop_next = o if spoken else None
             continue
         if (drop_next and not QUOTE_RE.match(st) and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st) and not any(x in st for x in men)
-              and line_kind(st) == kinds.get(drop_next, line_kind(st))):   # R94: only the same kind of finish (his own, told twice)
+              and line_kind(st) in kinds.get(drop_next, (line_kind(st),))):   # R94: only the same kind of finish (his own, told twice)
             drop_next = None
             continue
         drop_next = None
-        if o:
-            came.add(o)
-            first_at.setdefault(o, k)
         out.append(ln)
     return "\n".join(out)
 
@@ -2378,31 +2533,26 @@ def ensure_finish_lines(text, prior, pp):
         return text
     cast = pp.get("cast") or {}
     men = list(cast.get("men") or [x for x in (cast.get("A"), cast.get("B")) if x])
-    kinds, place = {}, {}
+    kinds, place = {}, {}   # man -> kinds of finish in THIS part; man -> place of an outside finish
     for st_ in pp.get("steps", []):
         f_ = st_.get("fin")
         if isinstance(f_, dict):
-            kinds.update({nm: k_ for nm, k_ in f_.items() if k_ in ("F1", "F2", "F3")})
-        elif st_.get("who") and st_.get("id") in ("F1", "F2", "F3"):
-            kinds[st_["who"]] = st_["id"]
+            for nm, k_ in f_.items():
+                if k_ in ("F1", "F2", "F3", "F4", "F5"):
+                    kinds.setdefault(nm, set()).add(k_)
+        elif st_.get("who") and st_.get("id") in ("F1", "F2", "F3", "F4", "F5"):
+            kinds.setdefault(st_["who"], set()).add(st_["id"])
         place.update(st_.get("place") or {})
     if not kinds or not men:
         return text
-    wn = cast.get("W")
-
-    def kind_of(st):
-        if _INSIDE_HER.search(st) or re.search(r"ในหี|ข้างใน|ภายใน", st):
-            return "F3"
-        if re.search(r"ปาก|ลำคอ|ลงคอ", st):
-            return "F1"
-        return "F2"
+    kind_of = _line_kind
 
     def narrated(blob, who):
         for ln in (blob or "").split("\n"):
             st = ln.strip()
             if not st or QUOTE_RE.match(st) or not _MALE_CUM_LINE.search(st) or _HER_LINE.search(st):
                 continue
-            if kind_of(st) != kinds[who]:
+            if kind_of(st) not in kinds[who]:
                 continue
             cm = _MALE_CUM_LINE.search(st)
             others = [x for x in men if x != who and x in st[:cm.start()]]
@@ -2421,8 +2571,12 @@ def ensure_finish_lines(text, prior, pp):
                 last = i
         if last is None:
             continue
-        k = kinds[who]
-        if k == "F3":
+        k = sorted(kinds[who], key=lambda x: ("F3", "F2", "F4", "F5", "F1").index(x))[0]   # a man with two finishes in one part gets the late one added first
+        if k == "F4":
+            new = "%sชักควยหนีบอยู่ระหว่างนมของเธอแรงๆ จนแตก น้ำเชื้อร้อนๆ พุ่งกระเซ็นเปื้อนร่องอก นมและใบหน้าของเธอ" % who
+        elif k == "F5":
+            new = "%sขยับควยในมือเธอเร็วขึ้นจนแตก น้ำเชื้อร้อนๆ ทะลักล้นมือของเธอ" % who
+        elif k == "F3":
             new = "%sดันควยเข้าไปลึกที่สุดในหีของเธอ แล้วปล่อยน้ำเชื้อร้อนๆ พุ่งออกมาเต็มข้างใน" % who
         elif k == "F1":
             new = "น้ำเชื้อของ%sพุ่งออกมาเต็มปากเธอ แล้วเธอก็กลืนลงไป" % who
