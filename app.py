@@ -875,7 +875,7 @@ def pose_table():
 
 
 def _pose_kind(t, pid):
-    return (t.get(pid) or GROUP_TABLE.get(pid) or TRIO_TABLE.get(pid) or {}).get("k", "")
+    return (t.get(pid) or GROUP_TABLE.get(pid) or TRIO_TABLE.get(pid) or QUAD_TABLE.get(pid) or {}).get("k", "")
 
 
 # R45 (29 Oct): GROUP TABLE for one woman + two men (the men are both with her at the same time but never touch each other). {A} / {B} are the
@@ -1351,6 +1351,263 @@ def pose_block_group3(part):
     return " ".join(L[:1]) + "\n" + "\n".join(L[1:])
 
 
+# R110 (user 31 Oct): scene with FOUR men and TWO women. Built from the pieces that already work: each woman with one, two or three men uses the single / group / trio
+# poses; the two women have their own table (kiss, deep kiss, licking, fingers, scissors); a man (woman) who is not busy watches and strokes himself (touches herself)
+# without coming; men swap between the women (both groups at once, or only some men); every man comes at least twice; the scene may end with some men coming in one
+# woman's mouth and the two women kissing and sharing it.
+WW_TABLE = {
+    "X1": {"n": "จูบกันเบาๆ", "k": "warm", "d": "{A} and {B} (the two women) kiss each other softly on the lips, cheeks and neck, hands on each other's waists and hair; no tongues yet"},
+    "X2": {"n": "จูบดูดดื่ม", "k": "warm", "d": "{A} and {B} kiss each other deeply, tongues sliding, sucking each other's lips, bodies pressed together, hands on each other's breasts"},
+    "X3": {"n": "เลียหน้าอกกัน", "k": "oral", "d": "{A} lies back and {B} kisses down her neck and licks and sucks her breasts and nipples, one hand between her thighs; then they swap"},
+    "X4": {"n": "เลียหีกัน", "k": "oral", "d": "{A} lies on her back with her legs open and {B} kneels between her thighs licking and sucking her pussy and clit; later they swap places"},
+    "X5": {"n": "เกี่ยวเบ็ดให้กัน", "k": "oral", "sq": True, "d": "{B} slides two fingers into {A}'s pussy, curls them upward (hooked) and rubs fast while her mouth is on {A}'s breast or clit; {A} shakes and squirts: a jet of clear fluid shoots over {B}'s hand and the sheet"},
+    "X6": {"n": "ท่ากรรไกร", "k": "pen", "d": "scissoring: {A} and {B} lie facing each other with their legs interlocked, their pussies pressed together and rubbing, hands on each other's breasts, until they climax"},
+    "X7": {"n": "69 หญิงกับหญิง", "k": "oral", "d": "69 between the two women: {A} lies on her back and {B} is over her facing her feet; each one's mouth is on the other's pussy and clit"},
+}
+QUAD_TABLE = {
+    "Q1": {"n": "ทุกคนเล้าโลม", "k": "warm", "d": "{W1}, {W2} and the four men ({M}) undress and kiss: the two women kiss each other and the men kiss and touch both of them; clothes come off; no cock inside anyone yet"},
+    "QV": {"n": "หญิงจูบกัน ชายดูชักรอ", "k": "warm", "d": "the two women are busy with each other; the men do not touch them"},
+    "QW": {"n": "หญิงกับหญิง ชายดูชักรอ", "k": "oral", "d": "the two women are busy with each other; the men do not touch them"},
+    "QG": {"n": "สองกลุ่มพร้อมกัน", "k": "pen", "d": "each woman is with her own men at the same time"},
+    "QM": {"n": "หญิงหนึ่งกับชาย อีกคนช่วยตัวเอง", "k": "pen", "d": "one woman is with some men while the other woman masturbates and watches"},
+    "FQ": {"n": "ชายสี่คนแตกรอบแรก", "k": "finish", "d": "all four men come in this step, each with his own woman, each in the way given below"},
+    "RQ": {"n": "หญิงปลุกชายทั้งสี่", "k": "recover", "d": "the four men have just come and are soft: the two women lick, suck and stroke them and kiss each other and the men until all four are hard again; no penetration in this step"},
+    "CQ": {"n": "แตกในปากแล้วจูบแลกน้ำ", "k": "finish", "d": "closing image: the men named below come in one woman's mouth one after another; she keeps the cum in her mouth, then the two women kiss deeply and pass the cum between their mouths"},
+}
+_QSOLO = ["D1", "D2", "D4", "E1", "E2", "D5", "C1", "C2", "H1", "H2", "H3", "H4", "H5", "D6", "D8", "D10"]
+
+
+_CLOSE_RE = re.compile(r"แลกน้ำ(?:ควย|เชื้อ)?|จูบแลก|แบ่งน้ำ(?:ควย|เชื้อ)")
+
+
+def close_wanted(txt):
+    """how many men come in the closing mouth-and-kiss step: 0 when the summary says no sharing, else None (random 1-3)."""
+    if re.search(r"ไม่[^\n]{0,8}(?:จูบแลก|แลกน้ำ|แบ่งน้ำ)", txt or ""):
+        return 0
+    m = re.search(r"([1-3]|หนึ่ง|สอง|สาม)\s*คน[^\n]{0,12}แตกในปาก", txt or "")
+    if m:
+        return {"หนึ่ง": 1, "สอง": 2, "สาม": 3}.get(m.group(1)) or int(m.group(1))
+    return None
+
+
+def _quad_first_fins(rng, asg):
+    """first-round finish kinds for four men: each woman's two men get two different kinds from mouth / titjob / handjob, one titjob in all."""
+    out, f4 = {}, False
+    for w, ms in asg.items():
+        pool = ["F1", "F4", "F5"]
+        rng.shuffle(pool)
+        for m in ms:
+            k = next((x for x in pool if not (x == "F4" and f4)), "F1")
+            pool = [x for x in pool if x != k] or ["F1", "F5"]
+            f4 = f4 or k == "F4"
+            out[m] = k
+    return out
+
+
+def make_quad_plan(nbeats, rng, men, women, table=None, close_n=None):
+    """chain for TWO women and FOUR men (names). Steps: {"id", "cells"/"ww"/"mast"/"rest", "wc": [women who climax], "sqw": [women who squirt], "fin", "wm", "who", "wf", "rd"}.
+    Shape: warm-up, 2-3 layout steps, round-1 finish of all four (each with his woman), recovery, 2-3 layout steps, the men who do not close finish one by one
+    (outside / inside, each with a woman), then the closing step: the remaining men come in one woman's mouth and the women share it with a kiss. Each man comes twice."""
+    t = table or pose_table()
+    W1, W2 = women[0], women[1]
+    n = max(1, int(nbeats))
+    order = list(men)
+    rng.shuffle(order)
+    asg = {W1: order[:2], W2: order[2:]}
+    place = {m: None for m in men}
+    last = {W1: None, W2: None}
+    chain = [{"id": "Q1"}]
+    for w_, ms_ in asg.items():
+        for m_ in ms_:
+            place[m_] = w_
+
+    def pick(pool, w):
+        pool = [x for x in pool if x != last[w]] or pool
+        p_ = rng.choice(pool)
+        last[w] = p_
+        return p_
+
+    def cell(w, ms):
+        if len(ms) == 1:
+            return {"w": w, "men": list(ms), "pid": pick([x for x in _QSOLO if x in t], w)}
+        if len(ms) == 2:
+            return {"w": w, "men": list(ms), "pid": pick([x for x in GROUP_TABLE if GROUP_TABLE[x]["k"] in ("oral", "pen") and x != "M7"], w)}
+        return {"w": w, "men": list(ms), "pid": pick([x for x in TRIO_TABLE if TRIO_TABLE[x]["k"] in ("oral", "pen") and x != "T6"], w)}
+
+    def swap():
+        if rng.random() < 0.5:
+            asg[W1], asg[W2] = asg[W2], asg[W1]
+        else:
+            i, j = rng.randrange(2), rng.randrange(2)
+            asg[W1][i], asg[W2][j] = asg[W2][j], asg[W1][i]
+
+    def layout(kind):
+        if kind == "QG":
+            swap()
+            st = {"id": "QG", "cells": [cell(W1, asg[W1]), cell(W2, asg[W2])], "rest": []}
+        elif kind == "QM":
+            a, b = (W1, W2) if rng.random() < 0.5 else (W2, W1)
+            k_ = rng.choice([1, 2, 2, 3])
+            ms = rng.sample(list(men), k_)
+            st = {"id": "QM", "cells": [cell(a, ms)], "mast": b, "rest": [m for m in men if m not in ms]}
+        else:
+            pid = rng.choice(["X1", "X2"] if kind == "QV" else ["X3", "X4", "X5", "X6", "X7"])
+            a, b = (W1, W2) if rng.random() < 0.5 else (W2, W1)
+            st = {"id": kind, "ww": [a, b], "wpid": pid, "rest": list(men)}
+        # who is where now (for the "moves over" lines)
+        now = {m: None for m in men}
+        for c in st.get("cells", []):
+            for m in c["men"]:
+                now[m] = c["w"]
+        st["mv"] = [[m, now[m]] for m in men if now[m] and now[m] != place[m]]
+        place.update(now)
+        return st
+
+    core_n = 2 if n < 6 else 3
+    kinds1 = ["QG", "QW", "QM", "QV"]
+    rng.shuffle(kinds1)
+    first = [k for k in kinds1 if k != "QV"][:core_n]
+    if "QV" in kinds1 and core_n >= 3 and rng.random() < 0.5:
+        first[-1] = "QV"
+    for k in first:
+        chain.append(layout(k))
+    # the women are with their own men for the first finish
+    asg_now = {W1: [m for m in men if place[m] == W1], W2: [m for m in men if place[m] == W2]}
+    if len(asg_now[W1]) != 2 or len(asg_now[W2]) != 2:   # a layout left the men unevenly placed: put them back two by two for the finish
+        rest_ = list(men)
+        rng.shuffle(rest_)
+        asg_now = {W1: rest_[:2], W2: rest_[2:]}
+    asg.update({W1: list(asg_now[W1]), W2: list(asg_now[W2])})
+    for w_, ms_ in asg.items():
+        for m_ in ms_:
+            place[m_] = w_
+    fins1 = _quad_first_fins(rng, asg)
+    chain.append({"id": "FQ", "fin": fins1, "wm": {m: place[m] for m in men}, "rd": 1})
+    chain.append({"id": "RQ"})
+    kinds2 = ["QG", "QM", "QW", "QG"]
+    rng.shuffle(kinds2)
+    for k in kinds2[:core_n]:
+        chain.append(layout(k))
+    pool2 = _second_pool(t)
+    cn = close_n if close_n is not None else rng.choice([1, 2, 2, 3])
+    cn = max(0, min(3, int(cn)))
+    shuffled = list(men)
+    rng.shuffle(shuffled)
+    closers = shuffled[:cn]
+    singles = shuffled[cn:]
+    for m in singles:
+        chain.append(layout(rng.choice(["QG", "QM"])))
+        wf = place[m] or rng.choice([W1, W2])
+        chain.append({"id": rng.choice(pool2), "who": m, "wf": wf, "rd": 2})
+        place[m] = wf
+    if closers:
+        wa = rng.choice([W1, W2])
+        wb = W2 if wa == W1 else W1
+        chain.append({"id": "CQ", "fin": {m: "F1" for m in closers}, "wm": {m: wa for m in closers}, "share": wb, "rd": 2})
+    # her climaxes: every woman at least once; random squirt
+    act = [i for i, c in enumerate(chain) if i > 0 and (c.get("cells") or c.get("ww") or c.get("mast"))]
+    cl = {W1: 0, W2: 0}
+    for i in act:
+        c = chain[i]
+        who_ = [x["w"] for x in c.get("cells", [])] + list(c.get("ww") or []) + ([c["mast"]] if c.get("mast") else [])
+        if c["id"] == "QV":
+            continue
+        wc = [w for w in who_ if rng.random() < 0.4]
+        c["wc"] = wc
+        for w in wc:
+            cl[w] += 1
+    for w in (W1, W2):
+        if not cl[w] and act:
+            for i in rng.sample(act, len(act)):
+                c = chain[i]
+                who_ = [x["w"] for x in c.get("cells", [])] + list(c.get("ww") or []) + ([c["mast"]] if c.get("mast") else [])
+                if w in who_ and c["id"] != "QV":
+                    c.setdefault("wc", []).append(w)
+                    break
+    for c in chain:
+        if c.get("wc"):
+            c["sqw"] = [w for w in c["wc"] if rng.random() < 0.4 or (c.get("wpid") and (WW_TABLE.get(c["wpid"]) or {}).get("sq"))]
+            c["w"] = True
+    out, m_ = [], len(chain)
+    for b in range(n):
+        out.append(chain[(m_ * b) // n:(m_ * (b + 1)) // n])
+    return out
+
+
+def _quad_cell_text(c, t, W_other=None):
+    w, ms, pid = c["w"], c["men"], c["pid"]
+    if len(ms) == 1:
+        row = t.get(pid) or {}
+        return "%s WITH %s ONLY (in the description 'he' means %s, 'she' means %s): %s" % (w, ms[0], ms[0], w, row.get("d", ""))
+    if len(ms) == 2:
+        row = GROUP_TABLE.get(pid) or {}
+        return "%s WITH %s AND %s: %s" % (w, ms[0], ms[1], row.get("d", "").format(A=ms[0], B=ms[1], W=w))
+    row = TRIO_TABLE.get(pid) or {}
+    return "%s WITH %s, %s AND %s: %s" % (w, ms[0], ms[1], ms[2], row.get("d", "").format(A=ms[0], B=ms[1], C=ms[2], W=w))
+
+
+def _quad_fin_text(fin, wm, t):
+    """per-woman act binding for a multi-man finish step with two women."""
+    by_w = {}
+    for m, k in fin.items():
+        by_w.setdefault(wm.get(m), {})[m] = k
+    parts = []
+    for w, f in by_w.items():
+        for m, k in f.items():
+            parts.append("%s (with %s): %s" % (m, w, (t.get(k) or {}).get("d", "")))
+        parts.append(_act_binding(f).replace(" | FIXED ARRANGEMENT", "FIXED ARRANGEMENT (%s)" % w).strip())
+    return " | " + " ; ".join(x for x in parts if x)
+
+
+def pose_block_quad(part):
+    pp = part["pose"]
+    t = pose_table()
+    t = _tj_table(t, pp)
+    cs = pp.get("cast") or {}
+    men = cs.get("men") or ["A", "B", "C", "D"]
+    W1, W2 = cs.get("W", "she"), cs.get("W2", "she2")
+    L = ["POSITION PLAN FOR TWO WOMEN, %s AND %s, AND FOUR MEN, %s, %s, %s AND %s (ground truth: the positions come from a fixed table so the bodies stay in possible places; obey it exactly, in this order, and use NO other position in this part). Rules for the whole plan: (1) every step says who is with whom: a man who is named in no cell of a step touches neither woman - he watches and strokes his OWN cock slowly with his hand, and he does NOT come in that step; (2) a woman who masturbates in a step touches only herself (fingers in her own pussy, her own breasts), watches the others, and the others do not touch her; (3) the men never touch each other; (4) each woman has her own name, her own voice and her own way of speaking: never swap their lines or names, and when both women are in one sentence write their names, not 'เธอ' twice; (5) when the plan says a man moves over to the other woman, write the move in one sentence before the new act." % (W1, W2, men[0], men[1], men[2], men[3])]
+    if pp.get("carry"):
+        L.append("CARRY-OVER FROM THE LAST SCENE: %s was left wanting more and is still aroused: show it in the first lines of this part (a look, a touch, a request) before STEP 1." % pp["carry"])
+    for k, st in enumerate(pp["steps"], 1):
+        pid = st["id"]
+        row = QUAD_TABLE.get(pid) or t.get(pid) or {}
+        ln = "STEP %d [%s]: " % (k, row.get("n", pid))
+        if pid == "Q1":
+            ln += row["d"].format(W1=W1, W2=W2, M=", ".join(men))
+        elif pid in ("QG", "QM"):
+            ln += row.get("d", "") + " | " + " ;; ".join(_quad_cell_text(c, t) for c in st.get("cells", []))
+            if st.get("mast"):
+                ln += " ;; %s MASTURBATES alone beside them: she watches, hooks two fingers into her own pussy and rubs her clit, breathing harder and getting wetter" % st["mast"]
+        elif pid in ("QV", "QW"):
+            a, b = st["ww"]
+            ln += row.get("d", "") + " | " + (WW_TABLE.get(st["wpid"]) or {}).get("d", "").format(A=a, B=b)
+        elif pid == "FQ":
+            ln += row.get("d", "") + _quad_fin_text(st.get("fin") or {}, st.get("wm") or {}, t)
+        elif pid == "RQ":
+            ln += row.get("d", "")
+        elif pid == "CQ":
+            fin = st.get("fin") or {}
+            wa = next(iter((st.get("wm") or {}).values()), W1)
+            ln += row.get("d", "") + " | %s kneels with her mouth open; %s come%s in her mouth one after another (she keeps it all in her mouth, no swallowing yet); then %s kisses %s deeply and they pass the cum from mouth to mouth, tongues and lips wet and white, a little drips from their chins; end the scene on that image" % (wa, " and ".join(fin), "" if len(fin) > 1 else "s", st.get("share") or W2, wa)
+        else:   # a single man's finish step (outside / inside) with one woman
+            who, wf = st.get("who"), st.get("wf") or W1
+            ln += "ONLY %s comes now, with %s (in the description 'he' means %s): %s | %s's CLIMAX happens here and only here" % (who, wf, who, row.get("d", ""), who)
+        rest = [m for m in st.get("rest", [])]
+        if pid in ("QG", "QM", "QV", "QW") and rest:
+            ln += " | NOT in any cell: %s - watching and stroking their own cocks, not coming" % ", ".join(rest)
+        if pid not in ("Q1", "FQ", "RQ", "CQ") and st.get("who"):
+            others = [m for m in men if m != st["who"]]
+            ln += " | the other men rest or stroke their own cocks, nobody else comes; the other woman %s" % "watches and touches herself"
+        if st.get("mv"):
+            ln += " | MOVES: " + "; ".join("%s moves over to %s" % (m, w) for m, w in st["mv"])
+        for w in st.get("wc", []):
+            ln += " | %s CLIMAXES in this step: show it plainly" % w + ((" and SQUIRTS: a jet of clear fluid shoots out of her pussy (over a hand / a face / her thighs / the sheet), write the spray and the wet mess") if w in st.get("sqw", []) else "")
+        L.append(ln)
+    L.append("The finish steps are written exactly as listed: no man comes in a part that has no finish step.")
+    return "\n".join(L)
+
+
 def pose_block_group(part):
     pp = part["pose"]
     t = pose_table()
@@ -1416,6 +1673,8 @@ def pose_block(part):
     pp = (part or {}).get("pose")
     if not pp or not pp.get("steps"):
         return ""
+    if pp.get("g") == 4:
+        return pose_block_quad(part)
     if pp.get("g") == 3:
         return pose_block_group3(part)
     if pp.get("g"):
@@ -1606,9 +1865,10 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         women = [n for n in present if info[n].get("g") == "F"]
         group = len(men) == 2 and len(women) == 1
         group3 = len(men) == 3 and len(women) == 1
-        if not group and not group3 and (len(men) != 1 or len(women) != 1):
+        group4 = len(men) == 4 and len(women) == 2 and len(ps) >= 4   # R110: four men and two women
+        if not group and not group3 and not group4 and (len(men) != 1 or len(women) != 1):
             continue
-        group = group or group3
+        group = group or group3 or group4
         quick = (not group) and bool(QUICKIE_RE.search(txt))
         want_fin = finish_wanted(txt)
         # R96 (31 Oct, user): a proper scene (4+ beats ~ 2,000+ words) = each man comes twice (early: mouth / titjob / handjob, then after the sex: inside / outside); a short one = once
@@ -1618,7 +1878,9 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         pick = None
         for k in range(60):
             rng = random.Random(zlib.crc32(("%s|%s|%d|%d|%d" % (b, cid, sc, salt, k)).encode("utf-8")))
-            if group3:
+            if group4:
+                plan = make_quad_plan(len(ps), rng, men, women, t, close_n=close_wanted(txt))
+            elif group3:
                 plan = make_group3_plan(len(ps), rng, men, t, dp=dp_wanted(txt), tail_ok=False, rounds=rounds)
             elif group:
                 plan = make_group_plan(len(ps), rng, men[0], men[1], t, dp=dp_wanted(txt), tail_ok=False, rounds=rounds)
@@ -1661,8 +1923,8 @@ def attach_pose_plans(b, parts, cid="", salt=0):
                 p["pose"]["quick"] = True
             if group:
                 p["pose"]["nfin"] = _finish_counts(plan)   # R96: how many times each man comes in the whole scene (the repeat-cum check allows exactly that many)
-                p["pose"]["g"] = 3 if group3 else True
-                p["pose"]["cast"] = {"men": list(men), "W": women[0]} if group3 else {"A": men[0], "B": men[1], "W": women[0]}
+                p["pose"]["g"] = 4 if group4 else (3 if group3 else True)
+                p["pose"]["cast"] = {"men": list(men), "W": women[0], "W2": women[1], "women": list(women)} if group4 else ({"men": list(men), "W": women[0]} if group3 else {"A": men[0], "B": men[1], "W": women[0]})
             if carry and p is ps[0]:
                 p["pose"]["carry"] = carry
             if steps:
