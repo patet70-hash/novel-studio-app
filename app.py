@@ -2194,9 +2194,38 @@ def strip_repeat_cum(text, prior, pp):
                 if not (wn and wn in pre[at:]):
                     return who, False
             for x in men:
-                if re.search(r"(?:น้ำเชื้อ|น้ำควย)ของ" + re.escape(x), st):
+                if re.search(r"(?:น้ำเชื้อ|น้ำควย)[^\s“”]{0,8}\s?ของ" + re.escape(x), st):
                     return x, False
         return None, False
+
+    # R94 (r93-dp: ก้อง's real finish "เขาดันควย...ปล่อยน้ำเชื้อออกมาเต็มในหีของเธอ" was cut as a bare line after another man's duplicate announcement, and ธนา's nameless
+    # "น้ำเชื้ออุ่นๆ พุ่งพล่านออกมาเต็มปากเธอ" was not counted so he came twice): a cum line with NO man's name belongs to the man whose planned finish kind matches what the line says
+    kinds = {}
+    for st_ in pp.get("steps", []):
+        f_ = st_.get("fin")
+        if isinstance(f_, dict):
+            kinds.update({nm: k_ for nm, k_ in f_.items() if k_ in ("F1", "F2", "F3")})
+        elif st_.get("who") and st_.get("id") in ("F1", "F2", "F3"):
+            kinds[st_["who"]] = st_["id"]
+    wn_ = cast.get("W")
+
+    def line_kind(st):
+        if _INSIDE_HER.search(st) or re.search(r"ในหี|ข้างใน|ภายใน", st):
+            return "F3"
+        if re.search(r"ปาก|ลำคอ|ลงคอ", st):
+            return "F1"
+        return "F2"
+
+    def pron_owner(st, prev):
+        if len(kinds) < 2 or any(x in st for x in men):
+            return None
+        cm_ = _MALE_CUM_LINE.search(st)
+        if not cm_ or (wn_ and wn_ in st[:cm_.start()]) or re.match(r"\s*เธอ", st):
+            return None
+        cands = [x for x in men if kinds.get(x) == line_kind(st)]
+        if prev[0] in cands and prev[1] <= 2:
+            return prev[0]
+        return cands[0] if len(cands) == 1 else None
 
     came = set()
     for ln in (prior or "").split("\n"):
@@ -2204,9 +2233,10 @@ def strip_repeat_cum(text, prior, pp):
         if o:
             came.add(o)
     out = []
-    drop_next = False
+    drop_next = None
     first_at = {}
     k = 0
+    prev_n = (None, 9)
     for ln in (text or "").split("\n"):
         st = ln.strip()
         if not st:
@@ -2214,13 +2244,18 @@ def strip_repeat_cum(text, prior, pp):
             continue
         k += 1
         o, spoken = owner(st)
+        if o is None and not QUOTE_RE.match(st) and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
+            o, spoken = pron_owner(st, prev_n), False
+        _nm = [x for x in men if x in st]
+        prev_n = (min(_nm, key=lambda x: st.find(x)), 0) if _nm else (prev_n[0], prev_n[1] + 1)
         if o and o in came and not (o in first_at and k - first_at[o] <= 1):   # the lines right after his first announcement are the same finish
-            drop_next = spoken
+            drop_next = o if spoken else None
             continue
-        if drop_next and not QUOTE_RE.match(st) and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st) and not any(x in st for x in men):
-            drop_next = False
+        if (drop_next and not QUOTE_RE.match(st) and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st) and not any(x in st for x in men)
+              and line_kind(st) == kinds.get(drop_next, line_kind(st))):   # R94: only the same kind of finish (his own, told twice)
+            drop_next = None
             continue
-        drop_next = False
+        drop_next = None
         if o:
             came.add(o)
             first_at.setdefault(o, k)
@@ -2752,11 +2787,44 @@ def strip_man_on_man(text, info):
     allr = "|".join(re.escape(x) for x in sorted([n for n in info if n and len(n) >= 2], key=len, reverse=True))
     obj_mark = r"(?:หี|นม|ปาก|ก้น|หน้าอก|ต้นขา|สะโพก|ขา|แก้ม|ไหล่|หลัง|ท้อง|เอว|คอ|ใบหน้า|ผม|ให้|กับ|ที่|จาก|ของ|ถึง|ข้าง|ใกล้|หา|มอง|ตา|เห็น|เรียก|ดึง|ดัน|จูบ|กอด)$"
     rx = re.compile(r"(?:อม|เลีย|ดูด|ชัก|จับ|ลูบ|ไล้|กำ)[\u0E01-\u0E4E]{0,4}(?:ควย|หัวควย|ดุ้น)(?:ของ)?(%s)" % mr)
+    rx_pron = re.compile(r"(?:อม|เลีย|ดูด|ชัก|จับ|ลูบ|ไล้|กำ)[\u0E01-\u0E4E]{0,4}(?:ควย|หัวควย|ดุ้น)เขา(?![\u0E01-\u0E2E])")
+
+    def cut_pron(s_):
+        # R94 (r93-dp: “…” ลลิตาอ้าปากกว้างให้ธนาอมควยเขา): a man sucking / touching "เขา"'s cock is another man's; works on narration after a leading quote too
+        for _ in range(4):
+            mm = rx_pron.search(s_)
+            if not mm:
+                break
+            prev = [x for x in re.finditer(allr, s_[:mm.start()])] if allr else []
+            if not prev or prev[-1].group(0) not in M:
+                break
+            ac = prev[-1]
+            left = s_.rfind(" ", 0, mm.start()) + 1
+            if 0 <= mm.start() - ac.start() <= 25:
+                left = min(left, s_.rfind(" ", 0, ac.start()) + 1)
+            right = s_.find(" ", mm.end())
+            right = len(s_) if right < 0 else right
+            s_ = (s_[:left].rstrip() + " " + s_[right:].lstrip()).strip()
+        return s_
+
     out = []
     for ln in (text or "").split("\n"):
         st = ln.strip()
+        if st and "เขา" in st:
+            qm_ = QUOTE_RE.match(st)
+            if qm_:
+                rest_ = st[qm_.end():]
+                new_ = cut_pron(rest_)
+                if new_ != rest_.strip():
+                    ln = (qm_.group(0) + " " + new_).rstrip()
+            else:
+                new_ = cut_pron(ln)
+                if new_ != ln.strip():
+                    ln = new_
+            st = ln.strip()
         if not st or QUOTE_RE.match(st):
-            out.append(ln)
+            if ln.strip():
+                out.append(ln)
             continue
         for _ in range(6):
             hit = None
