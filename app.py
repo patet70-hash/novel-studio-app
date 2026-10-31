@@ -2525,7 +2525,7 @@ def fix_name_krub(text, info):
     return "\n".join(out)
 
 
-def ensure_finish_lines(text, prior, pp):
+def ensure_finish_lines(text, prior, pp, fallback=True):
     """R95 (r93-dp, r92-dp: ก้อง said 'กูจะแตกในมึงแล้ว' but the model never wrote that he came): in a group part whose plan holds a man's finish step, if that man ANNOUNCES it
     (a quote of his saying แตก) and no narrated cum line of that kind exists in this part or earlier in the scene, one short narrated line of the planned kind / place is added after
     his last announcement."""
@@ -2570,7 +2570,11 @@ def ensure_finish_lines(text, prior, pp):
             if m and re.search(r"แตก", _NOT_YET.sub("", m.group(0)) + m.group(0)) and ln.strip()[m.end():].strip().startswith(who):
                 last = i
         if last is None:
-            continue
+            if not fallback:
+                continue
+            last = len(lines) - 1   # R97: he never announced it either - the planned finish is added at the end of the part (a man the model skipped in a common finish step)
+            while last > 0 and not lines[last].strip():
+                last -= 1
         k = sorted(kinds[who], key=lambda x: ("F3", "F2", "F4", "F5", "F1").index(x))[0]   # a man with two finishes in one part gets the late one added first
         if k == "F4":
             new = "%sชักควยหนีบอยู่ระหว่างนมของเธอแรงๆ จนแตก น้ำเชื้อร้อนๆ พุ่งกระเซ็นเปื้อนร่องอก นมและใบหน้าของเธอ" % who
@@ -3544,6 +3548,10 @@ def aw_run(b, cid, key):
                     pass
                 part = strip_man_on_man(part, char_info(b))
                 part = fix_name_krub(part, char_info(b))
+                try:   # R97 instrumentation: the plan of this part [id, who, fin, rd, place]
+                    job.setdefault("plan", []).append([i + 1, [[st_.get("id"), st_.get("who"), st_.get("fin"), st_.get("rd"), st_.get("place")] for st_ in (parts[i].get("pose") or {}).get("steps", [])]])
+                except Exception:
+                    pass
                 _pe = part
                 part = ensure_finish_lines(part, cur[_spos:], parts[i].get("pose"))
                 if part != _pe:
