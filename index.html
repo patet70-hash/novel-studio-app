@@ -93,7 +93,7 @@ details.sec>summary::after{content:"▾";color:var(--mu)}details.sec[open]>summa
 @media(max-width:700px){.split{flex-direction:column}#chl{width:auto;max-height:28vh;border-right:0;border-bottom:1px solid var(--bd)}.fr .lb{width:84px}}
 </style></head><body>
 <header><b>📖 Novel Studio</b>
-<select id="book"></select><button id="nb">+ เรื่องใหม่</button><button id="delb" title="ลบนิยายเรื่องนี้ (ย้ายไปถังขยะ)">🗑</button>
+<select id="book"></select><select id="mode" title="โหมดเรื่อง: ตั้งค่าการเขียนให้ตรงแนว"><option value="general">โหมดทั่วไป</option><option value="erotic">โหมดนิยายอีโรติก</option></select><button id="nb">+ เรื่องใหม่</button><button id="delb" title="ลบนิยายเรื่องนี้ (ย้ายไปถังขยะ)">🗑</button>
 <span class="small" id="st">…</span><span style="flex:1"></span>
 <button id="thb" title="โหมดสี">🌙</button><button id="setb">⚙︎</button></header>
 <nav><button data-t="chat" class="on">แชท</button><button data-t="ms">ต้นฉบับ</button><button data-t="setup">ตั้งค่าเรื่อง</button><button data-t="ex">ส่งออก PDF</button><button data-t="tr">ถังขยะ</button></nav>
@@ -177,6 +177,8 @@ const LOF=[F('ltype','ประเภทสถานที่','Type','multi','p
 /* ===== state ===== */
 const $=s=>document.querySelector(s);
 let book="",chat=[],chs=[],cur="",ctrl=null,S=null,meta={title:"",author:"",lang:"English"},saveT=null;
+const EROTIC_V={genre:"Erotic Dark Comedy, Family Drama",tone:"satirical, tense, Steamy",intensity:"Very high, fully explicit sexual content",rules:"All characters are adults (18+). Every character is heterosexual (attracted to the opposite sex): no gay male characters; female characters may have lesbian scenes. Sex scenes: several positions in continuous sequence, never ending in a single position unless the author specifies one position. Describe bodies and bodily fluids directly and visually. No condoms are ever used in this story. Male characters finish by context: inside the vagina, on the chest, on the woman's body, in the mouth, or on the face. Sex scenes take up 60-70% of each chapter (about 3000-3500 words of a 5000-word chapter); the rest is story, atmosphere and dialogue. A two-person scene has at least 4-5 positions in sequence. A group scene (three or more people) has at least 6-8 positions with partners or positions swapped at least 2-3 times. In group scenes every participant takes a real active part with their own reactions and dialogue; no one only watches. In every sex scene that includes a man there is an oral sequence of sucking and mouth-play, and in about 60% of all sex scenes the scene's final climax is the man finishing in her mouth (the other 40% finish by context as listed above); the oral sequence itself may appear at the start, middle or end of the sequence of positions."};
+function applyModeTemplate(){if(meta.mode!=="erotic")return false;let ch=false;for(const k of Object.keys(EROTIC_V)){const x=gv(S.v,k);if(!(x.s||[]).length&&!(x.c||"").trim()){x.c=EROTIC_V[k];ch=true}}return ch}
 const emptySetup=()=>({v:{},locks:{},chars:[],locs:[],notes:"",rules:"",synth:"",synthNotes:"",assist:[]});
 const api=async(p,o={})=>{const r=await fetch("api/"+p,o);if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||r.status);return r};
 const js=(m,b)=>({method:m,headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});
@@ -376,7 +378,7 @@ $("#prevx").onclick=()=>$("#prev").close();
 async function status(){try{const s=await(await api("status")).json();$("#st").textContent=s.llm?"● โมเดลพร้อม":"○ โมเดลยังโหลดอยู่";window._set=s.settings}catch(e){$("#st").textContent="✕ ติดต่อไม่ได้"}}
 async function loadBooks(sel){const bs=await(await api("books")).json();$("#book").innerHTML=bs.map(b=>`<option value="${b.id}">${esc(b.title)}</option>`).join("");
  if(sel)$("#book").value=sel;book=$("#book").value;if(book)await loadBook();else{chat=[];S=null;render();renderSetup()}}
-async function loadBook(){const d=await(await api("books/"+book)).json();chat=d.chat;chs=d.chapters;meta=Object.assign({title:"",author:"",lang:"English"},d.meta);S=Object.assign(emptySetup(),d.setup||{});if(!S.v.lang)S.v.lang={s:[meta.lang==='Thai'?'Thai':'English'],c:''};
+async function loadBook(){const d=await(await api("books/"+book)).json();chat=d.chat;chs=d.chapters;meta=Object.assign({title:"",author:"",lang:"English"},d.meta);S=Object.assign(emptySetup(),d.setup||{});if(!S.v.lang)S.v.lang={s:[meta.lang==='Thai'?'Thai':'English'],c:''};$("#mode").value=meta.mode||"general";if(applyModeTemplate())dirty();
  cur=chs.length?chs[chs.length-1].id:"";CT={};CH={};OUT={draft:d.draft||null};loadFolds();$("#csel").innerHTML="";fillCsel();$("#csel").value=cur;render();renderMS();renderSetup()}
 /* ===== manuscript: Outline card + chapter cards (each with its own AI chat) ===== */
 let OUT={draft:null},CT={},CH={},FOLDS={},saveTm={},chatTm={},metaTm={},dsT=null;
@@ -588,7 +590,8 @@ async function loadTrash(){const el=$("#trw");el.innerHTML='<p class="small">ก
   else if(k==="xb"){const a=prompt('ลบถาวร "'+t+'" ทั้งเรื่อง — กู้คืนไม่ได้อีก\nพิมพ์ชื่อเรื่องให้ตรงเพื่อยืนยัน:');if(a===null)return;if(a.trim()!==t.trim()){alert("ชื่อไม่ตรง — ไม่ได้ลบ");return}await api("trash/book/"+i,{method:"DELETE"});await loadTrash()}
   else if(k==="xc"){if(!confirm('ลบถาวรตอน "'+t+'" — กู้คืนไม่ได้อีก ดำเนินการ?'))return;await api(`trash/chapter/${book}/${i}`,{method:"DELETE"});await loadTrash()}}
   catch(e){alert("ไม่สำเร็จ: "+e.message)}})}
-$("#nb").onclick=async()=>{const t=prompt("ชื่อเรื่อง");if(!t)return;const r=await(await api("books",js("POST",{title:t}))).json();await loadBooks(r.id)};
+$("#nb").onclick=async()=>{const t=prompt("ชื่อเรื่อง");if(!t)return;const r=await(await api("books",js("POST",{title:t,mode:$("#mode").value}))).json();await loadBooks(r.id)};
+$("#mode").onchange=()=>{if(!book)return;meta.mode=$("#mode").value;if(applyModeTemplate())renderSetup();dirty()};
 $("#book").onchange=()=>{book=$("#book").value;loadBook()};
 $("#dls").onclick=async()=>{const ids=chs.filter(c=>window._exsel[c.id]).map(c=>c.id);if(!ids.length){toast("ติ๊กเลือกตอนที่ต้องการก่อน");return}
  for(const id of ids){try{clearTimeout(saveTm[id]);if(CT[id]!==undefined)await saveChapter(id,true)}catch(e){}}

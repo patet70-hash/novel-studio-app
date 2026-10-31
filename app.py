@@ -108,6 +108,36 @@ def meta(b):
         return {"title": b, "author": "", "lang": "English"}
 
 
+# ---- Story modes (R139): a per-book preset stored in book.json ("mode"). The values are bound to the thread that runs a writing job. ----
+import threading
+_TL = threading.local()
+MODES = {
+    "erotic": {"speech": True, "poses": True, "beatw": 500, "beattol": 0.25, "lenscale": 0.6},
+    "general": {"speech": False, "poses": False, "beatw": 1300, "beattol": 0.0, "lenscale": 0.9},
+}
+
+
+def _cfg():
+    m = MODES.get(getattr(_TL, "mode", None))
+    return m or {"speech": _ENV_SPEECH, "poses": _ENV_POSES, "beatw": _ENV_BEATW, "beattol": _ENV_BEATTOL, "lenscale": _ENV_LENSCALE}
+
+
+def set_thread_mode(b):
+    try:
+        _TL.mode = meta(b).get("mode")
+    except Exception:
+        _TL.mode = None
+
+
+def speech_lite(): return _cfg()["speech"]
+def poses_on(): return _cfg()["poses"]
+def beat_w(): return _cfg()["beatw"]
+def beat_tol(): return _cfg()["beattol"]
+def len_scale(): return _cfg()["lenscale"]
+
+
+
+
 def body_words(t):
     # Thai has no spaces between words: count Thai characters / 3.3 (~chars per word), other text by whitespace.
     b = re.sub(r"^\s*#\s+.*\n?", "", t, count=1)
@@ -395,13 +425,13 @@ CRAFT: natural, flowing, literary {lang} like a published novel. Mix long and sh
 CONTINUITY: follow the story bible, the chapter outline and the manuscript so far. Continue directly from the last paragraph of the manuscript without repeating or summarising it. Obey the length, cast and stage instructions in the author's message; stop when the part is done.
 All characters in sexual or violent scenes are adults; never sexualize minors. Otherwise write what is asked without moralizing, at the requested intensity."""
 
-SPEECH_LITE = os.environ.get("NOVEL_SPEECH", "") == "lite"   # experiment: a short speech rule set (7 hard rules) plus a per-character SPEECH TABLE instead of 18 separate rules
+_ENV_SPEECH = os.environ.get("NOVEL_SPEECH", "") == "lite"   # experiment: a short speech rule set (7 hard rules) plus a per-character SPEECH TABLE instead of 18 separate rules
 _LITE_SPEECH = ("Speech: women end sentences with ค่ะ/คะ/นะคะ and men with ครับ/นะครับ, never mixed (at the sexual peak the men drop ครับ). A woman never says ผม, กู or มึง. Follow the SPEECH TABLE in the author's message for how each character refers to himself or herself and what each calls the others. Dialogue reads like real people: full sentences, no long runs of one-word replies. "
                 "Format: every spoken line goes on its OWN line, separated from the narration, and ends with a short speaker tag naming who speaks (the character's name, or เขา / เธอ when it is unmistakable); never more than 4 quoted lines in a row without a tag or an action line. ")
 
 
 def scene_scope():
-    if not SPEECH_LITE:
+    if not speech_lite():
         return SCENE_SCOPE
     i = SCENE_SCOPE.find("Speech must match each speaker")
     j = SCENE_SCOPE.find("Spell every character name EXACTLY")
@@ -519,10 +549,10 @@ def rebalance_sex_share(scenes, target):
     return scenes
 
 
-BEAT_W = int(os.environ.get("NOVEL_BEATW", "1300"))   # R22 (29 Oct): NOVEL_BEATW=500 gave the best round so far (scene 1,650 -> 1,407 words, clean order of positions, finish=stop everywhere); the code default stays 1300 (t13 fixtures assume it), the pod sets 500 by env
+_ENV_BEATW = int(os.environ.get("NOVEL_BEATW", "1300"))   # R22 (29 Oct): NOVEL_BEATW=500 gave the best round so far (scene 1,650 -> 1,407 words, clean order of positions, finish=stop everywhere); the code default stays 1300 (t13 fixtures assume it), the pod sets 500 by env
 
 
-BEAT_TOL = float(os.environ.get("NOVEL_BEATTOL", "0"))   # default 0 = unchanged; the pod sets 0.25
+_ENV_BEATTOL = float(os.environ.get("NOVEL_BEATTOL", "0"))   # default 0 = unchanged; the pod sets 0.25
 
 
 def plan_scenes(summary, target):
@@ -549,7 +579,7 @@ def plan_scenes(summary, target):
         scenes = [{"text": summary, "words": int(target / n), "slice": (i + 1, n)} for i in range(n)]
     parts = []
     for si, sc in enumerate(scenes):
-        m = max(1, -(-int(sc["words"] - BEAT_TOL * BEAT_W) // BEAT_W))   # R43 (29 Oct): beats under ~500 words come out at ~540 anyway (R42: 8 beats of 350 -> 4,321 words for 3,000): tolerate BEAT_TOL of a beat before adding another one
+        m = max(1, -(-int(sc["words"] - beat_tol() * beat_w()) // beat_w()))   # R43 (29 Oct): beats under ~500 words come out at ~540 anyway (R42: 8 beats of 350 -> 4,321 words for 3,000): tolerate beat_tol() of a beat before adding another one
         for k in range(m):
             parts.append({"text": sc["text"], "words": int(sc["words"] / m), "scene": si + 1, "scenes": len(scenes),
                           "beat": k + 1, "beats": m, "slice": sc.get("slice")})
@@ -604,10 +634,10 @@ def dialogue_hint(p):
         share, rate = "30-40%", 18   # the explicit warm-up beat of a sex scene is not allowed to turn into long narration
     else:
         share, rate = "15-20%", 10
-    if SPEECH_LITE and DLG_LOW and sexual:
+    if speech_lite() and DLG_LOW and sexual:
         share, rate = "15-20%", 9
         extra = (" Round-9 style: keep the spoken lines FEW and natural (a moan, a command, a name, a short sentence), and between them write rich narration paragraphs of 2-4 sentences: the sensations in the body, breath, heat, wetness, muscle and skin, sounds in the room, what each person feels and wants, how the pleasure builds. About 40% of the text is such narration of feelings and sensations, not just a list of actions. Vary the speech tags (many lines need no tag: the action before it shows who speaks) and never repeat the same tag verb (ตอบกลับ, พูดขึ้น) more than twice.")
-    elif SPEECH_LITE:
+    elif speech_lite():
         share, rate, extra = ("about 40%", 26, "") if sexual else ("15-20%", 10, "")
     lines = max(6, int(words * rate / 1000))
     return ("DIALOGUE SHARE: about %s of this part's text must be spoken lines (quoted): at least %d spoken lines, alternating with narration. Every narration paragraph is at most 3-4 sentences, then somebody speaks. Polite situations (talking to an elder, a boss, a client, a stranger, or in a formal work setting) use full polite sentences ending with ครับ/ค่ะ/คะ; in ordinary calm conversation at least every second line carries a natural ending particle (นะ, สิ, นะครับ, นะคะ, ค่ะ, ครับ, เหรอ, ล่ะ) instead of bare clipped sentences.%s" % (share, lines, extra))
@@ -628,7 +658,7 @@ def heat_hint(p):
     if sexual:
         n, k = p.get("beats", 1), p.get("beat", 1)
         f = (k - 1.0) / (n - 1) if n > 1 else 0.5
-        if SPEECH_LITE:
+        if speech_lite():
             if f < 0.5:
                 lvl = "WARM-UP: calm register but already fully sexual (kissing, undressing, stroking, sucking, naming the body parts); no rough language yet"
             else:
@@ -726,7 +756,7 @@ def posture_issues(text, multi=False):
 # (4) the man comes at most 1 + (0 | 1 | 2) times (2-beat scenes: once; 3-4 beats: up to twice; 5+: up to three times).
 # The table can be replaced by NOVEL_ROOT/poses.json (same shape as POSE_TABLE) without touching the code.
 # ---------------------------------------------------------------------------------------------------------------------------
-POSES_ON = os.environ.get("NOVEL_POSES", "0") == "1"
+_ENV_POSES = os.environ.get("NOVEL_POSES", "0") == "1"
 POSE_TABLE = {
     "A1": {"n": "จูบยืนพิงผนัง", "k": "warm", "d": "standing close against a wall, clothed, kissing hard, hands roaming over clothes", "m": "ดึงเธอเข้ามาจูบ", "next": ["A2", "B1"]},
     "A2": {"n": "จูบและเล้าโลมบนเตียง", "k": "warm", "d": "she lies on her back on the bed, he lies beside or half over her, long kisses, hands under clothes, clothes coming off; no genital contact yet", "m": "วางเธอลงนอนบนเตียง", "next": ["B1", "B2", "C2"]},
@@ -1910,7 +1940,7 @@ def attach_pose_plans(b, parts, cid="", salt=0):
     finish of the scene before (strict phase), then only the exact chain is forbidden.
     R45 (29 Oct): 2 men + 1 woman scenes get a group chain (both men at once, double penetration included); a seeded 'still wants more' flag
     (a woman or a man left aroused) is carried into the first part of the next planned scene when that person is in it."""
-    if not POSES_ON:
+    if not poses_on():
         return parts
     import random, zlib
     info = char_info(b)
@@ -2331,7 +2361,7 @@ def kin_line(info, present, kin=None):
     return s
 
 
-LEN_SCALE = float(os.environ.get("NOVEL_LENSCALE", "0.9"))  # R21 switch (default unchanged 0.9); chapters came out at ~110% of target (ch03-08: 5,191 / 5,286 / 6,011 / 5,980 / 5,872 / 5,858 words for 5,000): ask for 10% less
+_ENV_LENSCALE = float(os.environ.get("NOVEL_LENSCALE", "0.9"))  # R21 switch (default unchanged 0.9); chapters came out at ~110% of target (ch03-08: 5,191 / 5,286 / 6,011 / 5,980 / 5,872 / 5,858 words for 5,000): ask for 10% less
 G4_LEN = float(os.environ.get("NOVEL_G4LEN", "0.8"))   # R117 (r119-dp: 4 men + 2 women came out at 125% of target, 2x the words asked per part): ask for less in the six-person parts
 G_LEN = float(os.environ.get("NOVEL_GLEN", "1.0"))  # R50 switch: extra length factor for group (2 men + 1 woman) parts
 
@@ -2353,7 +2383,7 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     else:
         lines.append("WRITE: scene %d of %d%s." % (p["scene"], p["scenes"], (", beat %d of %d of this scene" % (p["beat"], p["beats"])) if p["beats"] > 1 else ""))
         lines.append("PLAN OF THIS SCENE (Thai): " + p["text"])
-    ls_ = LEN_SCALE * (G_LEN if _is_group(p) else 1.0) * (G4_LEN if ((p.get("pose") or {}).get("g") == 4) else 1.0)   # R50 (29 Oct): three-person parts overshoot by ~23% even at LENSCALE 0.6 (R45/R48/R49): ask for less
+    ls_ = len_scale() * (G_LEN if _is_group(p) else 1.0) * (G4_LEN if ((p.get("pose") or {}).get("g") == 4) else 1.0)   # R50 (29 Oct): three-person parts overshoot by ~23% even at LENSCALE 0.6 (R45/R48/R49): ask for less
     lines.append("LENGTH: about %d Thai words (never more than %d)." % (int(p["words"] * ls_), int(p["words"] * ls_ * 1.2)))
     ci_list = [(n.split(" (")[0], info.get(n.split(" (")[0]) or {}) for n in dict.fromkeys(cast)]
     al = anatomy_line(ci_list) if is_sexual_text(p.get("text")) else ""
@@ -2364,7 +2394,7 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     kl = kin_line(info, [n.split(" (")[0] for n in cast], kin_terms(b))
     if kl:
         lines.append(kl)
-    if SPEECH_LITE:
+    if speech_lite():
         st = speech_table(ci_list, info, kin_terms(b))
         if st:
             lines.append(st)
@@ -4375,7 +4405,8 @@ def fix_name_typos(text, names, count_only=False):
 
 
 DLG_LOW = os.environ.get("NOVEL_DLG_LOW", "") == "1"   # experiment round 9 (user-approved 29 Oct, this trial only): peak parts 15-20% dialogue + feeling narration
-DLG_MIN = (0.12 if DLG_LOW else 0.35) if SPEECH_LITE else 0.50   # a PEAK part with less spoken text than this is written again (at most twice), the version with the most dialogue is kept
+def dlg_min():
+    return (0.12 if DLG_LOW else 0.35) if speech_lite() else 0.50   # a PEAK part with less spoken text than this is written again (at most twice), the version with the most dialogue is kept
 
 
 def quote_share(t):
@@ -4428,7 +4459,7 @@ DUP_PART_MAX = 0.05   # at most this share of a part's long paragraphs may repea
 
 def part_score(t, need_dlg, need_sex, need_calm=False, existing="", anat=False, untag=False):
     """1.0 each for a satisfied check, proportional when short; the sum is used to pick the better of two versions."""
-    a = min(quote_share(t) / DLG_MIN, 1.0) if need_dlg else 1.0
+    a = min(quote_share(t) / dlg_min(), 1.0) if need_dlg else 1.0
     b = min(sex_density(t) / SEX_DENS_MIN, 1.0) if need_sex else 1.0
     c = min(CALM_DENS_MAX / max(sex_density(t), 0.01), 1.0) if need_calm else 1.0
     d = 1.0 - min(1.0, dup_ratio(t, existing) / 0.5)
@@ -4448,13 +4479,14 @@ def part_too_long(t, p):
 
 
 def aw_run(b, cid, key):
+    set_thread_mode(b)
     job = AW_JOBS[key]
     try:
         fp = os.path.join(bdir(b), "chapters", cid + ".md")
         o = outline(b).get(cid, {})
         text0 = read(fp)
         first_empty = body_words(text0) < 60
-        parts = attach_pose_plans(b, plan_scenes(o.get("summary", ""), o.get("target", 0)), cid, pose_run_salt(b, cid) if POSES_ON else 0)
+        parts = attach_pose_plans(b, plan_scenes(o.get("summary", ""), o.get("target", 0)), cid, pose_run_salt(b, cid) if poses_on() else 0)
         names = name_table(b)
         tpw = 1.3   # tokens per Thai "word" (body_words unit); recalibrated from the model's own usage numbers after each part
         job.update({"n": len(parts), "i": 0, "state": "running"})
@@ -4480,8 +4512,8 @@ def aw_run(b, cid, key):
                     break   # the later calls exist only for rewrites
                 if cand is not None:
                     why = []
-                    if need_dlg and quote_share(cand[1]) < DLG_MIN:
-                        why.append("it had only %d%% spoken lines but this PEAK part needs at least %d%%: write at least %d quoted lines (moans, dirty talk, orders, answers) and keep every narration paragraph to ONE short sentence" % (int(quote_share(cand[1]) * 100), int(DLG_MIN * 100), max(12, int(parts[i]["words"] * 45 / 1000))))
+                    if need_dlg and quote_share(cand[1]) < dlg_min():
+                        why.append("it had only %d%% spoken lines but this PEAK part needs at least %d%%: write at least %d quoted lines (moans, dirty talk, orders, answers) and keep every narration paragraph to ONE short sentence" % (int(quote_share(cand[1]) * 100), int(dlg_min() * 100), max(12, int(parts[i]["words"] * 45 / 1000))))
                     if need_sex and sex_density(cand[1]) < SEX_DENS_MIN:
                         why.append("it did not stay on the sex: this part must be the sexual act itself from the first sentence to the last, with the body parts named (ควย, หี, นม, หัวนม, น้ำเงี่ยน) in nearly every paragraph and no drifting into work, family, memories or chat")
                     if need_sex and not body_detail_ok(cand[1]):
@@ -4546,7 +4578,7 @@ def aw_run(b, cid, key):
                         job.setdefault("raw_anat", []).append(anatomy_issues(t, info0))
                         job.setdefault("raw_untag", []).append(untag_t)
                     sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)), bool(untag_t) or fh_t or bool(fam_t) or bool(pos_t) or part_too_long(t, parts[i])) - min(1.2, 0.3 * len(pos_t)) - (0.3 if (need_sex and not body_detail_ok(t)) else 0.0)   # R78: the version with fewer plan problems wins when none is clean
-                    ok_t = ((not need_dlg or quote_share(t) >= DLG_MIN) and (not need_sex or sex_density(t) >= SEX_DENS_MIN)
+                    ok_t = ((not need_dlg or quote_share(t) >= dlg_min()) and (not need_sex or sex_density(t) >= SEX_DENS_MIN)
                             and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and (not need_sex or body_detail_ok(t)) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0) and not untag_t and not fh_t and not fam_t and not pos_t and not part_too_long(t, parts[i]))
                     if cand is not None:
                         job["retries"] = job.get("retries", 0) + 1
@@ -4878,6 +4910,8 @@ class H(BaseHTTPRequestHandler):
                 if p[3] == "meta":
                     m = meta(b)
                     m.update({k: d[k] for k in ("title", "author", "lang") if k in d})
+                    if d.get("mode") in MODES:
+                        m["mode"] = d["mode"]
                     write(os.path.join(bdir(b), "book.json"), json.dumps(m, ensure_ascii=False))
                     return self._send(200, {"ok": True})
                 if p[3] == "outline" and len(p) == 4:
@@ -4980,7 +5014,7 @@ class H(BaseHTTPRequestHandler):
                 b = slugify(d.get("title", ""))
                 while os.path.exists(bdir(b)):
                     b += "-2"
-                write(os.path.join(bdir(b), "book.json"), json.dumps({"title": d.get("title", b), "author": d.get("author", ""), "lang": d.get("lang", "English")}, ensure_ascii=False))
+                write(os.path.join(bdir(b), "book.json"), json.dumps(dict({"title": d.get("title", b), "author": d.get("author", ""), "lang": d.get("lang", "English")}, **({"mode": d["mode"]} if d.get("mode") in MODES else {})), ensure_ascii=False))
                 write(os.path.join(bdir(b), "bible.md"), "# Story bible\n\n(characters, world, voice, tense, rules)\n")
                 return self._send(200, {"id": b})
             if len(p) == 4 and p[:2] == ["api", "books"] and p[3] == "chapters":
