@@ -865,6 +865,8 @@ def _line_kind(st):
     """which kind of finish a narration line shows: F3 inside her pussy, F1 mouth, F5 in her hand, F4 between her breasts, else F2 (outside)."""
     if _INSIDE_HER.search(st) or re.search(r"ในหี|ข้างใน|ภายใน", st):
         return "F3"
+    if not re.search(r"ปาก", st) and re.search(r"หนีบ|ร่องนม|ร่องอก|ระหว่างนม|หว่างนม|หว่างอก|ระหว่างหน้าอก|ระหว่างอก|ระหว่างทรวงอก", st):   # R104 (r105-dp: 'หนีบแน่นในร่องนมจนแตก น้ำเชื้อไหลลงคอและใบหน้า' was read as mouth, a template titjob line was added: ธนา came twice in round 1)
+        return "F4"
     if re.search(r"ปาก|ลำคอ|ลงคอ", st):
         return "F1"
     if re.search(r"ร่องอก|ร่องนม|หนีบ|ระหว่างนม|หว่างอก|ระหว่างทรวงอก|ทรวงอก|ระหว่างหน้าอก|ระหว่างอก|หว่างนม", st):
