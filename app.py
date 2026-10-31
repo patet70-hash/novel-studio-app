@@ -1708,6 +1708,7 @@ _BODY_RULE = (" BODY STATE (R119): in EVERY step with sexual activity show, in p
               "attribute each to the right person by name. Keep these as short clauses inside the action paragraphs so the dialogue share stays high.")
 
 
+_BODY_BREAST = "BREASTS REQUIRED IN EVERY STEP: show her breasts moving with what is happening to her in this step (นมกระเพื่อม, นมเด้งดึ๋ง, นมแกว่ง, นมสั่น, นมยวบ, หัวนมชูชัน) in one short clause, worded differently from every earlier step"   # R124 (user 31 Oct: breasts must be stronger)
 _BODY_STEP = [
     "BODY DETAIL REQUIRED IN THIS STEP: her breasts bouncing / jiggling / swaying with the rhythm (นมกระเพื่อม, นมเด้ง, นมแกว่ง) and her hips or back moving, in one short clause",
     "BODY DETAIL REQUIRED IN THIS STEP: her face and eyes (expression, gaze แววตา, flushed cheeks, biting her lip, eyes rolling or closing) and his face too, in one short clause",
@@ -1723,7 +1724,7 @@ def _add_step_details(b, part):
     for ln in b.split("\n"):
         m = re.match(r"STEP (\d+) \[", ln)
         if m and "rests beside them" not in ln and "HOW THEY GET THERE: right after he comes" not in ln:
-            ln = ln + " | " + _BODY_STEP[(int(m.group(1)) + off) % 3] + "."
+            ln = ln + " | " + _BODY_BREAST + " | " + _BODY_STEP[1 + (int(m.group(1)) + off) % 2] + "."
         out.append(ln)
     return "\n".join(out)
 
@@ -4124,6 +4125,8 @@ def body_detail_ok(t):
     if n * 500.0 / w < BODY_MIN_PER500:
         return False
     if w >= 450 and not (_BD_FACE.search(t) and _BD_MOVE.search(t) and _BD_SPASM.search(t)):
+        return False
+    if w >= 450 and len(_BD_MOVE.findall(t)) < max(2, int(w / 450.0)):   # R124: breasts/hips/back in motion, mild floor (the step rule does the real work)
         return False
     return True
 
