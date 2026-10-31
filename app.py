@@ -4262,6 +4262,28 @@ def _fuzzy_name(tok, cands, known):
     return hits[0][1]
 
 
+def norm_quotes(text):
+    """R138c (r140-r7: 6 lines opened with “ and closed with a straight "): inside one line a straight " becomes the curly mark that matches the open state (opens “ when
+    nothing is open, closes ” when a quote is open); curly marks are never touched."""
+    out = []
+    for ln in (text or "").split("\n"):
+        if '"' not in ln:
+            out.append(ln)
+            continue
+        op, buf = False, []
+        for ch in ln:
+            if ch == "\u201c":
+                op = True
+            elif ch == "\u201d":
+                op = False
+            elif ch == '"':
+                ch = "\u201d" if op else "\u201c"
+                op = not op
+            buf.append(ch)
+        out.append("".join(buf))
+    return "\n".join(out)
+
+
 def fix_name_typos(text, names, count_only=False):
     n = 0
     # R24 (29 Oct): a name with ONE extra repeated consonant (ลลลิตา for ลลิตา, seen ×12 in R20/R23) is repaired first
@@ -4307,6 +4329,14 @@ def fix_name_typos(text, names, count_only=False):
                     if best is None or d < best[0]:
                         best = (d, L, fix)
             if not best:
+                # R138b (r140-r7: "ลลิตรำพึง" = ลลิต + รำพึง): a name of 5+ characters that lost its final vowel, followed by a word that starts with a consonant
+                # (not รา / ร่า / ร้า = a garbled ending; ร้อง / รับ / รำ are verbs), gets the vowel back; tried only when no close garbled spelling matched
+                for k in _cands:
+                    if len(k) >= 5 and re.match(r"[\u0E30\u0E32\u0E35\u0E37]$", k[-1]) and run.startswith(k[:-1]):
+                        rest = run[len(k) - 1:]
+                        if re.match(r"[\u0E01-\u0E2E]", rest[:1]) and not re.match(r"ร[\u0E48-\u0E4B]?\u0E32", rest) and rest[1:2] != "\u0E4C":
+                            n += 1
+                            return m.group(1) + k + rest
                 return m.group(0)
             n += 1
             return m.group(1) + best[2] + run[best[1]:]
@@ -4545,7 +4575,7 @@ def aw_run(b, cid, key):
             except Exception:
                 pass
             cur = read(fp)
-            part = drop_dup_paragraphs(fix_name_typos(part, names), cur)
+            part = drop_dup_paragraphs(norm_quotes(fix_name_typos(part, names)), cur)
             part = strip_early_cum(thin_manner(thin_fluid(thin_tagverb(_thin_owner_n(b, fix_swallow(fix_particles(dedupe_quotes(split_dialogue(close_open_quotes(thin_repeats(part, cur), char_info(b))), cur), char_info(b), rough=(heat_level(parts[i]) == "peak"))))))), parts[i].get("pose"))
             try:
                 _scn = parts[i].get("scene")
