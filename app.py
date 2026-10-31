@@ -867,7 +867,7 @@ def _line_kind(st):
         return "F3"
     if re.search(r"ปาก|ลำคอ|ลงคอ", st):
         return "F1"
-    if re.search(r"ร่องอก|ร่องนม|หนีบ|ระหว่างนม|หว่างอก|ระหว่างทรวงอก|ทรวงอก", st):
+    if re.search(r"ร่องอก|ร่องนม|หนีบ|ระหว่างนม|หว่างอก|ระหว่างทรวงอก|ทรวงอก|ระหว่างหน้าอก|ระหว่างอก|หว่างนม", st):
         return "F4"
     if re.search(r"ในมือ|ใส่มือ|คามือ|ท่วมมือ|ชุ่มมือ|เปื้อนมือ|ล้นมือ|มือของเธอ|มือเธอ|นิ้วมือ|ผ่านนิ้ว|ฝ่ามือ", st) and not re.search(r"นม(?!ือ)|หน้าอก", st):
         return "F5"
@@ -2302,6 +2302,11 @@ def dp_patch(part, pp, log=None):
     return part, False
 
 
+def _her_only(st):
+    """R100: a line about HER wetness / climax - but 'น้ำหีของเขาและเธอผสมปนเปกัน' next to a man's น้ำเชื้อ is still his finish line (r99-dp: ก้อง's finish was not seen, a template line was added, he came twice)."""
+    return bool(_HER_LINE.search(st)) and not re.search(r"น้ำเชื้อ|น้ำควย", st)
+
+
 def strip_repeat_cum(text, prior, pp):
     """R83 (r82-dp: ธนา came in the mouth twice, ปกรณ์ announced it 4 times, ก้อง twice in one scene): a man comes ONCE per scene. In a group part, a line in which a man comes /
     says he has come is removed when he already did in the earlier parts of the same scene (`prior`) or earlier in this part; a bare cum-narration line right after a removed
@@ -2323,7 +2328,7 @@ def strip_repeat_cum(text, prior, pp):
                     if tag.startswith(x):
                         return x, True
             return None, False
-        if _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
+        if _MALE_CUM_LINE.search(st) and not _her_only(st):
             # R92 (r91-dp: “ลลิตากลืนน้ำควย... ปกรณ์และก้องมองลงมา” made ปกรณ์ 'already come' and his real finish was cut): the owner is the man named BEFORE the cum word
             # (nearest one, with no woman's name between) or in "น้ำเชื้อของ<man>"; a man only mentioned after it is a bystander
             cm = _MALE_CUM_LINE.search(st)
@@ -2405,14 +2410,14 @@ def strip_repeat_cum(text, prior, pp):
             continue
         k += 1
         o, spoken = owner(st)
-        if o is None and not QUOTE_RE.match(st) and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st):
+        if o is None and not QUOTE_RE.match(st) and _MALE_CUM_LINE.search(st) and not _her_only(st):
             o, spoken = pron_owner(st, prev_n), False
         _nm = [x for x in men if x in st]
         prev_n = (min(_nm, key=lambda x: st.find(x)), 0) if _nm else (prev_n[0], prev_n[1] + 1)
         if o and verdict(o, k) == "drop":
             drop_next = o if spoken else None
             continue
-        if (drop_next and not QUOTE_RE.match(st) and _MALE_CUM_LINE.search(st) and not _HER_LINE.search(st) and not any(x in st for x in men)
+        if (drop_next and not QUOTE_RE.match(st) and _MALE_CUM_LINE.search(st) and not _her_only(st) and not any(x in st for x in men)
               and line_kind(st) in kinds.get(drop_next, (line_kind(st),))):   # R94: only the same kind of finish (his own, told twice)
             drop_next = None
             continue
@@ -2554,7 +2559,7 @@ def ensure_finish_lines(text, prior, pp, fallback=True):
     def narrated(blob, who):
         for ln in (blob or "").split("\n"):
             st = ln.strip()
-            if not st or QUOTE_RE.match(st) or not _MALE_CUM_LINE.search(st) or _HER_LINE.search(st):
+            if not st or QUOTE_RE.match(st) or not _MALE_CUM_LINE.search(st) or _her_only(st):
                 continue
             if kind_of(st) not in kinds[who]:
                 continue
