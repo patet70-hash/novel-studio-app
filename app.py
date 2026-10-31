@@ -813,7 +813,7 @@ _SQ_NO = re.compile(r"(?:ไม่|ห้าม)[^\n]{0,6}(?:squirt|สควิ
 _SQ_TEXT = " | SQUIRT: at her climax a jet of clear fluid shoots out of her pussy (over his hand / his face / her thighs / the sheet or the floor, as the position allows; never on her own back, chin or face): write it plainly, the spray itself, the sound, the wet mess, her shaking."
 
 
-def mark_squirt(plan, t, txt, rng, p=0.4):
+def mark_squirt(plan, t, txt, rng, p=0.6):   # R118b (user 31 Oct 14:10): 40% -> 60%
     """R109 (user 31 Oct): every scene, her climax is sometimes a squirt (random); the finger-hook poses always are; the author's words win ('squirt' asked / 'ไม่ squirt')."""
     yes, no = bool(_SQ_YES.search(txt or "")), bool(_SQ_NO.search(txt or ""))
     for bt in plan:
@@ -1553,7 +1553,7 @@ def make_quad_plan(nbeats, rng, men, women, table=None, close_n=None, close_last
                     break
     for c in chain:
         if c.get("wc"):
-            c["sqw"] = [w for w in c["wc"] if rng.random() < 0.4 or (c.get("wpid") and (WW_TABLE.get(c["wpid"]) or {}).get("sq"))]
+            c["sqw"] = [w for w in c["wc"] if rng.random() < 0.6 or (c.get("wpid") and (WW_TABLE.get(c["wpid"]) or {}).get("sq"))]
             c["w"] = True
     out, m_ = [], len(chain)
     for b in range(n):
