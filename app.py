@@ -937,7 +937,7 @@ def _second_pool(t):
 
 def _line_kind(st):
     """which kind of finish a narration line shows: F3 inside her pussy, F1 mouth, F5 in her hand, F4 between her breasts, else F2 (outside)."""
-    if _INSIDE_HER.search(st) or re.search(r"ในหี|ข้างใน|ภายใน", st):
+    if _INSIDE_HER.search(st) or re.search(r"ในหี|ข้างใน|ภายใน|ในท้อง|ช่องหี|ช่องคลอด", st):
         return "F3"
     if not re.search(r"ปาก", st) and re.search(r"หนีบ|ร่องนม|ร่องอก|ระหว่างนม|หว่างนม|หว่างอก|ระหว่างหน้าอก|ระหว่างอก|ระหว่างทรวงอก", st):   # R104 (r105-dp: 'หนีบแน่นในร่องนมจนแตก น้ำเชื้อไหลลงคอและใบหน้า' was read as mouth, a template titjob line was added: ธนา came twice in round 1)
         return "F4"
@@ -2955,6 +2955,7 @@ def ensure_finish_lines(text, prior, pp, fallback=True):
             second.update(f_)
     if not kinds or not men:
         return text
+    women_n = list(cast.get("women") or [x for x in (cast.get("W"), cast.get("W2")) if x])
     closing_men = set()
     for st_ in pp.get("steps", []):
         if st_.get("id") == "CQ" and isinstance(st_.get("fin"), dict):
@@ -2980,6 +2981,8 @@ def ensure_finish_lines(text, prior, pp, fallback=True):
                     continue
             elif not _MALE_CUM_LINE.search(st):
                 continue
+            if not named and re.search(r"จูบ|แลกน้ำ|ถอนจูบ|มุมปากของทั้ง|ปากของทั้งคู่", st):   # R111: the cum-sharing kiss ('สายน้ำสีขาวขุ่นไหลย้อยจากมุมปากของทั้งคู่') is no man's finish
+                continue
             k_ = kind_of(st)
             if k_ not in kinds[who] and not (k_ == "F2" and "F4" in kinds[who] and re.search(r"หน้าอก|นม(?!ือ)|ร่องอก", st)):   # R108: cum 'on her chest and face' is the titjob finish too
                 continue
@@ -3004,11 +3007,13 @@ def ensure_finish_lines(text, prior, pp, fallback=True):
             last = len(lines) - 1   # R97: he never announced it either - the planned finish is added at the end of the part (a man the model skipped in a common finish step)
             while last > 0 and not lines[last].strip():
                 last -= 1
-            if closing_men and who not in closing_men:   # R111 (r111-dp: ปกรณ์'s line landed after the shared-cum kiss): the closing image stays last, a late line goes before the first closer's cum / the cum-sharing kiss
-                cl_ = [i for i, ln in enumerate(lines)
-                       if re.search(r"แลกน้ำ|แลกกัน|ส่งน้ำ|ป้อนน้ำ|ถ่ายน้ำ", ln) or (any(c in ln for c in closing_men) and _MALE_CUM_LINE.search(ln))]
-                if cl_:
-                    last = max(0, min(cl_) - 1)
+            if closing_men:   # R111 (r111-dp: ปกรณ์'s line landed after the shared-cum kiss; r112-dp: the kiss lines were taken for the closers' cum and nothing was added): the closers' cum lines (and a late line of another man) go BEFORE the cum-sharing kiss
+                kl_ = [i for i, ln in enumerate(lines)
+                       if re.search(r"แลกน้ำ|แลกกัน|ส่งน้ำ|ป้อนน้ำ|ถ่ายน้ำ|ถอนจูบ", ln) or (re.search(r"จูบ", ln) and sum(1 for w_ in women_n if w_ in ln) >= 2)]
+                cl_ = [i for i, ln in enumerate(lines) if who not in closing_men and any(c in ln for c in closing_men) and _MALE_CUM_LINE.search(ln)]
+                cand_ = kl_ + cl_
+                if cand_:
+                    last = max(0, min(cand_) - 1)
         k = sorted(kinds[who], key=lambda x: ("F3", "F2", "F4", "F5", "F1").index(x))[0]   # a man with two finishes in one part gets the late one added first
         if k == "F4":
             new = "%sชักควยหนีบอยู่ระหว่างนมของเธอแรงๆ จนแตก น้ำเชื้อร้อนๆ พุ่งกระเซ็นเปื้อนร่องอก นมและใบหน้าของเธอ" % who
@@ -3016,6 +3021,8 @@ def ensure_finish_lines(text, prior, pp, fallback=True):
             new = "%sขยับควยในมือเธอเร็วขึ้นจนแตก น้ำเชื้อร้อนๆ ทะลักล้นมือของเธอ" % who
         elif k == "F3":
             new = "%sดันควยเข้าไปลึกที่สุดในหีของเธอ แล้วปล่อยน้ำเชื้อร้อนๆ พุ่งออกมาเต็มข้างใน" % who
+        elif k == "F1" and who in closing_men:
+            new = "น้ำเชื้อของ%sพุ่งออกมาเต็มปากเธอ เธออมมันไว้ในปากไม่กลืน" % who
         elif k == "F1":
             new = "น้ำเชื้อของ%sพุ่งออกมาเต็มปากเธอ แล้วเธอก็กลืนลงไป" % who
         else:
