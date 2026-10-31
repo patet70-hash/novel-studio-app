@@ -2775,7 +2775,7 @@ def strip_repeat_cum(text, prior, pp):
     came_n, first_at = {}, {}
     EVENT = 6   # lines: everything of one man's finish (announcement, narration, swallow) lies within this window; a later line of his is a new finish
 
-    def verdict(o, k):
+    def verdict(o, k, spoken=False):
         """'keep' / 'drop' for a finish line of man o at line k (and register it)."""
         if o in first_at:
             d = k - first_at[o]
@@ -2783,8 +2783,9 @@ def strip_repeat_cum(text, prior, pp):
                 return "keep"       # the lines right after the first announcement are the same finish
             if d <= EVENT:
                 return "drop"       # told again inside the same finish
-        if came_n.get(o, 0) >= allowed.get(o, 1):
-            return "drop"           # he has come as often as the plan lets him in this scene
+        # R114 (user 31 Oct: 'แตกเกินไม่เป็นไร แต่ห้ามขาด และต้องอ่านรู้เรื่อง'): the plan count is a MINIMUM - a narrated finish that is a new event (outside the window of the one before) is kept; only a re-telling of the same finish, and a bare spoken 'แตกแล้ว' beyond the count (the model's habit of announcing again and again with nothing narrated), are dropped
+        if spoken and came_n.get(o, 0) >= allowed.get(o, 1):
+            return "drop"
         came_n[o] = came_n.get(o, 0) + 1
         first_at[o] = k
         return "keep"
@@ -2794,9 +2795,9 @@ def strip_repeat_cum(text, prior, pp):
         if not ln.strip():
             continue
         k += 1
-        o, _ = owner(ln.strip())
+        o, _sp = owner(ln.strip())
         if o:
-            verdict(o, k)
+            verdict(o, k, _sp)
     for o_ in list(first_at):
         first_at[o_] = -999   # a finish of an earlier part is over: any further finish of his in this part is judged by the count alone
     out = []
@@ -2813,7 +2814,7 @@ def strip_repeat_cum(text, prior, pp):
             o, spoken = pron_owner(st, prev_n), False
         _nm = [x for x in men if x in st]
         prev_n = (min(_nm, key=lambda x: st.find(x)), 0) if _nm else (prev_n[0], prev_n[1] + 1)
-        if o and verdict(o, k) == "drop":
+        if o and verdict(o, k, spoken) == "drop":
             drop_next = o if spoken else None
             continue
         if (drop_next and not QUOTE_RE.match(st) and _MALE_CUM_LINE.search(st) and not _her_only(st) and not any(x in st for x in men)
