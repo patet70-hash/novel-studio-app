@@ -1198,6 +1198,9 @@ def make_group3_plan(nbeats, rng, men, table=None, dp=False, tail_ok=True, round
             c = [x for x in TRIO_TABLE if TRIO_TABLE[x]["k"] in ("oral", "pen") and x not in ("T6", prev[0])]
         fresh = [x for x in c if used.get(x, 0) == 0] or c
         pk = rng.choice(fresh)
+        _ft = os.environ.get("NOVEL_FORCETRIO", "")   # experiment switch (R127): the first trio step of every scene is this pose (e.g. T11)
+        if _ft in TRIO_TABLE and not used.get(_ft, 0) and TRIO_TABLE[_ft]["k"] in ("oral", "pen") and _ft in TRIO_TABLE[prev[0]].get("next", []):
+            pk = _ft
         used[pk] = used.get(pk, 0) + 1
         chain.append({"id": pk, "r": roles()})
         prev[0] = pk
