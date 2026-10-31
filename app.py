@@ -2081,7 +2081,32 @@ def _plan_issues_pose(text, part):
 
 
 _DONE_CUM = re.compile(r"แตกแล้ว|แตกใน|แตกใส่|แตกบน|แตกที่|กูแตก|ผมแตก|น้ำ(?:เชื้อ|ควย)กู(?:พุ่ง|ไหล|ออก)")
-_NOT_YET = re.compile(r"(?:ก็จะ|จะ|ใกล้จะ|ใกล้|ขอ|อยาก|ให้(?:มึง|เธอ|คุณ|หนู|เรา|ลลิ?ตา)?|อย่า|ห้าม|ไม่ให้|ตอน|เดี๋ยว(?:ก็)?)\s*แตก|แตกพร้อม")   # R86: "เย็ดให้มึงแตกใน" / "ตอนแตก" are intentions, not a finish (r85-dp: ก้อง's real finish was cut as a repeat)
+_FEM = [""]   # R135: alternation of the story's own women names (set by char_info from the cast); nothing is hard-coded
+
+
+def _fem_alt():
+    return _FEM[0] or "(?!)"
+
+
+class _LazyRx:
+    """R135: a regex that embeds the cast's women names; rebuilt only when the cast changes."""
+    def __init__(self, fn):
+        self.fn, self.k, self.rx = fn, None, None
+
+    def _g(self):
+        if self.rx is None or self.k != _FEM[0]:
+            self.k = _FEM[0]
+            self.rx = re.compile(self.fn(_fem_alt()))
+        return self.rx
+
+    def search(self, *a, **kw):
+        return self._g().search(*a, **kw)
+
+    def sub(self, *a, **kw):
+        return self._g().sub(*a, **kw)
+
+
+_NOT_YET = _LazyRx(lambda f: r"(?:ก็จะ|จะ|ใกล้จะ|ใกล้|ขอ|อยาก|ให้(?:มึง|เธอ|คุณ|หนู|เรา|" + f + r")?|อย่า|ห้าม|ไม่ให้|ตอน|เดี๋ยว(?:ก็)?)\s*แตก|แตกพร้อม")   # R86: "เย็ดให้มึงแตกใน" / "ตอนแตก" are intentions, not a finish (r85-dp: ก้อง's real finish was cut as a repeat)
 
 
 def _early_climax_issues(t, pp, text):
@@ -2426,6 +2451,7 @@ def char_info(b):
         v = c.get("v") or {}
         out[th or nm] = {"g": _gender_of(c), "age": str((v.get("age") or {}).get("c") or "").strip(), "role": str((v.get("role") or {}).get("c") or "").strip()[:60]}
     fem = sorted({k for k, v in out.items() if v["g"] == "F" and len(k) >= 2}, key=len, reverse=True)
+    _FEM[0] = "(?:%s)" % "|".join(re.escape(x) for x in fem) if fem else ""
     _WOMEN_RX[0] = re.compile("(?:%s)(?:แตก|ถึง)" % "|".join(re.escape(x) for x in fem)) if fem else None
     return out
 
@@ -2961,7 +2987,7 @@ _PLACE_WORD = {"ก้น": "ก้น", "หลัง": "แผ่นหลั�
 _ANY_PLACE = re.compile(r"(?:แผ่น)?หลัง(?!จาก|ที่|เสร็จ)|หน้าท้อง|ท้องน้อย|เนินอก|หน้าอก|แก้มก้น|ก้น|ใบหน้า|ต้นขา")
 
 
-_INSIDE_HER = re.compile(r"(?:ลึก)?(?:เข้าไป)?(?:ภายใน|ข้างใน|ใน)(?:รูหี|ช่องหี|ห้องหี|ช่องคลอด|หี|ตัว)(?:ของ)?(?:เธอ|ลลิ?ตา)?")
+_INSIDE_HER = _LazyRx(lambda f: r"(?:ลึก)?(?:เข้าไป)?(?:ภายใน|ข้างใน|ใน)(?:รูหี|ช่องหี|ห้องหี|ช่องคลอด|หี|ตัว)(?:ของ)?(?:เธอ|" + f + r")?")
 
 
 def _pose_men(pp):
@@ -3003,7 +3029,7 @@ def name_cum_owner(text, pp):
     return "\n".join(lines)
 
 
-_HER_FLUID_BAD = re.compile(r"(แผ่นหลัง|หลัง|คาง|ใบหน้า|หน้า)(ของเธอ|ของลลิ?ตา)")
+_HER_FLUID_BAD = _LazyRx(lambda f: r"(แผ่นหลัง|หลัง|คาง|ใบหน้า|หน้า)(ของเธอ|ของ" + f + r")")
 
 
 def fix_her_fluid_place(text, pp=None):
@@ -4143,6 +4169,8 @@ def fix_vocative(text, pp, log=None):
     if len(men) < 2 or not text:
         return text
     rx = "|".join(re.escape(x) for x in sorted(men, key=len, reverse=True))
+    _wm = [w for w in ((pp.get("cast") or {}).get("women") or []) if w]   # R135: her name comes from this plan's cast (or the book's cast), never hard-coded
+    wrx = "เธอ|" + ("|".join(re.escape(x) for x in sorted(_wm, key=len, reverse=True)) if _wm else _fem_alt())
     lines = text.split("\n")
     for i, ln in enumerate(lines):
         m = re.match(r"^\s*([\u201c\"][^\u201d\"\n]+[\u201d\"])(.*)$", ln)
@@ -4150,7 +4178,7 @@ def fix_vocative(text, pp, log=None):
             continue
         q, tag = m.group(1), m.group(2)
         head = tag[:30]
-        if not re.search(r"ลลิ?ตา|เธอ", head) or re.search(rx, head):
+        if not re.search(wrx, head) or re.search(rx, head):
             continue
         if not _VOC_SEX.search(q) or _VOC_SKIP.search(q):
             continue
@@ -4340,9 +4368,9 @@ def aw_run(b, cid, key):
                     if echo_n(cand[1]):
                         why.append("it had a long run of one-word lines echoed back and forth (like “อม” / “ดูด” / “แรง” / “หมด”): never answer a line by repeating its word; write real sentences, give each line new content, and put an action beat of the body between every two or three lines")
                     if short_run_n(cand[1]):
-                        why.append("it had a long run of tiny one-clause lines in a row (like “มุกยิ้ม” / “ลลิตาพยักหน้า” / “ตกลง”): never write more than 3 such short lines in a row; write full paragraphs with the bodies, the touches and the feelings, and when the scene is winding down write ONE closing paragraph of 3-5 sentences instead of a chain of nods and smiles")
+                        why.append("it had a long run of tiny one-clause lines in a row (like “เธอยิ้ม” / “เขาพยักหน้า” / “ตกลง”): never write more than 3 such short lines in a row; write full paragraphs with the bodies, the touches and the feelings, and when the scene is winding down write ONE closing paragraph of 3-5 sentences instead of a chain of nods and smiles")
                     if loop_n(cand[1]):
-                        why.append("its dialogue looped: several lines in a row started with the same words and just swapped the names (like 'แต่เธอต้องให้ธนาก่อน' / 'แต่เธอต้องให้ปกรณ์ก่อน'): every line must say something NEW, move the scene forward, and have an action beat of the bodies between every two or three lines")
+                        why.append("its dialogue looped: several lines in a row started with the same words and just swapped the names (like 'แต่เธอต้องให้เขาคนแรกก่อน' / 'แต่เธอต้องให้เขาคนที่สองก่อน' with only the name changed): every line must say something NEW, move the scene forward, and have an action beat of the bodies between every two or three lines")
                     if untag_n(cand[1]):
                         why.append("it had a long run of bare quoted lines with no speaker or action between them: after every 2-3 quoted lines add a short action beat or tag that names who is speaking and what the bodies are doing, so the reader always knows who talks")
                     m = msg + "\nREWRITE: your previous version was not acceptable: " + "; and ".join(why or ["write it more vividly"]) + ". Write the part again, keeping the same events."
