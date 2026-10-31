@@ -488,7 +488,7 @@ def name_table(b):
     return out
 
 
-SEX_SHARE = 0.75   # sexual scenes get this share of the words so that, with the warm-up of each sex scene counted as sexual, the chapter reaches 60-70% sexual content
+SEX_SHARE = 0.78   # sexual scenes get this share of the words so that, with the warm-up of each sex scene counted as sexual, the chapter reaches 60-70% sexual content
 
 
 STRONG_SEX = re.compile(r"เย็ด|ควย|หี(?!บ)|เซ็กส์|เซ็กซ์|เสพสม|ร่วมรัก|น้ำแตก|แตกใน|แตกใส่|แตกบน|น้ำเชื้อ|น้ำควย|น้ำเงี่ยน|ขย่ม|สอดใส่|อมควย|เลียหี")
@@ -2533,7 +2533,7 @@ def ensure_finish_lines(text, prior, pp, fallback=True):
         return text
     cast = pp.get("cast") or {}
     men = list(cast.get("men") or [x for x in (cast.get("A"), cast.get("B")) if x])
-    kinds, place = {}, {}   # man -> kinds of finish in THIS part; man -> place of an outside finish
+    kinds, place, second = {}, {}, set()   # man -> kinds of finish in THIS part; man -> place of an outside finish; men whose second-round finish is in this part
     for st_ in pp.get("steps", []):
         f_ = st_.get("fin")
         if isinstance(f_, dict):
@@ -2543,6 +2543,8 @@ def ensure_finish_lines(text, prior, pp, fallback=True):
         elif st_.get("who") and st_.get("id") in ("F1", "F2", "F3", "F4", "F5"):
             kinds.setdefault(st_["who"], set()).add(st_["id"])
         place.update(st_.get("place") or {})
+        if st_.get("rd") == 2 and st_.get("who"):
+            second.add(st_["who"])
     if not kinds or not men:
         return text
     kind_of = _line_kind
@@ -2555,14 +2557,14 @@ def ensure_finish_lines(text, prior, pp, fallback=True):
             if kind_of(st) not in kinds[who]:
                 continue
             cm = _MALE_CUM_LINE.search(st)
-            others = [x for x in men if x != who and x in st[:cm.start()]]
-            if who in st or not others:
+            near = [x for x in men if x in st[:cm.end() + 10]]   # R98: men named before the cum words or right after them ('น้ำควยของธนา'); a name far after belongs to the next sentence
+            if (who in near) or not near:
                 return True
         return False
 
     lines = (text or "").split("\n")
     for who in men:
-        if who not in kinds or narrated(text, who) or narrated(prior, who):
+        if who not in kinds or narrated(text, who) or (who not in second and narrated(prior, who)):   # R98: a second-round finish is judged on this part only (an earlier pre-cum / round-1 line of his must not hide it)
             continue
         last = None
         for i, ln in enumerate(lines):
