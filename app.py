@@ -2388,7 +2388,7 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     elif not p["last"]:
         lines.append("Do not end or conclude the chapter; this scene ends at a natural point and the next part continues. If this is the LAST beat of its scene: close it on a quiet image in the SAME place and moment; nobody arrives, no door opens or knocks, no new character, no change of place or time (the next scene opens its own setting).")
     else:
-        lines.append("This is the FINAL part of the chapter: bring the scene to its ending and close the chapter on a specific image with an unresolved hook.")
+        lines.append("This is the FINAL part of the chapter: bring the scene to its ending and close the chapter on a specific image with an unresolved hook. The LAST paragraph must be ONE closing narration paragraph of 3-5 sentences written after the last act (bodies at rest, breathing slowing down, sweat, what each person feels or does next, a quiet final image); the final line is narration, never a quoted line and never an act still in progress.")
     return "\n".join(lines)
 
 
@@ -3900,6 +3900,29 @@ def loop_tail(text):
     return len(ls) >= 10 and all(len(x) <= 22 for x in ls[-8:])
 
 
+_WIND_CUE = re.compile(r"หอบ|หายใจ|ผ่อนลม|เงียบ|นอน|ซบ|กอด|พัก|หลับ|อ่อนแรง|ล้มตัว|ทิ้งตัว|เหนื่อย|สงบ|เหงื่อ|แสง|ลมหายใจ|ค่อยๆ|ผ่อนคลาย|อ่อนล้า|ซุก|ห่มผ้า|ผ้าห่ม|หน้าต่าง|ยามเช้า|รุ่งเช้า|ดึก|เสียง(?:หัวใจ|ลม)|ความเงียบ|ปล่อยให้|เอนตัว|พิง")
+_ACT_NOW = re.compile(r"กระแทก|ขย่ม|ซอย|เย็ด|ชักว่าว|ชักควย|กำลังดูด|กำลังอม|กำลังเลีย|เสียบเข้า|ดันเข้า|ถอนออก|แตกออกมา|พุ่งออก")
+
+
+def weak_ending(t):
+    """R137 (31 Oct, r137-r4: the 6-person chapter ended on 'มุกยังคงนั่งอ้าปากค้าง น้ำเชื้อ...ค้างอยู่ในปาก', a frozen mid-scene image): the closing paragraph of the LAST part is
+    missing when its final non-empty line is a quote, is short (<80 characters), still describes an act in progress, or has no winding-down cue (breath, rest, sweat, silence,
+    touch of the bodies at rest, light, sleep). Works for any story: only the shape of the last paragraph is judged."""
+    ls = [x.strip() for x in (t or "").split("\n") if x.strip() and not x.lstrip().startswith("#")]
+    if not ls:
+        return False
+    last = ls[-1]
+    if re.match(r"^[\u201c\"]", last):
+        return True
+    core = re.sub(r"\s+", "", last)
+    if len(core) < 80:
+        return True
+    tail = core[-120:]
+    if _ACT_NOW.search(tail):
+        return True
+    return not _WIND_CUE.search(core)
+
+
 def check_text(b, text, target=0):
     """quality report for a chapter text (Thai messages)."""
     issues = []
@@ -4430,6 +4453,8 @@ def aw_run(b, cid, key):
                         why.append("it had a long run of tiny one-clause lines in a row (like “เธอยิ้ม” / “เขาพยักหน้า” / “ตกลง”): never write more than 3 such short lines in a row; write full paragraphs with the bodies, the touches and the feelings, and when the scene is winding down write ONE closing paragraph of 3-5 sentences instead of a chain of nods and smiles")
                     if loop_n(cand[1]):
                         why.append("its dialogue looped: several lines in a row started with the same words and just swapped the names (like 'แต่เธอต้องให้เขาคนแรกก่อน' / 'แต่เธอต้องให้เขาคนที่สองก่อน' with only the name changed): every line must say something NEW, move the scene forward, and have an action beat of the bodies between every two or three lines")
+                    if parts[i].get("last") and weak_ending(cand[1]):
+                        why.append("it did not close the chapter: the LAST paragraph must be ONE closing narration paragraph of 3-5 sentences written AFTER the last act (bodies at rest, breathing slowing down, sweat, what each person feels or does next, one quiet final image); the final line must be narration, never a quoted line and never a sex act still in progress")
                     if untag_n(cand[1]):
                         why.append("it had a long run of bare quoted lines with no speaker or action between them: after every 2-3 quoted lines add a short action beat or tag that names who is speaking and what the bodies are doing, so the reader always knows who talks")
                     m = msg + "\nREWRITE: your previous version was not acceptable: " + "; and ".join(why or ["write it more vividly"]) + ". Write the part again, keeping the same events."
@@ -4459,7 +4484,7 @@ def aw_run(b, cid, key):
                     t = trim_to_paragraph(t)
                 if t and not t.lstrip().startswith("{") and "```" not in t and len(t) > 200:
                     untag_t = untag_n(t)
-                    fh_t = formula_heavy(t) or bool(echo_n(t)) or bool(loop_n(t)) or bool(short_run_n(t))   # R54: an echo loop counts like a formula-heavy part
+                    fh_t = formula_heavy(t) or bool(echo_n(t)) or bool(loop_n(t)) or bool(short_run_n(t)) or (bool(parts[i].get("last")) and weak_ending(t))   # R54: an echo loop counts like a formula-heavy part
                     fam_t = family_issues(t, info0)
                     pos_t = posture_issues(t, _is_group(parts[i])) + plan_issues(t, parts[i])
                     if attempt == 0:
