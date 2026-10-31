@@ -3911,14 +3911,17 @@ def weak_ending(t):
     ls = [x.strip() for x in (t or "").split("\n") if x.strip() and not x.lstrip().startswith("#")]
     if not ls:
         return False
-    last = ls[-1]
-    if re.match(r"^[\u201c\"]", last):
+    if re.match(r"^[\u201c\"]", ls[-1]):
         return True
-    core = re.sub(r"\s+", "", last)
+    blk = []
+    for x in reversed(ls):   # the closing paragraph may be written as up to 3 short narration lines in a row
+        if re.match(r"^[\u201c\"]", x) or len(blk) >= 3:
+            break
+        blk.insert(0, x)
+    core = re.sub(r"\s+", "", "".join(blk))
     if len(core) < 80:
         return True
-    tail = core[-120:]
-    if _ACT_NOW.search(tail):
+    if _ACT_NOW.search(core[-120:]):
         return True
     return not _WIND_CUE.search(core)
 
@@ -4308,6 +4311,26 @@ def fix_name_typos(text, names, count_only=False):
             n += 1
             return m.group(1) + best[2] + run[best[1]:]
         text = re.sub(r"([\u201d\"]\s*)([\u0E01-\u0E4E]{3,24})", _fz, text)
+        # R137b (r138-r5: จูบหน้าอกของลลิต่า): also a name slot after ของ / กับ / ให้ / และ / จาก / ถึง, but stricter than a speaker tag because ordinary words follow these particles
+        # (ถึงเนินอก must not become เคนจิ): cast names of 5+ characters only, and the garbled token must be at least len(name)-1 characters long
+        _c5 = [c for c in _cands if len(c) >= 5]
+        def _fs(m):
+            nonlocal n
+            run = m.group(2)
+            if not _c5 or any(run.startswith(k) for k in _kn if k):
+                return m.group(0)
+            best = None
+            for L in range(4, min(len(run), 10) + 1):
+                fix = _fuzzy_name(run[:L], _c5, _kn)
+                if fix and L >= len(fix) - 1:
+                    d = _lev(run[:L], fix)
+                    if best is None or d < best[0]:
+                        best = (d, L, fix)
+            if not best:
+                return m.group(0)
+            n += 1
+            return m.group(1) + best[2] + run[best[1]:]
+        text = re.sub(r"(ของ|กับ|ให้|และ|จาก|ถึง)([\u0E01-\u0E4E]{4,24})", _fs, text)
         def _fv(m):
             nonlocal n
             fix = _fuzzy_name(m.group(2), _cands, _kn)
