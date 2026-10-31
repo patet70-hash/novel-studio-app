@@ -2963,7 +2963,8 @@ def ensure_finish_lines(text, prior, pp, fallback=True):
     kind_of = _line_kind
 
     def narrated(blob, who):
-        for ln in (blob or "").split("\n"):
+        last_named = []   # R113 (r113-dp: a nameless line 'ลลิตายิ้มในลำคอขณะปล่อยน้ำเชื้อออกมา…' after ปกรณ์'s and ธนา's cum was credited to เอก, so his planned closing cum was never added): a nameless cum line belongs to the man named in the last few lines before it
+        for ln_i, ln in enumerate((blob or "").split("\n")):
             st = ln.strip()
             qm_ = QUOTE_RE.match(st)
             if qm_:
@@ -2971,6 +2972,12 @@ def ensure_finish_lines(text, prior, pp, fallback=True):
             if not st or _her_only(st):
                 continue
             named = sorted((st.find(x), x) for x in men if x in st)
+            if named:
+                last_named.append((ln_i, named[-1][1]))
+            elif _MALE_CUM_LINE.search(st):
+                near_ = [x for i_, x in last_named if ln_i - i_ <= 4]
+                if near_ and near_[-1] != who:
+                    continue
             if len(named) >= 2:   # R108 (r108-dp: one line 'ธนาแตกรัวๆ ... ปกรณ์แตกรัวๆ ... ก้องแตกลงปาก' was judged as one kind, so each man got a second, template line): a line that names several men is judged clause by clause, each man by his own clause
                 pos = [p_ for p_, x in named if x == who]
                 if not pos:
