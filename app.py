@@ -1792,6 +1792,7 @@ def close_open_quotes(text, info):
         st = ln.strip()
         if st.startswith("\u201c") and "\u201d" not in st and '"' not in st[1:]:
             hits = [st.find(n, 3) for n in names if st.find(n, 3) > 3]
+            hits += [m_.start() + 4 for m_ in re.finditer(r"\sเ(?:ธอ|ขา)", st[3:])]   # R95 (r93-dp: “ชั้นจะแตกแล้ว เย็ดให้แรงๆ ค่ะ เธอกรีดร้อง): a pronoun tag closes the quote too
             if hits:
                 i = min(hits)
                 ln = ln.replace(st, st[:i].rstrip() + "\u201d " + st[i:], 1)
@@ -2317,14 +2318,16 @@ def fix_finish_place(text, pp):
                 if rx and _INSIDE_HER.search(st):   # planned outside, written inside her pussy: move it to the planned place
                     ln = _INSIDE_HER.sub("บน" + w_ + "ของเธอ", ln, count=1)
                 elif rx and not re.search(rx, st) and _ANY_PLACE.search(st):
-                    ln = _ANY_PLACE.sub(w_, ln, count=1)
+                    # R95 (r93-dp: "ลงบนหน้าอกและหน้าท้อง" -> "แผ่นหลังและหน้าท้อง"): EVERY wrong part goes, "<planned>และ<planned>" collapses
+                    ln = _ANY_PLACE.sub(w_, ln)
+                    ln = re.sub(r"(%s)(?:และ|กับ|ทั้ง)\1" % re.escape(w_), r"\1", ln)
                 elif rx:
                     # R90 (r89-dp: "อาบหน้าท้องของเธอ ... หยดลงบนหน้าอกและหลัง", planned: the back only): the cum goes to the planned place ONLY.
                     # a wrong part in a clause that has no planned word becomes the planned one; "<wrong>และ<planned>" / "<planned>และ<wrong>" keeps the planned one
                     bad = _ANY_PLACE.pattern
                     parts_ = ln.split(" ")
                     for k_, c_ in enumerate(parts_):
-                        if _ANY_PLACE.search(c_) and not re.search(rx, c_) and re.search(r"น้ำเชื้อ|น้ำควย|พุ่ง|สาด|อาบ|หยด|ฉีด|กระเซ็น|เปื้อน", c_):
+                        if _ANY_PLACE.search(c_) and not re.search(rx, c_) and re.search(r"น้ำเชื้อ|น้ำควย|พุ่ง|สาด|อาบ|หยด|ฉีด|กระเซ็น|เปื้อน|ยิง|ปล่อย|ราด|เลอะ|ไหล", c_):
                             _n_ = [0]
                             def _rp(m_, w_=w_, _n_=_n_):   # R93 (r92-dp: "เปื้อนหน้าท้องและไหลลงไปตามหน้าอก"): EVERY wrong part goes; the first becomes the planned place, later ones "ตัว"
                                 _n_[0] += 1
@@ -2347,6 +2350,87 @@ def fix_finish_place(text, pp):
             left -= 1
         out.append(ln)
     return "\n".join(out)
+
+
+def fix_name_krub(text, info):
+    """R95 (r93-dp: "“รอเดี๋ยว” ปกรณ์ครับ ก้องบอก"): a man's name followed by ครับ in narration / a speaker tag is just the name (a ครับ is only ever inside a quote)."""
+    M = [n for n, v in (info or {}).items() if n and v.get("g") == "M"]
+    if not M:
+        return text
+    mr = "|".join(re.escape(x) for x in sorted(M, key=len, reverse=True))
+    out = []
+    for ln in (text or "").split("\n"):
+        m = QUOTE_RE.match(ln.strip())
+        if m:
+            i = ln.find(m.group(0)) + len(m.group(0))
+            ln = ln[:i] + re.sub(r"(%s)ครับ" % mr, r"\1", ln[i:])
+        else:
+            ln = re.sub(r"(%s)ครับ" % mr, r"\1", ln)
+        out.append(ln)
+    return "\n".join(out)
+
+
+def ensure_finish_lines(text, prior, pp):
+    """R95 (r93-dp, r92-dp: ก้อง said 'กูจะแตกในมึงแล้ว' but the model never wrote that he came): in a group part whose plan holds a man's finish step, if that man ANNOUNCES it
+    (a quote of his saying แตก) and no narrated cum line of that kind exists in this part or earlier in the scene, one short narrated line of the planned kind / place is added after
+    his last announcement."""
+    if not pp or not pp.get("g"):
+        return text
+    cast = pp.get("cast") or {}
+    men = list(cast.get("men") or [x for x in (cast.get("A"), cast.get("B")) if x])
+    kinds, place = {}, {}
+    for st_ in pp.get("steps", []):
+        f_ = st_.get("fin")
+        if isinstance(f_, dict):
+            kinds.update({nm: k_ for nm, k_ in f_.items() if k_ in ("F1", "F2", "F3")})
+        elif st_.get("who") and st_.get("id") in ("F1", "F2", "F3"):
+            kinds[st_["who"]] = st_["id"]
+        place.update(st_.get("place") or {})
+    if not kinds or not men:
+        return text
+    wn = cast.get("W")
+
+    def kind_of(st):
+        if _INSIDE_HER.search(st) or re.search(r"ในหี|ข้างใน|ภายใน", st):
+            return "F3"
+        if re.search(r"ปาก|ลำคอ|ลงคอ", st):
+            return "F1"
+        return "F2"
+
+    def narrated(blob, who):
+        for ln in (blob or "").split("\n"):
+            st = ln.strip()
+            if not st or QUOTE_RE.match(st) or not _MALE_CUM_LINE.search(st) or _HER_LINE.search(st):
+                continue
+            if kind_of(st) != kinds[who]:
+                continue
+            cm = _MALE_CUM_LINE.search(st)
+            others = [x for x in men if x != who and x in st[:cm.start()]]
+            if who in st or not others:
+                return True
+        return False
+
+    lines = (text or "").split("\n")
+    for who in men:
+        if who not in kinds or narrated(text, who) or narrated(prior, who):
+            continue
+        last = None
+        for i, ln in enumerate(lines):
+            m = QUOTE_RE.match(ln.strip())
+            if m and re.search(r"แตก", _NOT_YET.sub("", m.group(0)) + m.group(0)) and ln.strip()[m.end():].strip().startswith(who):
+                last = i
+        if last is None:
+            continue
+        k = kinds[who]
+        if k == "F3":
+            new = "%sดันควยเข้าไปลึกที่สุดในหีของเธอ แล้วปล่อยน้ำเชื้อร้อนๆ พุ่งออกมาเต็มข้างใน" % who
+        elif k == "F1":
+            new = "น้ำเชื้อของ%sพุ่งออกมาเต็มปากเธอ แล้วเธอก็กลืนลงไป" % who
+        else:
+            new = "%sชักควยออกมาแล้วปล่อยน้ำเชื้อพุ่งลงบน%sของเธอ" % (who, _PLACE_WORD.get(place.get(who, ""), "แผ่นหลัง"))
+        lines.insert(last + 1, new)
+        text = "\n".join(lines)
+    return "\n".join(lines)
 
 
 def thin_manner(text):
@@ -3305,6 +3389,11 @@ def aw_run(b, cid, key):
                 except Exception:
                     pass
                 part = strip_man_on_man(part, char_info(b))
+                part = fix_name_krub(part, char_info(b))
+                _pe = part
+                part = ensure_finish_lines(part, cur[_spos:], parts[i].get("pose"))
+                if part != _pe:
+                    job.setdefault("addfinish", []).append(i + 1)   # R95 instrumentation: parts where a narrated finish line was added
                 if len(part) < _before:
                     # R91 instrumentation: [part, chars cut by strip_repeat_cum, by fix_finish_place, by strip_man_on_man, up to 3 samples of the removed lines]
                     _gone = [x.strip()[:90] for x in _p0.split("\n") if x.strip() and x not in part.split("\n")][:3]
