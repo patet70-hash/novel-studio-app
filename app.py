@@ -4081,9 +4081,9 @@ def sex_density(t):
 
 
 _BD_FACE = re.compile(r"หลับตา|ตาปรือ|ตาพร่า|ตาเยิ้ม|ตาเหลือก|ตาลอย|แววตา|สายตา|หน้าแดง|แก้มแดง|ใบหน้า(?:แดง|ร้อน|บิด)|หน้า(?:ร้อน|บิด)|กัดริมฝีปาก|กัดปาก|ริมฝีปากสั่น|เม้มปาก|ขมวดคิ้ว|คิ้วขมวด|น้ำตาคลอ|อ้าปากค้าง|หายใจหอบ|หอบ|ลมหายใจ|สีหน้า")
-_BD_MOVE = re.compile(r"นม(?:กระเพื่อม|สั่น|แกว่ง|ไหว|เด้ง|ยวบ|กระเด้ง)|(?:หน้าอก|เนินอก|ถันคู่)(?:กระเพื่อม|สั่น|แกว่ง|เด้ง|ขึ้นลง)|สะโพก(?:ยก|ส่าย|กระแทก|โยก|สั่น)|เอว(?:บิด|ส่าย|แอ่น)|แอ่นหลัง|แอ่นตัว|ตัวโก่ง|เนื้อ(?:สั่น|ระริก)|ท้องน้อย(?:กระตุก|สั่น)|หัวนม(?:แข็ง|ชู)|ก้น(?:กระเพื่อม|สั่น|กระเด้ง)")
+_BD_MOVE = re.compile(r"(?:นม|ถัน)(?:คู่)?(?:ทั้งสอง|ทั้งคู่)?(?:กระเพื่อม|สั่น|แกว่ง|ไหว|เด้ง|ยวบ|กระเด้ง|โยก|เต้น|ระริก)|(?:หน้าอก|เนินอก)(?:กระเพื่อม|สั่น|แกว่ง|เด้ง|ขึ้นลง|ไหว|โยก)|สะโพก(?:ขยับ|กระดก|แกว่ง)|เอวคอด(?:ขยับ|บิด)|ตัวแอ่น|หลังแอ่น|สะโพก(?:ยก|ส่าย|กระแทก|โยก|สั่น)|เอว(?:บิด|ส่าย|แอ่น)|แอ่นหลัง|แอ่นตัว|ตัวโก่ง|เนื้อ(?:สั่น|ระริก)|ท้องน้อย(?:กระตุก|สั่น)|หัวนม(?:แข็ง|ชู)|ก้น(?:กระเพื่อม|สั่น|กระเด้ง)")
 _BD_SPASM = re.compile(r"เกร็ง|กระตุก|สั่นเทา|สั่นสะท้าน|ตัวสั่น|ขาสั่น|ต้นขาสั่น|นิ้วเท้างอ|นิ้วเท้าจิก|จิกเล็บ|จิกผ้า|บีบรัด|ตอดรัด|หดเกร็ง|ขนลุก|เหงื่อ|สั่นระริก")
-BODY_MIN_PER500 = 4.0   # R119: body-state details (face/eyes + motion + clench/twitch) a sex part must carry per 500 Thai words
+BODY_MIN_PER500 = 3.0   # R119: body-state details (face/eyes + motion + clench/twitch) a sex part must carry per 500 Thai words
 
 
 def body_detail_n(t):
@@ -4100,10 +4100,6 @@ def body_detail_ok(t):
     if n * 500.0 / w < BODY_MIN_PER500:
         return False
     if w >= 450 and not (_BD_FACE.search(t) and _BD_MOVE.search(t) and _BD_SPASM.search(t)):
-        return False
-    if w >= 450 and len(_BD_MOVE.findall(t)) < max(2, int(w / 350.0)):   # R120: breasts/hips/back in motion at least once per ~350 words
-        return False
-    if w >= 450 and len(_BD_FACE.findall(t)) < max(2, int(w / 300.0)):   # R120: face/eyes at least once per ~300 words
         return False
     return True
 
@@ -4171,7 +4167,7 @@ def aw_run(b, cid, key):
                     if need_sex and sex_density(cand[1]) < SEX_DENS_MIN:
                         why.append("it did not stay on the sex: this part must be the sexual act itself from the first sentence to the last, with the body parts named (ควย, หี, นม, หัวนม, น้ำเงี่ยน) in nearly every paragraph and no drifting into work, family, memories or chat")
                     if need_sex and not body_detail_ok(cand[1]):
-                        why.append("it did not show the bodies enough: in every sexual step add short raw clauses about the faces and eyes (แววตา, flushed cheeks, biting lip, eyes rolling), the body in motion (นมกระเพื่อม / นมเด้ง, hips rocking, back arching) and the clenching and twitching (ขาสั่น, เกร็ง, กระตุก, ตอดรัด, toes curling), at least %d such details in this part (at least %d about the breasts, hips or back moving, and at least %d about the face and eyes), all different words" % (max(4, int(parts[i]["words"] * BODY_MIN_PER500 / 500) + 1), max(2, int(parts[i]["words"] / 350.0)), max(2, int(parts[i]["words"] / 300.0))))
+                        why.append("it did not show the bodies enough: in every sexual step add short raw clauses about the faces and eyes (แววตา, flushed cheeks, biting lip, eyes rolling), the body in motion (นมกระเพื่อม / นมเด้ง, hips rocking, back arching) and the clenching and twitching (ขาสั่น, เกร็ง, กระตุก, ตอดรัด, toes curling), at least %d such details in this part, covering all three groups, all different words" % max(3, int(parts[i]["words"] * BODY_MIN_PER500 / 500) + 1))
                     if need_calm and sex_density(cand[1]) > CALM_DENS_MAX:
                         why.append("this is an ORDINARY scene (no sex yet): remove the explicit sex words and acts, keep it to talk, atmosphere, glances and light touches")
                     if anatomy_issues(cand[1], info0):
