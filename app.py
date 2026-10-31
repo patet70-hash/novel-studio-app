@@ -2388,7 +2388,7 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     elif not p["last"]:
         lines.append("Do not end or conclude the chapter; this scene ends at a natural point and the next part continues. If this is the LAST beat of its scene: close it on a quiet image in the SAME place and moment; nobody arrives, no door opens or knocks, no new character, no change of place or time (the next scene opens its own setting).")
     else:
-        lines.append("This is the FINAL part of the chapter: bring the scene to its ending and close the chapter on a specific image with an unresolved hook. The LAST paragraph must be ONE closing narration paragraph of 3-5 sentences written after the last act (bodies at rest, breathing slowing down, sweat, what each person feels or does next, a quiet final image); the final line is narration, never a quoted line and never an act still in progress.")
+        lines.append("This is the FINAL part of the chapter: the scene ends here and the chapter closes. Write the last act to its end, then finish with ONE closing narration paragraph of 3-5 full sentences (bodies at rest, breathing slowing down, sweat cooling, what each person feels or does next, a quiet final image). Only the LAST sentence of that paragraph may hint at what comes next (one sentence, inside the paragraph, never a separate line). Do not end on a cliffhanger line, on a quoted line, on several one-clause lines in a row, or on an act still in progress.")
     return "\n".join(lines)
 
 
