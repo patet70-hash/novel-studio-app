@@ -845,7 +845,7 @@ def _tj_table(t, pp):
     return t
 
 
-_TJ_KNEEL_RE = re.compile(r"(?:เธอ|ลลิ?ตา\S{0,6})?(?:คุกเข่า|ก้ม|โน้มตัว)[^\n]{0,12}หนีบนม|หนีบนม[^\n]{0,10}(?:ท่ายืน|ท่านั่ง|ขณะยืน|ขณะนั่ง)|(?:ยืน|นั่ง)[^\n]{0,14}หนีบนม")
+_TJ_KNEEL_RE = re.compile(r"(?:คุกเข่า|ก้ม|โน้มตัว)[^\n]{0,12}หนีบนม|หนีบนม[^\n]{0,10}(?:ท่ายืน|ท่านั่ง|ขณะยืน|ขณะนั่ง)|(?:ยืน|นั่ง)[^\n]{0,14}หนีบนม")
 _TJ_LIE_RE = re.compile(r"นอนหงาย[^\n]{0,12}หนีบนม|หนีบนม[^\n]{0,10}นอนหงาย|คร่อมอก")
 
 
@@ -2425,6 +2425,8 @@ def char_info(b):
             continue
         v = c.get("v") or {}
         out[th or nm] = {"g": _gender_of(c), "age": str((v.get("age") or {}).get("c") or "").strip(), "role": str((v.get("role") or {}).get("c") or "").strip()[:60]}
+    fem = sorted({k for k, v in out.items() if v["g"] == "F" and len(k) >= 2}, key=len, reverse=True)
+    _WOMEN_RX[0] = re.compile("(?:%s)(?:แตก|ถึง)" % "|".join(re.escape(x) for x in fem)) if fem else None
     return out
 
 
@@ -2703,7 +2705,16 @@ def chapter_polish(text, info):
 
 
 _MALE_CUM_LINE = re.compile(r"น้ำเชื้อ|น้ำควย(?!เธอ)|ปล่อยน้ำ|พุ่ง(?:ออก|ใส่|เข้า)|ฉีดน้ำ|แตก(?:ใน|ใส่|บน)")
-_HER_LINE = re.compile(r"น้ำหี|น้ำเงี่ยน|เธอ(?:แตก|ถึง)|ลลิ?ตา(?:แตก|ถึง)")
+_HER_BASE = re.compile(r"น้ำหี|น้ำเงี่ยน|เธอ(?:แตก|ถึง)")
+_WOMEN_RX = [None]   # R134: set by char_info() from the story's own cast: "<woman's name>(แตก|ถึง)" counts as a line about HER climax (no character name is hard-coded)
+
+
+class _HerLine:
+    def search(self, st):
+        return _HER_BASE.search(st) or (_WOMEN_RX[0].search(st) if _WOMEN_RX[0] else None)
+
+
+_HER_LINE = _HerLine()
 
 
 def strip_early_cum(text, pp, names=None):
