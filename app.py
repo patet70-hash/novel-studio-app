@@ -2245,6 +2245,24 @@ def attach_act_plans(b, parts, cid="", salt=0):
         by_scene.setdefault(p["scene"], []).append(p)
     for sc, ps in sorted(by_scene.items()):
         if any(p.get("pose") for p in ps):
+            # R148: a scene with an old pose plan and 2+ women also gets women-with-women acts (เกี่ยวเบ็ด / เลียหี / 69 / บี้เม็ดแตด) in its middle parts
+            txt = ps[0]["text"]
+            if not is_sexual_text(txt):
+                continue
+            men, women = act_cast(txt, info)
+            if len(women) < 2:
+                continue
+            rng = random.Random(zlib.crc32(("%s|%s|%d|%d|garnish" % (b, cid, sc, salt)).encode("utf-8")))
+            bank = {a["id"]: a for a in ACT_BANK["ff"]}
+            A, B = women[0], women[1]
+            pick = ["W4"] + rng.sample(["W3", "W5", "W7"], 2)
+            acts = [_fmt_act(bank[i], A=A, B=B) for i in pick]
+            slots = list(range(1, len(ps) - 1)) or [0]
+            for k, a in enumerate(acts):
+                p = ps[slots[k % len(slots)]]
+                if "acts" not in p:
+                    p["acts"] = {"kind": "garnish", "steps": [], "men": men, "women": women, "last": False}
+                p["acts"]["steps"].append(a)
             continue
         txt = ps[0]["text"]
         if not is_sexual_text(txt):
@@ -2265,7 +2283,10 @@ def acts_block(part):
     ap = (part or {}).get("acts")
     if not ap or not ap.get("steps"):
         return ""
-    L = ["ACT PLAN (ground truth: these acts come from a fixed bank so the scene uses real, varied acts; write EVERY act below as a real, detailed act of the sexual scene, in this order, each with the body words, the faces and the sounds; do not replace them with a generic 'they have sex'):"]
+    if ap.get("kind") == "garnish":
+        L = ["EXTRA WOMEN-WITH-WOMEN ACTS (in addition to the POSITION PLAN, which stays as it is: while the men wait, change position or recover, the two women turn to each other; write EVERY act below as a real, detailed act with the body words, faces and sounds, between the position changes):"]
+    else:
+        L = ["ACT PLAN (ground truth: these acts come from a fixed bank so the scene uses real, varied acts; write EVERY act below as a real, detailed act of the sexual scene, in this order, each with the body words, the faces and the sounds; do not replace them with a generic 'they have sex'):"]
     for k, a in enumerate(ap["steps"], 1):
         L.append("ACT %d [%s]: %s" % (k, a["n"], a["d"]))
     if ap.get("kind") in ("multi", "ritual") and ap.get("last") and ap.get("men"):
@@ -4347,6 +4368,11 @@ def check_text(b, text, target=0):
     rep = overused(body, names)
     if rep:
         issues.append("วลีซ้ำบ่อย: " + ", ".join("“%s” ×%d" % x for x in rep))
+    lead = [("เกี่ยวเบ็ด", "เกี่ยวเบ็ด|เกี่ยวหี"), ("เลียหี", "เลียหี"), ("บี้เม็ดแตด", "เม็ดแตด"), ("69", "69|ซิกซ์ตี้ไนน์"), ("อมควย", "อมควย|ดูดควย|เลียควย"), ("ขย่ม", "ขย่ม|คร่อม")]
+    if sex_density(body) >= SEX_DENS_MIN:   # R148: a sexual chapter should show a spread of the named acts from the pose table
+        miss = [n for n, rx in lead if not re.search(rx, body)]
+        if len(miss) > 2:
+            issues.append("ท่า/การกระทำจากตารางท่าที่ไม่ปรากฏในบท: " + ", ".join(miss) + " (ควรมีอย่างน้อย 4 จาก 6 อย่าง)")
     return {"words": w, "issues": issues}
 
 
