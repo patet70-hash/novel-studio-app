@@ -238,7 +238,13 @@ function specText(){const t=f=>`${f.k} (${f.en}${f.t==='text'?', free text':''})
  return "TOP-LEVEL fields (key 'top'): "+TOP.flatMap(x=>x.f).filter(f=>f.k!=='lang').map(t).join("; ")+"\nCHARACTER fields: "+CHF.map(t).join("; ")+"\nOUTFIT fields: "+OUF.map(t).join("; ")+"\nLOCATION fields: "+LOF.map(t).join("; ")}
 function lockedText(){const a=[];Object.keys(S.locks).forEach(k=>{if(S.locks[k])a.push(k==='chars'?"ALL characters":k==='locs'?"ALL locations":"top field "+k)});S.chars.forEach(c=>{if(c.locked)a.push("character "+c.name)});S.locs.forEach(l=>{if(l.locked)a.push("location "+l.name)});return a.join("; ")||"(none)"}
 function parseProp(t){const m=/```proposal\s*\n([\s\S]*?)(```|$)/.exec(t);if(!m)return{text:t,prop:null,err:false};const text=(t.slice(0,m.index)+t.slice(m.index+m[0].length)).trim();let prop=null,err=false;
- try{prop=JSON.parse(m[1].trim())}catch(e){try{prop=JSON.parse(m[1].trim().replace(/,\s*([}\]])/g,"$1"))}catch(e2){err=true}}return{text,prop,err}}
+ try{prop=JSON.parse(m[1].trim())}catch(e){try{prop=JSON.parse(m[1].trim().replace(/,\s*([}\]])/g,"$1"))}catch(e2){try{prop=JSON.parse(fixJson(m[1].trim()))}catch(e3){err=true}}}return{text,prop,err}}
+function fixJson(s){const st=[];let o="",str=false,esc=false;for(const ch of s){if(str){o+=ch;if(esc)esc=false;else if(ch==="\\")esc=true;else if(ch==='"')str=false;continue}
+ if(ch==='"'){str=true;o+=ch;continue}
+ if(ch==='{'||ch==='['){st.push(ch==='{'?'}':']');o+=ch;continue}
+ if(ch==='}'||ch===']'){if(!st.length)continue;while(st.length&&st[st.length-1]!==ch){o=o.replace(/,\s*$/,"");o+=st.pop()}if(st.length){st.pop();o+=ch}continue}
+ o+=ch}
+ if(str)o+='"';o=o.replace(/,\s*$/,"");while(st.length)o+=st.pop();return o.replace(/,\s*([}\]])/g,"$1")}
 function setFieldVal(obj,f,val){if(val===null||val===undefined||val==="")return;
  if(f.t==='text'){obj[f.k]={s:[],c:String(Array.isArray(val)?val.join(", "):val)};return}
  const parts=(Array.isArray(val)?val:String(val).split(/\s*[,;]\s*/)).map(x=>String(x).trim()).filter(Boolean);const pool=POOL[f.pool]||[];const s=[],c=[];
