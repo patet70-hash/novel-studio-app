@@ -5180,9 +5180,9 @@ def aw_start(b, cid, mode=""):
 
 # device presets: (page size, margins, base font pt, line-height)
 CSS = {
-    "iphone": ("90mm 160mm", "8mm 7mm 11mm 7mm", 14.0, 1.8),
-    "ipad": ("148mm 210mm", "12mm 11mm 14mm 11mm", 13.0, 1.8),
-    "a4": ("A4", "25mm 22mm 25mm 22mm", 13.0, 1.75),
+    "iphone": ("90mm 160mm", "8mm 7mm 11mm 7mm", 12.0, 1.8),
+    "ipad": ("148mm 210mm", "12mm 11mm 14mm 11mm", 11.5, 1.8),
+    "a4": ("A4", "25mm 22mm 25mm 22mm", 11.5, 1.75),
 }
 ALIAS = {"mobile": "iphone", "novel": "a4"}      # old links keep working
 FS_STEP = {"s": -1.5, "m": 0.0, "l": 1.5, "xl": 3.0}   # font size steps
@@ -5213,6 +5213,7 @@ def make_pdf(b, size, only=None, fs="m", lh="n"):
             continue
         t = read(os.path.join(bdir(b), "chapters", c["id"] + ".md"))
         t = re.sub(r"^\s*(\*\s*\*\s*\*|---+|\*\*\*+)\s*$", "\n<div class='sb'>&#10059;</div>\n", t, flags=re.M)
+        t = re.sub(r"(?<=\S)[ \t]*\n(?=[ \t]*\S)", "\n\n", t)   # every line is its own paragraph (dialogue lines no longer merge)
         parts.append("<section class='ch'>" + wrap_thai(md.markdown(t, extensions=["extra"])) + "</section>")
     title = (m.get("title") or b).replace("<", "&lt;")
     author = (m.get("author") or "").replace("<", "&lt;")
@@ -5227,7 +5228,7 @@ section.ch h1 {{ text-align:center; font-size:1.5em; margin:18% 0 1.4em; page-br
 p {{ margin:0 0 .35em; text-indent:1.3em; }} h1 + p, .sb + p {{ text-indent:0 }}
 .sb {{ text-align:center; margin:.9em 0; color:#666; text-indent:0 }}
 blockquote {{ margin:.6em 1.2em; font-style:italic }}
-.th {{ font-size:1.12em }}
+.th {{ font-size:1.04em }}
 </style></head><body>
 {'' if only and len(only) == 1 else f"<div class='title'><h1>{title}</h1><p>{author}</p></div>"}{''.join(parts)}</body></html>"""
     return HTML(string=html).write_pdf()
