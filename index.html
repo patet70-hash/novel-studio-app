@@ -268,6 +268,15 @@ function applyProp(p,dry){const L=[];const A=ALLF();
  items(p.characters,S.chars,CHF,n=>({id:uid(),name:n,v:{},outfits:[]}),"ตัวละคร",!!S.locks.chars);
  items(p.locations,S.locs,LOF,n=>({id:uid(),name:n,v:{}}),"สถานที่",!!S.locks.locs);
  return L}
+function ovStr(o){return o?[...(o.s||[]),o.c||""].filter(x=>String(x).trim()).join(", "):""}
+function overwritePreview(p){const L=[];const A=ALLF();const cut=x=>{x=String(x);return x.length>50?x.slice(0,50)+"…":x};
+ const chk=(label,cur,specs,fields)=>{for(const k of Object.keys(fields||{})){const f=specs.find(x=>x.k===k);if(!f||fields[k]===null||fields[k]===undefined||fields[k]==="")continue;
+  const t={};setFieldVal(t,f,fields[k]);const nv=ovStr(t[k]),ov=ovStr(cur[k]);if(ov&&nv&&ov!==nv)L.push(`${label} · ${f.th}: "${cut(ov)}" → "${cut(nv)}"`)}};
+ if(p.top)for(const k of Object.keys(p.top)){const f=A.top.find(x=>x.k===k);if(!f||k==='lang'||S.locks[k])continue;chk("ทั่วไป",S.v,A.top,{[k]:p.top[k]})}
+ const items=(arr,list,specs,kind,lockAll)=>{if(lockAll)return;for(const it of (arr||[])){const name=String(it.name||"").trim();if(!name)continue;
+   const ex=list.find(x=>x.name.trim().toLowerCase()===name.toLowerCase());if(!ex||ex.locked)continue;chk(`${kind} ${name}`,ex.v,specs,it.fields);
+   if(kind==="ตัวละคร")for(const o of (it.outfits||[])){const on=String(o.name||"").trim();const ou=ex.outfits.find(x=>x.name.trim().toLowerCase()===on.toLowerCase());if(ou)chk(`ตัวละคร ${name} ชุด ${on}`,ou.v,OUF,o.fields)}}};
+ items(p.characters,S.chars,CHF,"ตัวละคร",!!S.locks.chars);items(p.locations,S.locs,LOF,"สถานที่",!!S.locks.locs);return L}
 function drawAssist(){const el=$("#achat");if(!el)return;const arr=S.assist||[];
  if(!arr.length){el.innerHTML=`<p class="small">ยังไม่มีบทสนทนา — บอกสเปคที่อยากได้ได้เลย เช่น แนวเรื่อง ตัวเอก คู่ตัวละคร ฉาก หรือพิมพ์ "ช่วยคิดให้ทั้งหมด" แล้วผมจะถามเพิ่มและเสนอให้</p>`;return}
  el.innerHTML="";arr.forEach((m,i)=>{const d=document.createElement('div');
@@ -277,7 +286,7 @@ function drawAssist(){const el=$("#achat");if(!el)return;const arr=S.assist||[];
   if(r.prop){const pd=document.createElement('div');pd.className='prop';const lines=applyProp(r.prop,true);
    if(m.applied)pd.innerHTML=`<b>✓ ใช้ข้อเสนอนี้แล้ว</b>`;else if(m.dismissed)pd.innerHTML=`<span class="small">ไม่ใช้ข้อเสนอนี้</span>`;
    else{pd.innerHTML=`<b>📋 ข้อเสนอ</b> <span class="small">(${lines.length} รายการ)</span><pre>${esc(lines.join("\n")||"(ไม่มีอะไรจะเปลี่ยน)")}</pre><div class="bar2"><button class="p" data-a="ok">✅ ใช้ข้อเสนอนี้</button><button data-a="no">ไม่ใช้</button></div>`;
-    pd.querySelector('[data-a=ok]').onclick=()=>{applyProp(r.prop,false);m.applied=true;S.synth=S.synth;dirty();renderSetup()};
+    pd.querySelector('[data-a=ok]').onclick=()=>{const ov=overwritePreview(r.prop);if(ov.length&&!confirm(`ข้อเสนอนี้จะเขียนทับค่าเดิม ${ov.length} ช่อง:\n\n`+ov.slice(0,12).join("\n")+(ov.length>12?`\n… และอีก ${ov.length-12} ช่อง`:"")+"\n\nกด OK = เขียนทับ · Cancel = ไม่ใช้"))return;applyProp(r.prop,false);m.applied=true;S.synth=S.synth;dirty();renderSetup()};
     pd.querySelector('[data-a=no]').onclick=()=>{m.dismissed=true;dirty();drawAssist()}}
    el.appendChild(pd)}});el.scrollTop=el.scrollHeight}
 function acfg(){S.assistCfg=S.assistCfg||{detail:"rich",note:""};return S.assistCfg}
