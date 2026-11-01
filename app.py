@@ -449,7 +449,7 @@ def kin_terms(b):
         d = json.loads(read(os.path.join(bdir(b), "kin.json"), "{}") or "{}")
     except Exception:
         d = {}
-    return {"father": str(d.get("father") or "พ่อ")[:12], "mother": str(d.get("mother") or "แม่")[:12]}
+    return {"father": str(d.get("father") or "พ่อ")[:12], "mother": str(d.get("mother") or "แม่")[:12], "step_mother": bool(d.get("step_mother"))}
 
 
 def speech_table(cast_info, info, kin=None):
@@ -457,9 +457,11 @@ def speech_table(cast_info, info, kin=None):
     kin = kin or {"father": "พ่อ", "mother": "แม่"}
     FA, MO = kin["father"], kin["mother"]
     role = lambda n: (info.get(n) or {}).get("role", "")
+    rel = lambda n: (info.get(n) or {}).get("rel", "")
+    SM = bool(kin.get("step_mother"))   # R149: this book's stepmother is called and calls herself MO by the stepchildren (kin.json {"step_mother": true}); the Thai relation text (แม่เลี้ยง.. / ลูกสาว..) is read only then
     isfather = lambda n: bool(re.search(r"father", role(n), re.I)) and not re.search(r"step", role(n), re.I)
-    iskid = lambda n: bool(re.match(r"\s*(daughter|son)\b", role(n), re.I))
-    isstep = lambda n: bool(re.search(r"stepmother", role(n), re.I))
+    iskid = lambda n: bool(re.match(r"\s*(daughter|son)\b", role(n), re.I)) or (SM and bool(re.match(r"\s*ลูก(?:สาว|ชาย)", rel(n))))
+    isstep = lambda n: bool(re.search(r"stepmother", role(n), re.I)) or (SM and bool(re.match(r"\s*แม่เลี้ยง", rel(n))))
     def age(n):
         try:
             return int(re.sub(r"\D", "", (info.get(n) or {}).get("age", "")) or 0)
@@ -474,6 +476,8 @@ def speech_table(cast_info, info, kin=None):
             me = "ผม" + (" (to his children and to his wife: " + FA + ")" if isfather(n) else "")
         elif g == "F":
             me = "own name / ชั้น (หนู to the father and elders)" + ("; to her children and to her husband: " + MO if parent else "")
+            if SM and isstep(n):
+                me = "ชั้น or her own name to the men and the servants; to her stepchildren in the cast (and in the sex scenes with them): " + MO + " ONLY (never her own name, never ชั้น with them)"
         else:
             me = "-"
         calls = []
@@ -485,13 +489,15 @@ def speech_table(cast_info, info, kin=None):
             elif iskid(n) and isfather(y):
                 t = FA
             elif iskid(n) and isstep(y):
-                t = "คุณ" + y
+                t = MO if SM else "คุณ" + y
             elif isstep(n) and iskid(y):
                 t = y
             elif isstep(n) and isfather(y):
                 t = FA + " (or " + y + " when it could be unclear who is meant)"
             elif isfather(n) and isstep(y):
                 t = MO + " (or " + y + " when it could be unclear who is meant)"
+            elif SM and isstep(y) and re.search(r"คนรับใช้|สาวใช้|คนขับรถ|บอดี้การ์ด|แม่บ้าน|พ่อบ้าน", rel(n)):
+                t = "คุณ" + y   # R149: a servant / driver / bodyguard of the house addresses the mistress politely
             elif iskid(n) and iskid(y):
                 t = ("พี่" + y) if age(y) > age(n) else y
             elif age(n) and age(y) and age(y) - age(n) >= 8:
@@ -2143,7 +2149,7 @@ def act_cast(txt, info):
     present = [n for n in info if n and n in txt]
     men = [n for n in present if info[n].get("g") == "M"]
     women = [n for n in present if info[n].get("g") == "F"]
-    if _GENERIC_WOMEN_RE.search(txt):
+    if _GENERIC_WOMEN_RE.search(txt) and len(women) < 2:   # R149: a named maid in the cast replaces the generic one
         women.append("แม่บ้านสาว")
     if not men and _GENERIC_MEN_RE.search(txt):
         men.append("ชายรับใช้")
@@ -2748,7 +2754,7 @@ def char_info(b):
         if not nm:
             continue
         v = c.get("v") or {}
-        out[th or nm] = {"g": _gender_of(c), "age": str((v.get("age") or {}).get("c") or "").strip(), "role": str((v.get("role") or {}).get("c") or "").strip()[:60]}
+        out[th or nm] = {"g": _gender_of(c), "age": str((v.get("age") or {}).get("c") or "").strip(), "role": str((v.get("role") or {}).get("c") or "").strip()[:60], "rel": str((v.get("rel") or {}).get("c") or "").strip()[:80]}
     fem = sorted({k for k, v in out.items() if v["g"] == "F" and len(k) >= 2}, key=len, reverse=True)
     _FEM[0] = "(?:%s)" % "|".join(re.escape(x) for x in fem) if fem else ""
     _WOMEN_RX[0] = re.compile("(?:%s)(?:แตก|ถึง)" % "|".join(re.escape(x) for x in fem)) if fem else None
