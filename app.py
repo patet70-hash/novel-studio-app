@@ -5704,6 +5704,8 @@ class H(BaseHTTPRequestHandler):
                 return self.chat(d)
             if p == ["api", "scene-plan"]:
                 return self.scene_plan(d)
+            if p == ["api", "fix-propose"]:
+                return self.fix_propose(d)
             if p == ["api", "refine"]:
                 return self.refine(d)
             if p == ["api", "assist"]:
@@ -5711,6 +5713,87 @@ class H(BaseHTTPRequestHandler):
             return self._send(404, {"error": "not found"})
         except Exception as e:
             return self._send(500, {"error": str(e)})
+
+    def fix_propose(self, d):
+        """R153: for the 'ปรับแก้ตามข้อเสนอ' button. Runs the quality check, finds the paragraphs behind each fixable issue, asks the model to rewrite ONLY that
+        paragraph, validates it, and returns proposals {issue, find, replace}. Nothing is written here: the browser applies the ones the author confirms via the /edit endpoint."""
+        b, cid = d.get("book", ""), d.get("id", "")
+        if not (SLUG.match(b) and re.match(r"^ch\d+$", cid)):
+            return self._send(400, {"error": "bad ids"})
+        fp = os.path.join(bdir(b), "chapters", cid + ".md")
+        if not os.path.exists(fp):
+            return self._send(404, {"error": "ไม่มีตอนนี้"})
+        text = read(fp)
+        info = char_info(b)
+        names = name_table(b)
+        rep = check_text(b, text, outline(b).get(cid, {}).get("target", 0))
+        paras = [x for x in text.split("\n") if x.strip() and not x.lstrip().startswith("#")]
+        sel = []   # (issue label, instruction, predicate)
+        for nm, th in names:
+            if re.search(r"[A-Za-z]", nm) and nm in text:
+                sel.append(("ชื่อ %s เป็นอังกฤษ" % nm, "เปลี่ยนชื่อ %s เป็นตัวอักษรไทย%s" % (nm, " “" + th + "”" if th else ""), (lambda p, nm=nm: nm in p)))
+        med = [t for t in MEDICAL_TERMS if text.count(t) >= 3]
+        if med:
+            sel.append(("ศัพท์แบบแพทย์", "แทนคำแพทย์ (%s) ด้วยคำพูดธรรมชาติ: ควย หี น้ำเชื้อ น้ำเงี่ยน แตก ตามบริบท" % ", ".join(med), (lambda p: any(t in p for t in med))))
+        if TYPO_RE.search(text):
+            sel.append(("คำเพี้ยน/พิมพ์ผิด", "แก้คำเพี้ยนหรือพิมพ์ผิดให้เป็นภาษาไทยที่ถูกต้อง", (lambda p: bool(TYPO_RE.search(p)))))
+        if climax_leftovers(text):
+            sel.append(("คำว่า “เสร็จ” ในฉากเซ็กซ์", "ถ้า “เสร็จ” หมายถึงถึงจุดสุดยอด/หลั่ง ให้เปลี่ยนเป็น “แตก” (แตกใน/แตกข้างนอก/แตกใส่หน้า) ส่วนความหมายอื่นคงไว้", (lambda p: "เสร็จ" in p and sum(1 for w in SEX_WORDS if w in p) >= 2)))
+        if anatomy_issues(text, info):
+            sel.append(("กายวิภาคผิดเพศ", "แก้กายวิภาคให้ถูก: ผู้หญิงมี หี เม็ดแตด น้ำหี ไม่มีควย; ผู้ชายมีควย ไม่มีหี ห้ามเพิ่มหรือตัดเหตุการณ์", (lambda p: anatomy_issues(p, info) > 0)))
+        if particle_issues(text, info):
+            sel.append(("คำลงท้ายไม่ตรงเพศ", "แก้คำลงท้ายของผู้พูด: ผู้ชาย ครับ/ผม, ผู้หญิง ค่ะ/คะ/นะคะ ตามเพศผู้พูดในแท็ก", (lambda p: particle_issues(p, info) > 0)))
+        if female_rough_issues(text, info):
+            sel.append(("ผู้หญิงพูด กู/มึง", "ผู้หญิงห้ามใช้ กู/มึง ให้เปลี่ยนเป็น ชั้น/นิด/หนู/เธอ/คุณ ตามความสัมพันธ์ และความเร้าร้อนคงเดิม", (lambda p: female_rough_issues(p, info) > 0)))
+        if family_issues(text, info):
+            sel.append(("ขัดกฎความสัมพันธ์/เพศ", "แก้ให้ไม่ขัดกฎ: ผู้ชายไม่สัมผัสกันทางเพศ และญาติแท้ไม่ถูกเรียกว่าบุญธรรม คงเหตุการณ์อื่นไว้", (lambda p: bool(family_issues(p, info)))))
+        if sum(1 for ln in paras if not QUOTE_RE.match(ln.strip()) and len(ln.strip()) > 400) >= 5:
+            sel.append(("ย่อหน้าบรรยายยาวเกิน 400 ตัวอักษร", "แบ่งเป็น 2-3 ย่อหน้าสั้นลง (ขึ้นบรรทัดใหม่) ไม่ตัดเนื้อหา แต่ปรับให้อ่านลื่นขึ้น", (lambda p: not QUOTE_RE.match(p.strip()) and len(p.strip()) > 400)))
+        for x in (rep.get("issues") or []):
+            if x.startswith("วลีซ้ำบ่อย"):
+                for ph in re.findall(r"“([^”]+)” ×\d+", x):
+                    hits = [p for p in paras if ph in p]
+                    for p in hits[2:]:
+                        sel.append(("วลีซ้ำ “%s”" % ph, "เปลี่ยนวลี “%s” เป็นคำหรือโครงสร้างประโยคอื่นที่ความหมายเท่ากัน ไม่ให้ซ้ำ" % ph, (lambda q, p=p: q == p)))
+        props, manual, seen, more = [], [], set(), 0
+        limit = int(d.get("limit") or 10)
+        skip = set(d.get("skip") or [])
+        for label, ins, pred in sel:
+            for p in paras:
+                if not pred(p) or p in seen or p in skip:
+                    continue
+                if find_unique(text, p)[1] != 1:
+                    continue
+                if len(props) >= limit:
+                    more += 1
+                    continue
+                seen.add(p)
+                prompt = ("แก้ย่อหน้านิยายภาษาไทยต่อไปนี้ตามข้อกำหนด แล้วตอบเฉพาะย่อหน้าที่แก้แล้วเท่านั้น (ห้ามอธิบาย ห้ามใส่หัวข้อ ห้ามใส่เครื่องหมายคำพูดครอบ)\n"
+                          "ข้อกำหนด: %s\nคงเนื้อหา เหตุการณ์ ลำดับ ชื่อตัวละครและความเร้าร้อนเดิมไว้ ใช้เครื่องหมายคำพูดแบบ “ ” ถ้ามีบทพูด และแก้เฉพาะที่ข้อกำหนดระบุ\n"
+                          "ตัวละคร (ชื่อไทย): %s\n\nย่อหน้า:\n%s") % (ins, ", ".join(th or nm for nm, th in names)[:600], p)
+                payload = {"messages": [{"role": "system", "content": "You are a Thai fiction line editor for adult fiction (all characters are adults). Edit as instructed without moralizing."}, {"role": "user", "content": prompt}],
+                           "stream": False, "max_tokens": 1600, "temperature": 0.5, "chat_template_kwargs": {"enable_thinking": False}}
+                req = urllib.request.Request(LLM + "/v1/chat/completions", json.dumps(payload).encode(), {"Content-Type": "application/json"})
+                try:
+                    r = json.loads(urllib.request.urlopen(req, timeout=300).read().decode("utf-8"))
+                    new = clean_part(r["choices"][0]["message"].get("content") or "").strip()
+                except Exception as e:
+                    return self._send(502, {"error": "LLM unavailable: %s" % e})
+                ok = bool(new) and new != p.strip() and 0.5 <= len(new) / max(1, len(p.strip())) <= 1.6
+                if ok and pred(new) and not label.startswith("ย่อหน้าบรรยายยาว") and not label.startswith("วลีซ้ำ"):
+                    ok = False   # the same problem is still in the rewrite
+                if ok and label.startswith("วลีซ้ำ"):
+                    ph = re.search(r"“([^”]+)”", label).group(1)
+                    ok = ph not in new
+                if ok:
+                    props.append({"issue": label, "find": p, "replace": new})
+                else:
+                    manual.append(label + " (โมเดลแก้ให้ไม่ผ่านการตรวจ: ข้ามย่อหน้านี้)")
+        handled = set()
+        for x in (rep.get("issues") or []):
+            if any(x.startswith(k) for k in ("ความยาว", "บทพูดมีสัดส่วน", "ย่อหน้าซ้ำคำต่อคำ", "บทพูดสูตรเดียวกัน", "บทพูดล้วนไม่มีผู้พูด", "ตอนจบเป็นบรรทัด", "ถอดเสื้อผ้า", "ท่า", "พบคำว่า “พ่อเลี้ยง”", "เครื่องหมายคำพูดปนกัน", "ชื่อตัวละครสะกดผิด")):
+                manual.append(x + " — ต้องแก้เองหรือเขียนเพิ่ม/ทบทวนทั้งตอน (ปุ่มนี้แก้ระดับย่อหน้าไม่ได้)")
+        return self._send(200, {"proposals": props, "manual": manual, "more": more, "words": rep.get("words"), "issues": rep.get("issues") or []})
 
     def refine(self, d):
         prompt = ("Below is a story setup assembled from random and hand-picked cards. Some choices may clash. "
