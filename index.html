@@ -419,7 +419,7 @@ const cardOf=id=>document.querySelector(`.chc[data-id="${id}"]`);
 function setSt(id,t){const e=cardOf(id)&&cardOf(id).querySelector(".st");if(e)e.textContent=t}
 function updHead(id){const c=chs.find(x=>x.id===id),e=cardOf(id);if(!c||!e)return;const w=e.querySelector(".cnt");if(w)w.textContent=cntText(c)}
 function saveChapter(id,now){clearTimeout(saveTm[id]);const run=async()=>{if(CT[id]===undefined)return;try{await api(`books/${book}/chapters/${id}`,js("PUT",{text:CT[id]}));const c=chs.find(x=>x.id===id);if(c){c.words=wcount(CT[id]);c.title=titleOf(CT[id],id)}updHead(id);setSt(id,"บันทึกแล้ว ✓")}catch(e){setSt(id,"บันทึกไม่สำเร็จ: "+e.message)}};if(now)return run();setSt(id,"กำลังบันทึก…");saveTm[id]=setTimeout(run,1000)}
-function saveMeta(id,patch){clearTimeout(metaTm[id]);metaTm[id]=setTimeout(()=>api(`books/${book}/outline/${id}`,js("PUT",patch)).catch(e=>toast("บันทึกไม่สำเร็จ: "+e.message)),700)}
+function saveMeta(id,patch){clearTimeout(metaTm[id]);metaTm[id]=setTimeout(()=>api(`books/${book}/outline/${id}`,js("PUT",patch)).then(async r=>{const j=await r.json().catch(()=>({}));if(j.warnings&&j.warnings.length)toast("⚠ "+j.warnings[0])}).catch(e=>toast("บันทึกไม่สำเร็จ: "+e.message)),700)}
 function saveDraft(){clearTimeout(dsT);dsT=setTimeout(()=>api(`books/${book}/outline-draft`,js("PUT",{items:OUT.draft})).catch(e=>toast("บันทึกฉบับร่างไม่สำเร็จ: "+e.message)),700)}
 const parseJ=s=>{try{return JSON.parse(s)}catch(e){try{return JSON.parse(String(s).replace(/,\s*([}\]])/g,"$1"))}catch(e2){return null}}};
 const blockInfo=(t,k)=>{const m=new RegExp("```"+k+"[^\\n]*\\n([\\s\\S]*?)(```|$)").exec(t);return m?{body:m[1],closed:m[2]==="```"}:null};
@@ -577,7 +577,7 @@ function chapterCard(c,n){const id=c.id,lk=!!c.locked,fo=isFolded(id);const d=do
       if(j.state==="error")aw.textContent="หยุดกลางทาง: "+(j.error||"")+" (ส่วนที่เขียนแล้วยังอยู่ในต้นฉบับ)";else{showRep(j);if(j.state==="cancelled")aw.textContent="หยุดตามสั่ง\n"+aw.textContent}}}catch(e){aw.textContent="อ่านสถานะไม่ได้: "+e.message}};
   bAw.onclick=async()=>{try{clearTimeout(saveTm[id]);if(CT[id]!==undefined)await saveChapter(id,true)}catch(e){}
    const sum=(c.summary||"").trim();if(!sum){toast("ใส่สรุปตอนก่อน");return}
-   const r=await fetch(`api/books/${book}/autowrite/${id}`,js("POST",{action:"start"}));const j=await r.json();if(!r.ok){toast(j.error||"เริ่มไม่ได้");return}
+   let r=await fetch(`api/books/${book}/autowrite/${id}`,js("POST",{action:"start"}));let j=await r.json();if(!r.ok&&j.needs_mode){const rs=confirm(`ตอนนี้มีเนื้อหา ${j.words} คำแล้ว\n\nตกลง = เริ่มใหม่ (สำรองของเดิมไว้ในประวัติ แล้วเขียนทับ)\nยกเลิก = ถามต่อว่าจะต่อท้ายไหม`);if(rs){r=await fetch(`api/books/${book}/autowrite/${id}`,js("POST",{action:"start",mode:"restart"}))}else if(confirm("ต่อท้ายเนื้อหาเดิมแทนไหม?")){r=await fetch(`api/books/${book}/autowrite/${id}`,js("POST",{action:"start",mode:"append"}))}else{return}j=await r.json()}if(!r.ok){toast(j.error||"เริ่มไม่ได้");return}
    bAw.disabled=true;bX.style.display="";aw.textContent="เริ่มเขียน…";awT=setTimeout(awPoll,2000)};
   bX.onclick=async()=>{await api(`books/${book}/autowrite/${id}`,js("POST",{action:"cancel"}));aw.textContent="กำลังหยุดหลังส่วนนี้จบ…"};
   bC.onclick=async()=>{try{showRep(await(await api(`books/${book}/check/${id}`)).json())}catch(e){aw.textContent="ตรวจไม่ได้: "+e.message}};

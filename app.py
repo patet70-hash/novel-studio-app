@@ -124,9 +124,12 @@ def _cfg():
 
 def set_thread_mode(b):
     try:
-        _TL.mode = meta(b).get("mode")
+        m = meta(b)
+        _TL.mode = m.get("mode")
+        _TL.sex_share = m.get("sex_share")
     except Exception:
         _TL.mode = None
+        _TL.sex_share = None
 
 
 def speech_lite(): return _cfg()["speech"]
@@ -518,16 +521,50 @@ def name_table(b):
     return out
 
 
+def sex_share():
+    """R145: per-book share of the chapter's words given to sexual scenes (book.json "sex_share", 0..0.95); default SEX_SHARE."""
+    v = getattr(_TL, "sex_share", None)
+    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 0.95 else SEX_SHARE
+
+
 SEX_SHARE = 0.78   # sexual scenes get this share of the words so that, with the warm-up of each sex scene counted as sexual, the chapter reaches 60-70% sexual content
 
 
 STRONG_SEX = re.compile(r"เย็ด|ควย|หี(?!บ)|เซ็กส์|เซ็กซ์|เสพสม|ร่วมรัก|น้ำแตก|แตกใน|แตกใส่|แตกบน|น้ำเชื้อ|น้ำควย|น้ำเงี่ยน|ขย่ม|สอดใส่|อมควย|เลียหี")
 
 
+SCENE_TAG = re.compile(r"\[\s*(เรื่อง|เนื้อเรื่อง|เซ็กซ์|เซ็กส์)\s*\]")
+
+
+def scene_kind(txt):
+    """R146: 'story' or 'sex' when the scene text carries an explicit tag ([เรื่อง] / [เซ็กซ์]), else ''."""
+    m = SCENE_TAG.search(txt or "")
+    if not m:
+        return ""
+    return "story" if m.group(1) in ("เรื่อง", "เนื้อเรื่อง") else "sex"
+
+
+def scene_lint(summary):
+    """R146: warnings for a chapter summary: scenes whose untagged text contains sex words are treated as sex scenes by the planner."""
+    out = []
+    pieces = [x.strip() for x in re.split(r"(?=ฉากที่\s*\d+)", summary or "") if re.match(r"\s*ฉากที่\s*\d+", x)]
+    for x in pieces:
+        n = re.match(r"\s*ฉากที่\s*(\d+)", x).group(1)
+        if scene_kind(x):
+            continue
+        hits = sorted(set(STRONG_SEX.findall(x) if not STRONG_SEX.groups else [m.group(0) for m in STRONG_SEX.finditer(x)]))
+        if hits:
+            out.append("ฉากที่ %s จะถูกนับเป็นฉากเซ็กซ์ เพราะมีคำ: %s (ถ้าเป็นฉากเนื้อเรื่อง ใส่แท็ก [เรื่อง] หรือเอาคำเหล่านี้ออก)" % (n, ", ".join(hits[:5])))
+    return out
+
+
 def is_sexual_text(txt):
     """R63 (29 Oct, R62: scene 1 'ก้องเย็ดลลิตา… จนน้ำแตกบนก้น' had only ONE of the SEX_WORDS, so it was treated as an ordinary scene: 750 words, no
     sex-content rule, no pose plan, and it came out with no sex at all): one strong sexual word is enough, otherwise two of the weaker words."""
     t = txt or ""
+    k = scene_kind(t)   # R146: an explicit [เรื่อง] / [เซ็กซ์] tag in the scene text beats the word count
+    if k:
+        return k == "sex"
     return bool(STRONG_SEX.search(t)) or sum(1 for w in SEX_WORDS if w in t) >= 2
 
 
@@ -538,7 +575,8 @@ def rebalance_sex_share(scenes, target):
     if not sx or not nx:
         return scenes
     total = sum(sc["words"] for sc in scenes)
-    want_sx, want_nx = total * SEX_SHARE, total * (1 - SEX_SHARE)
+    share = sex_share()
+    want_sx, want_nx = total * share, total * (1 - share)
     cur_sx, cur_nx = float(sum(sc["words"] for sc in sx)), float(sum(sc["words"] for sc in nx))
     if cur_sx >= want_sx:
         return scenes
@@ -2382,7 +2420,7 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
         lines.append("WRITE: part %d of %d of this chapter (follow the chapter summary in order; this part covers roughly the %s of it)." % (p["slice"][0], p["slice"][1], ["opening", "middle", "latter half", "end"][min(3, int(4.0 * (p["slice"][0] - 1) / p["slice"][1]))]))
     else:
         lines.append("WRITE: scene %d of %d%s." % (p["scene"], p["scenes"], (", beat %d of %d of this scene" % (p["beat"], p["beats"])) if p["beats"] > 1 else ""))
-        lines.append("PLAN OF THIS SCENE (Thai): " + p["text"])
+        lines.append("PLAN OF THIS SCENE (Thai): " + SCENE_TAG.sub("", p["text"]).strip())
     ls_ = len_scale() * (G_LEN if _is_group(p) else 1.0) * (G4_LEN if ((p.get("pose") or {}).get("g") == 4) else 1.0)   # R50 (29 Oct): three-person parts overshoot by ~23% even at LENSCALE 0.6 (R45/R48/R49): ask for less
     lines.append("LENGTH: about %d Thai words (never more than %d)." % (int(p["words"] * ls_), int(p["words"] * ls_ * 1.2)))
     ci_list = [(n.split(" (")[0], info.get(n.split(" (")[0]) or {}) for n in dict.fromkeys(cast)]
@@ -4751,15 +4789,27 @@ def aw_run(b, cid, key):
         job.update({"state": "error", "error": str(e)})
 
 
-def aw_start(b, cid):
+def aw_start(b, cid, mode=""):
+    """R146: autowrite APPENDS to the chapter text. If the chapter already has a body, the caller must say so: mode 'append' (keep and add) or 'restart' (snapshot, then keep only the heading)."""
     key = b + "/" + cid
     j = AW_JOBS.get(key)
     if j and j.get("state") == "running":
         return {"error": "กำลังเขียนตอนนี้อยู่แล้ว"}
     if is_locked(b, cid):
         return {"error": "ตอนนี้ล็อกอยู่ — ปลดล็อกก่อน"}
-    if not os.path.exists(os.path.join(bdir(b), "chapters", cid + ".md")):
+    fp = os.path.join(bdir(b), "chapters", cid + ".md")
+    if not os.path.exists(fp):
         return {"error": "ไม่มีตอนนี้"}
+    cur = read(fp)
+    bw = body_words(cur)
+    if bw >= 60:
+        if mode == "restart":
+            snapshot_chapter(b, cid)
+            lines = cur.split("\n")
+            head = lines[0] if lines and lines[0].lstrip().startswith("#") else ""
+            write(fp, (head + "\n\n") if head else "")
+        elif mode != "append":
+            return {"error": "ตอนนี้มีเนื้อหาอยู่แล้ว %d คำ — การเขียนอัตโนมัติจะต่อท้ายของเดิม เลือก restart (สำรองของเดิมแล้วเริ่มใหม่) หรือ append (ต่อท้าย)" % bw, "needs_mode": True, "words": bw}
     AW_JOBS[key] = {"state": "starting", "i": 0, "n": 0, "words": 0, "issues": [], "t0": time.time()}
     import threading
     threading.Thread(target=aw_run, args=(b, cid, key), daemon=True).start()
@@ -5076,6 +5126,12 @@ class H(BaseHTTPRequestHandler):
                     m.update({k: d[k] for k in ("title", "author", "lang") if k in d})
                     if d.get("mode") in MODES:
                         m["mode"] = d["mode"]
+                    if "sex_share" in d:
+                        v = d["sex_share"]
+                        if v is None:
+                            m.pop("sex_share", None)
+                        elif isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 0.95:
+                            m["sex_share"] = float(v)
                     write(os.path.join(bdir(b), "book.json"), json.dumps(m, ensure_ascii=False))
                     return self._send(200, {"ok": True})
                 if p[3] == "outline" and len(p) == 4:
@@ -5104,7 +5160,7 @@ class H(BaseHTTPRequestHandler):
                         cp = os.path.join(bdir(b), "chapters", p[4] + ".md")
                         if os.path.exists(cp):
                             write(cp, set_heading(read(cp), str(d["title"]).strip()[:120]))
-                    return self._send(200, {"ok": True})
+                    return self._send(200, {"ok": True, "warnings": scene_lint(cur.get("summary", ""))})
                 if p[3] == "chat":
                     write(os.path.join(bdir(b), "chat.json"), json.dumps(d.get("messages", []), ensure_ascii=False))
                     return self._send(200, {"ok": True})
@@ -5220,7 +5276,7 @@ class H(BaseHTTPRequestHandler):
                     if j:
                         j["cancel"] = True
                     return self._send(200, {"ok": True})
-                r = aw_start(p[2], p[4])
+                r = aw_start(p[2], p[4], d.get("mode") or "")
                 return self._send(409 if r.get("error") else 200, r)
             if p == ["api", "trash", "restore"]:
                 if d.get("kind") == "book" and SLUG.match(str(d.get("tid", ""))):
