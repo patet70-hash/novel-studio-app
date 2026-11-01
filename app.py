@@ -449,7 +449,7 @@ def kin_terms(b):
         d = json.loads(read(os.path.join(bdir(b), "kin.json"), "{}") or "{}")
     except Exception:
         d = {}
-    return {"father": str(d.get("father") or "พ่อ")[:12], "mother": str(d.get("mother") or "แม่")[:12], "step_mother": bool(d.get("step_mother"))}
+    return {"father": str(d.get("father") or "พ่อ")[:12], "mother": str(d.get("mother") or "แม่")[:12]}
 
 
 def speech_table(cast_info, info, kin=None):
@@ -458,7 +458,7 @@ def speech_table(cast_info, info, kin=None):
     FA, MO = kin["father"], kin["mother"]
     role = lambda n: (info.get(n) or {}).get("role", "")
     rel = lambda n: (info.get(n) or {}).get("rel", "")
-    SM = bool(kin.get("step_mother"))   # R149: this book's stepmother is called and calls herself MO by the stepchildren (kin.json {"step_mother": true}); the Thai relation text (แม่เลี้ยง.. / ลูกสาว..) is read only then
+    SM = True   # R149: the Thai relation text (แม่เลี้ยง.. / ลูกสาว..) is always read; a stepmother says MO to her stepchildren and they call her MO (no switch)
     isfather = lambda n: bool(re.search(r"father", role(n), re.I)) and not re.search(r"step", role(n), re.I)
     iskid = lambda n: bool(re.match(r"\s*(daughter|son)\b", role(n), re.I)) or (SM and bool(re.match(r"\s*ลูก(?:สาว|ชาย)", rel(n))))
     isstep = lambda n: bool(re.search(r"stepmother", role(n), re.I)) or (SM and bool(re.match(r"\s*แม่เลี้ยง", rel(n))))
