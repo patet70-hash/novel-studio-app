@@ -2340,7 +2340,7 @@ def attach_act_plans(b, parts, cid="", salt=0):
     ff_used = {}
     by_scene = {}
     for p in parts:
-        by_scene.setdefault(p["scene"], []).append(p)
+        by_scene.setdefault(0 if p.get("slice") else p["scene"], []).append(p)   # R151: slices of one summary (no 'ฉากที่ N' list) are ONE scene for the quotas, not several
     for sc, ps in sorted(by_scene.items()):
         if any(p.get("pose") for p in ps):
             # R148: a scene with an old pose plan and 2+ women also gets women-with-women acts (เกี่ยวเบ็ด / เลียหี / 69 / บี้เม็ดแตด) in its middle parts
