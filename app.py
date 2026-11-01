@@ -2141,9 +2141,9 @@ ACT_BANK = {
     "ff": [
         _A("W1", "จูบลึก", "{A} and {B} kiss deeply, tongues sliding, hands on each other's waists and breasts", r"จูบ"),
         _A("W2", "เลียหัวนมเล้าโลมนม", "{A} licks and sucks {B}'s nipples while squeezing her breasts; {B} arches her back", r"หัวนม|เลียนม|ดูดนม"),
-        _A("W3", "เลียหี", "{A} kneels between {B}'s legs and licks her pussy (เลียหี), tongue on the clit, {B}'s hand in her hair", r"เลียหี|เลีย"),
+        _A("W3", "เลียหี", "{A} kneels between {B}'s legs and licks her pussy (เลียหี), tongue on the clit, {B}'s hand in her hair", r"เลียหี"),
         _A("W4", "เกี่ยวเบ็ดให้กัน", "{B} slides two fingers into {A}'s pussy, curls them upward (เกี่ยวเบ็ด) and rubs until {A} comes", r"เกี่ยว"),
-        _A("W5", "69 หญิงกับหญิง", "{A} and {B} lie head to tail and lick each other's pussy at the same time (69)", r"69|ซิกซ์ตี้ไนน์|หัวท้าย|พร้อมกัน"),
+        _A("W5", "69 หญิงกับหญิง", "{A} and {B} lie head to tail and lick each other's pussy at the same time (69)", r"69|ซิกซ์ตี้ไนน์|หัวท้าย"),
         _A("W6", "ถูหีกันท่ากรรไกร", "{A} and {B} interlock their legs like scissors and grind their wet pussies together", r"ถู|ไถ|กรรไกร"),
         _A("W7", "บี้เม็ดแตดให้กัน", "{A} rubs and pinches {B}'s clit (บี้เม็ดแตด) with her thumb while her fingers are inside her", r"เม็ดแตด"),
         _A("W8", "น้ำแตกพร้อมกัน", "{A} and {B} come, one after the other or together, shaking and holding each other (squirt allowed)", r"แตก"),
@@ -2167,7 +2167,7 @@ ACT_BANK = {
         _A("U2", "ชายอีกคนเลียนมจูบ", "{M2} kisses her neck and licks and sucks her nipples", r"นม|หัวนม|จูบ"),
         _A("U3", "ชายอีกคนเกี่ยวเบ็ดให้", "{M2} reaches in and hooks two fingers inside her pussy (เกี่ยวเบ็ด), rubbing the front wall", r"เกี่ยว"),
         _A("U4", "หญิงอมควยอีกคน", "she turns her head and sucks {M2}'s cock for a while", r"อม|ดูด"),
-        _A("U5", "ชายอีกคนเลียหี", "{M2} gets behind or below her and licks her pussy (เลียหี) and clit", r"เลียหี|เลีย"),
+        _A("U5", "ชายอีกคนเลียหี", "{M2} gets behind or below her and licks her pussy (เลียหี) and clit", r"เลียหี"),
     ],
 }
 
@@ -2247,6 +2247,20 @@ def ritual_objects(txt):
     return drink, ves
 
 
+ACT_QUOTA = [(400, 2), (800, 4), (1500, 6), (2500, 8)]   # R151: (sex-scene words below, minimum acts)
+
+
+def act_quota(words, women_n=1):
+    """R151: how many acts a sexual scene of `words` words must show and how many of them are women-with-women acts.
+    <400:2  400-800:4  800-1500:6  1500-2500:8  >2500: 10 and about one more per 250 words. With 2+ women at least 2 acts are women-with-women (3 from 1500 words, 4 from 2500)."""
+    w = max(0, int(words or 0))
+    total = next((n for lim, n in ACT_QUOTA if w < lim), 10 + max(0, (w - 2500) // 250))
+    ff = 0
+    if women_n >= 2:
+        ff = 2 if w < 1500 else (3 if w < 2500 else 4)
+    return total, ff
+
+
 def make_act_plan(kind, nbeats, rng, men, women, table=None, max_acts=None, ctx="", custom=None):
     """a list (one list of act dicts per beat) for a scene without an old pose plan. Every act has a name, an English description for the model and a
     Thai keyword regex the checker uses to see that the act was really written."""
@@ -2323,9 +2337,10 @@ def attach_act_plans(b, parts, cid="", salt=0):
     """R147: give every sexual scene that has no old pose plan an ACT PLAN (p['acts']); story scenes and scenes with a pose plan are untouched."""
     import random, zlib
     info = char_info(b)
+    ff_used = {}
     by_scene = {}
     for p in parts:
-        by_scene.setdefault(p["scene"], []).append(p)
+        by_scene.setdefault(0 if p.get("slice") else p["scene"], []).append(p)   # R151: slices of one summary (no 'ฉากที่ N' list) are ONE scene for the quotas, not several
     for sc, ps in sorted(by_scene.items()):
         if any(p.get("pose") for p in ps):
             # R148: a scene with an old pose plan and 2+ women also gets women-with-women acts (เกี่ยวเบ็ด / เลียหี / 69 / บี้เม็ดแตด) in its middle parts
@@ -2338,8 +2353,14 @@ def attach_act_plans(b, parts, cid="", salt=0):
             rng = random.Random(zlib.crc32(("%s|%s|%d|%d|garnish" % (b, cid, sc, salt)).encode("utf-8")))
             bank = {a["id"]: a for a in ACT_BANK["ff"]}
             A, B = women[0], women[1]
-            pick = ["W4"] + rng.sample(["W3", "W5", "W7"], 2)
-            acts = [_fmt_act(bank[i], A=A, B=B) for i in pick]
+            _tot, ffn = act_quota(sum(p["words"] for p in ps), len(women))   # R151: 2 women-with-women acts (3 / 4 for long scenes); no repeats until the pool is used up across the chapter
+            pool = ["W3", "W5", "W4", "W7", "W6"]
+            rng.shuffle(pool)
+            pool.sort(key=lambda i: ff_used.get(i, 0))
+            pick = pool[:ffn]
+            for i in pick:
+                ff_used[i] = ff_used.get(i, 0) + 1
+            acts = [dict(_fmt_act(bank[i], A=A, B=B), req=True) for i in pick]
             slots = list(range(1, len(ps) - 1)) or [0]
             for k, a in enumerate(acts):
                 p = ps[slots[k % len(slots)]]
@@ -2356,9 +2377,19 @@ def attach_act_plans(b, parts, cid="", salt=0):
         if not kind:
             continue
         rng = random.Random(zlib.crc32(("%s|%s|%d|%d|acts" % (b, cid, sc, salt)).encode("utf-8")))
-        plan = make_act_plan(kind, len(ps), rng, men, women, max_acts=max(3, int(round(sum(p["words"] for p in ps) / 150.0))), ctx=txt, custom=(ck["acts"] if ck else None))   # about one act per 150 words
+        plan = make_act_plan(kind, len(ps), rng, men, women, max_acts=max(3, act_quota(sum(p["words"] for p in ps), len(women))[0]), ctx=txt, custom=(ck["acts"] if ck else None))   # about one act per 150 words
         for p, steps in zip(ps, plan):
             p["acts"] = {"kind": kind, "steps": steps, "men": men, "women": women, "last": p is ps[-1]}
+        if kind == "multi" and len(women) >= 2:   # R151: a group scene with 2+ women also gets its women-with-women acts (required in the part that gets them)
+            _t, ffn = act_quota(sum(p["words"] for p in ps), len(women))
+            bank = {a["id"]: a for a in ACT_BANK["ff"]}
+            pool = ["W3", "W5", "W4", "W7", "W6"]
+            rng.shuffle(pool)
+            pool.sort(key=lambda i: ff_used.get(i, 0))
+            slots = list(range(1, len(ps) - 1)) or [0]
+            for k, i in enumerate(pool[:ffn]):
+                ff_used[i] = ff_used.get(i, 0) + 1
+                ps[slots[k % len(slots)]]["acts"]["steps"].append(dict(_fmt_act(bank[i], A=women[0], B=women[1]), req=True))
     return parts
 
 
@@ -2385,7 +2416,12 @@ def acts_issues(text, part):
     if not ap or not ap.get("steps"):
         return []
     miss = [a["n"] for a in ap["steps"] if a.get("kw") and not re.search(a["kw"], text or "")]
-    if len(miss) > max(0, len(ap["steps"]) // 3):
+    reqm = [a["n"] for a in ap["steps"] if a.get("req") and a.get("kw") and not re.search(a["kw"], text or "")]   # R151: every women-with-women act of a part is required (the part is rewritten when one is missing)
+    tol = 0 if ap.get("kind") == "garnish" else len(ap["steps"]) // 3
+    if reqm and ap.get("kind") != "garnish":
+        miss = reqm
+        tol = 0
+    if len(miss) > max(0, tol):
         return ["acts of the ACT PLAN are missing from the text: " + " / ".join(miss[:4]) + " - write each of them as a real act with its body words"]
     return []
 
@@ -4455,6 +4491,10 @@ def check_text(b, text, target=0):
     lead = [("เกี่ยวเบ็ด", "เกี่ยวเบ็ด|เกี่ยวหี"), ("เลียหี", "เลียหี"), ("บี้เม็ดแตด", "เม็ดแตด"), ("69", "69|ซิกซ์ตี้ไนน์"), ("อมควย", "อมควย|ดูดควย|เลียควย"), ("ขย่ม", "ขย่ม|คร่อม")]
     if sex_density(body) >= SEX_DENS_MIN:   # R148: a sexual chapter should show a spread of the named acts from the pose table
         miss = [n for n, rx in lead if not re.search(rx, body)]
+        ffm = [n for n in ("เกี่ยวเบ็ด", "เลียหี", "บี้เม็ดแตด", "69") if n not in miss]
+        _wn = [k for k, v in char_info(b).items() if v.get("g") == "F" and k and k in body]
+        if len(ffm) < 2 and len(_wn) >= 2:   # R151: women-with-women acts at least 2 distinct
+            issues.append("ท่าผู้หญิงกับผู้หญิงไม่ครบ 2 ท่า (พบ %d: ต้องจาก เกี่ยวเบ็ด/เลียหี/บี้เม็ดแตด/69)" % len(ffm))
         if len(miss) > 2:
             issues.append("ท่า/การกระทำจากตารางท่าที่ไม่ปรากฏในบท: " + ", ".join(miss) + " (ควรมีอย่างน้อย 4 จาก 6 อย่าง)")
     return {"words": w, "issues": issues}
