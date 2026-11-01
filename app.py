@@ -3970,7 +3970,7 @@ def closing_ok(t):
     if not ls or re.match(r"^[\u201c\"]", ls[-1]):
         return False
     core = re.sub(r"\s+", "", ls[-1])
-    if not (120 <= len(core) <= 900):
+    if not (120 <= len(core) <= 650):
         return False
     if _ACT_NOW.search(core[-120:]):
         return False
@@ -4008,7 +4008,8 @@ def closing_pass(b, text, tries=3):
     info = char_info(b)
     ask = ("Here are the final lines of a chapter of a Thai erotic novel:\n<<<\n" + tail + "\n>>>\n\n"
            "Write the chapter's closing: ONE single paragraph (one line, no line breaks) of 3-5 full Thai sentences, narration only, no quoted speech. "
-           "First let the last act end and the bodies settle (breathing slowing down, sweat cooling, how each person feels or what each does next), then one quiet final image. "
+           "Length: about 250-450 Thai characters, with the sentences separated by spaces. Let the last act end, then show the aftermath through DIFFERENT details than the lines above already used: pick two or three of the warmth of the skin, the heartbeat, the sweat, the sheets, the light or sounds of the room, a touch between two people, what one person thinks or does next; "
+           "do not begin the paragraph with the same word as the lines before it, and do not start with breathing unless nothing else fits. Finish on one quiet final image. "
            "Same place and moment, same people and the same Thai names as above: no new character, nobody arrives, no change of place or time, nothing left half-done. "
            "Do not repeat sentences that are already in the text. Use the same plain explicit vocabulary and tone as the text. Output ONLY the paragraph.")
     msgs = [{"role": "system", "content": "You are a Thai novelist. Reply with Thai story prose only: no explanations, no code fences, no titles."}, {"role": "user", "content": ask}]
