@@ -4,7 +4,7 @@
 B=/workspace/novel_llm
 REPO=https://raw.githubusercontent.com/patet70-hash/novel-studio-app/main
 SHA_APP=25f977afd889143b8d2450c183c2776b07f4c9fe309e7904d78c8287d7fe381c
-SHA_IDX=04befcaa5d386929456e4177dbf9f9c681ffc7c303ec7ea6889cbbbe143ad488
+SHA_IDX=494485547318913d502ad2067ce04c24715dba7d31f3d58d9ef6bab23bd21e60
 mkdir -p $B/models $B/novel $B/app
 log(){ echo "[$(date -u +%H:%M:%S)] $*"; }
 
