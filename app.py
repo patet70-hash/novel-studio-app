@@ -2001,6 +2001,8 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         present = [n for n in info if n and n in txt]
         men = [n for n in present if info[n].get("g") == "M"]
         women = [n for n in present if info[n].get("g") == "F"]
+        if act_kind(txt, *act_cast(txt, info)) in ("ritual", "public", "ff", "solo"):
+            continue   # R147: context scenes (morning ritual, secret acts in public, women only, solo) get an ACT PLAN instead of a bed-position plan
         group = len(men) == 2 and len(women) == 1
         group3 = len(men) == 3 and len(women) == 1
         group4 = len(men) == 4 and len(women) == 2 and len(ps) >= 4   # R110: four men and two women
@@ -2078,12 +2080,217 @@ def attach_pose_plans(b, parts, cid="", salt=0):
     return parts
 
 
+# ---------------------------------------------------------------------------------------------------------------------------------
+# R147 (1 Nov, user): every sex scene pulls its acts from a fixed bank automatically. The old pose plans (POSE_TABLE / GROUP / TRIO / QUAD) only cover
+# 1M1F, 2M1F, 3M1F and 4M2F (4+ beats); every other scene (morning ritual, women with women, solo, public, odd cast sizes) got no plan at all.
+# attach_act_plans() gives those scenes an ACT PLAN (p["acts"]); the old plans stay untouched (scenes that already have p["pose"] are skipped).
+# ---------------------------------------------------------------------------------------------------------------------------------
+def _A(i, n, d, kw):
+    return {"id": i, "n": n, "d": d, "kw": kw}
+
+
+ACT_BANK = {
+    "solo": [
+        _A("S3", "ขยี้นมบีบหัวนม", "{W} kneads her own breasts and pinches and rolls her nipples between her fingers, breath getting short", r"หัวนม|ขยี้นม|บีบนม|คลึงนม"),
+        _A("S2", "บี้เม็ดแตด", "{W} rubs and squeezes her own clit (เม็ดแตด) between two fingers in circles, hips starting to rock", r"เม็ดแตด"),
+        _A("S1", "เกี่ยวหีตัวเองนั่ง", "{W} sits with her legs wide open and hooks two fingers up inside her own pussy (เกี่ยว), curling them against the front wall and rubbing until she nearly comes", r"เกี่ยว"),
+        _A("S4", "ยืนหน้ากระจกเกี่ยวหี", "{W} stands facing a mirror with one foot on a stool, fingers hooked inside her pussy, watching her own face and body in the glass", r"กระจก"),
+        _A("S5", "ใช้นิ้วเย็ดตัวเอง", "{W} pushes two or three fingers in and out of her own pussy fast, wet sounds, her other hand on her clit", r"นิ้ว"),
+        _A("S6", "ถูไถกับขอบโต๊ะ", "{W} grinds her pussy against the edge of a table or a pillow until she shakes", r"ถู|ไถ"),
+        _A("S7", "น้ำแตกคนเดียว", "{W} comes alone: her thighs shake, she bites her lip to hold the sound, her juice runs down her fingers (squirt allowed)", r"แตก|น้ำเงี่ยน|น้ำหี"),
+    ],
+    "ff": [
+        _A("W1", "จูบลึก", "{A} and {B} kiss deeply, tongues sliding, hands on each other's waists and breasts", r"จูบ"),
+        _A("W2", "เลียหัวนมเล้าโลมนม", "{A} licks and sucks {B}'s nipples while squeezing her breasts; {B} arches her back", r"หัวนม|เลียนม|ดูดนม"),
+        _A("W3", "เลียหี", "{A} kneels between {B}'s legs and licks her pussy (เลียหี), tongue on the clit, {B}'s hand in her hair", r"เลียหี|เลีย"),
+        _A("W4", "เกี่ยวเบ็ดให้กัน", "{B} slides two fingers into {A}'s pussy, curls them upward (เกี่ยวเบ็ด) and rubs until {A} comes", r"เกี่ยว"),
+        _A("W5", "69 หญิงกับหญิง", "{A} and {B} lie head to tail and lick each other's pussy at the same time (69)", r"69|ซิกซ์ตี้ไนน์|หัวท้าย|พร้อมกัน"),
+        _A("W6", "ถูหีกันท่ากรรไกร", "{A} and {B} interlock their legs like scissors and grind their wet pussies together", r"ถู|ไถ|กรรไกร"),
+        _A("W7", "บี้เม็ดแตดให้กัน", "{A} rubs and pinches {B}'s clit (บี้เม็ดแตด) with her thumb while her fingers are inside her", r"เม็ดแตด"),
+        _A("W8", "น้ำแตกพร้อมกัน", "{A} and {B} come, one after the other or together, shaking and holding each other (squirt allowed)", r"แตก"),
+    ],
+    "ritual": [
+        _A("R1", "ชายชักว่าวใส่ถ้วยกาแฟ", "the men stand around the table holding their cocks over the women's coffee cups and stroke until each comes, the cum (น้ำควย) dripping into the cups; show the cum falling into the coffee", r"ถ้วย|แก้ว|กาแฟ"),
+        _A("R5", "หญิงช่วยตัวเองใต้ชุดนอน", "while they watch, {W} slides a hand under her silk robe and rubs her clit (เม็ดแตด) or hooks her fingers inside (เกี่ยว)", r"ช่วยตัวเอง|เกี่ยว|เม็ดแตด|ใต้ชุด"),
+        _A("R2", "หญิงอมควยสดๆ", "{W} takes one man's fresh cock in her mouth and sucks it, hands stroking the other men beside her", r"อม|ดูด"),
+        _A("R3", "ชักว่าวให้ชายแตกใส่หน้า", "{W} strokes a man with both hands until he comes on her tongue and face", r"ชัก|แตกใส่"),
+        _A("R6", "กลืนน้ำควย", "{W} swallows the cum in her mouth and shows her empty tongue", r"กลืน"),
+        _A("R4", "คนกาแฟแล้วดื่ม", "{W} stirs the coffee that now holds the men's cum, lifts the cup and drinks it down to the last drop, and she is calmer after it", r"คน|ดื่ม|จิบ"),
+    ],
+    "public": [
+        _A("P1", "ชักว่าวให้ชายใต้โต๊ะ", "{W} slips her hand under the table (or the seat, or the lift's corner) and strokes his cock through the open zip while everyone nearby carries on talking", r"ใต้โต๊ะ|ใต้|ซิป|ชัก"),
+        _A("P2", "ถูกเกี่ยวหีเงียบๆ", "his fingers slide up under {W}'s skirt, push her panties aside and hook into her pussy (เกี่ยว), working until she must hold her face still", r"เกี่ยว|นิ้ว"),
+        _A("P3", "กลั้นเสียงจนน้ำแตก", "{W} bites the inside of her cheek, keeps her face calm and answers a question in a steady voice while she comes silently on his fingers", r"กลั้น|แตก"),
+        _A("P4", "ปิดบังรอยเปื้อน", "{W} wipes her hand and her thighs with a napkin or tissue and fixes her skirt; he fixes his zip; nobody has noticed", r"กระดาษ|ทิชชู|ผ้า|เช็ด"),
+    ],
+    "support": [
+        _A("U1", "ชักว่าวให้ชายที่รอ", "{M2} stands at her side and she strokes his cock with one hand", r"ชัก"),
+        _A("U2", "ชายอีกคนเลียนมจูบ", "{M2} kisses her neck and licks and sucks her nipples", r"นม|หัวนม|จูบ"),
+        _A("U3", "ชายอีกคนเกี่ยวเบ็ดให้", "{M2} reaches in and hooks two fingers inside her pussy (เกี่ยวเบ็ด), rubbing the front wall", r"เกี่ยว"),
+        _A("U4", "หญิงอมควยอีกคน", "she turns her head and sucks {M2}'s cock for a while", r"อม|ดูด"),
+        _A("U5", "ชายอีกคนเลียหี", "{M2} gets behind or below her and licks her pussy (เลียหี) and clit", r"เลียหี|เลีย"),
+    ],
+}
+
+_GENERIC_MEN_RE = re.compile(r"คนรับใช้ชาย|ชายในบ้าน|พ่อบ้าน|ยาม|คนขับรถ|ช่างซ่อม|บอดี้การ์ด|ผู้ชาย|ชายหลายคน|ชายทั้ง")
+_GENERIC_WOMEN_RE = re.compile(r"แม่บ้าน|สาวใช้|พนักงานหญิง|เลขา")
+_RITUAL_RE = re.compile(r"พิธี|น้ำควย.{0,30}(?:ถ้วย|แก้ว|กาแฟ)|(?:ถ้วย|แก้ว|กาแฟ).{0,40}(?:น้ำควย|ชักว่าว|ชักควย)")
+_PUBLIC_RE = re.compile(r"ใต้โต๊ะ|ในลิฟต์|ในรถ|ที่นั่งหลัง|แอบ.{0,20}(?:ชักว่าว|ชักควย|เกี่ยว)|ถูกเกี่ยวหี")
+
+
+def act_cast(txt, info):
+    """(men, women) named in a scene text, plus unnamed generic ones (the maid, the servants)."""
+    present = [n for n in info if n and n in txt]
+    men = [n for n in present if info[n].get("g") == "M"]
+    women = [n for n in present if info[n].get("g") == "F"]
+    if _GENERIC_WOMEN_RE.search(txt):
+        women.append("แม่บ้านสาว")
+    if not men and _GENERIC_MEN_RE.search(txt):
+        men.append("ชายรับใช้")
+    return men, women
+
+
+def act_kind(txt, men, women):
+    """which act bank fits this scene ('' when no plan is possible: no woman in the scene)."""
+    if not women:
+        return ""
+    if not men:
+        return "ff" if len(women) >= 2 else "solo"
+    if _RITUAL_RE.search(txt):
+        return "ritual"
+    if _PUBLIC_RE.search(txt) and len(men) <= 2 and len(women) == 1:
+        return "public"
+    return "multi"
+
+
+def _fmt_act(a, **kw):
+    d = a["d"]
+    for k, v in kw.items():
+        d = d.replace("{%s}" % k, v)
+    return {"id": a["id"], "n": a["n"], "d": d, "kw": a["kw"]}
+
+
+def make_act_plan(kind, nbeats, rng, men, women, table=None, max_acts=None):
+    """a list (one list of act dicts per beat) for a scene without an old pose plan. Every act has a name, an English description for the model and a
+    Thai keyword regex the checker uses to see that the act was really written."""
+    nb = max(1, int(nbeats))
+    acts = []
+    W = women[0] if women else "she"
+    if kind == "solo":
+        bank = {a["id"]: a for a in ACT_BANK["solo"]}
+        order = ["S3", "S2", rng.choice(["S1", "S4"]), rng.choice(["S5", "S6"]), "S7"]
+        acts = [_fmt_act(bank[i], W=W) for i in order]
+    elif kind == "ff":
+        bank = {a["id"]: a for a in ACT_BANK["ff"]}
+        A, B = women[0], women[1]
+        mid = ["W3"] + rng.sample(["W4", "W5", "W6", "W7"], 2)
+        acts = [_fmt_act(bank[i], A=A, B=B) for i in ["W1"] + mid + ["W8"]]
+        if len(women) >= 3:
+            sb = {a["id"]: a for a in ACT_BANK["solo"]}
+            acts.insert(2, _fmt_act(sb["S2"], W=women[2]))
+    elif kind == "ritual":
+        bank = {a["id"]: a for a in ACT_BANK["ritual"]}
+        order = ["R1", "R5", "R2", "R3", "R6", "R4"]
+        for i in order:
+            a = bank[i]
+            acts.append(_fmt_act(a, W=rng.choice(women)))
+    elif kind == "public":
+        bank = {a["id"]: a for a in ACT_BANK["public"]}
+        acts = [_fmt_act(bank[i], W=W) for i in ["P1", "P2", "P3", "P4"]]
+    else:   # multi: the lead pair walks through the single-pair pose table, the rest of the cast gets supporting acts at the same time
+        t = table or pose_table()
+        lead = make_pose_plan(nb, rng, t, rounds=1)
+        sup = list(ACT_BANK["support"])
+        rng.shuffle(sup)
+        si = 0
+        for bi, steps in enumerate(lead):
+            for st in steps:
+                row = t.get(st["id"]) or {}
+                m1 = men[(bi + (len(acts) % 2)) % len(men)]
+                w1 = women[bi % len(women)]
+                others = [m for m in men if m != m1]
+                d = "LEAD PAIR %s (man) and %s (woman): %s - %s" % (m1, w1, row.get("n", st["id"]), row.get("d", ""))
+                extra = []
+                if others and row.get("k") in ("oral", "pen") and si < 2 * nb + 2:
+                    a = sup[si % len(sup)]
+                    si += 1
+                    extra.append(_fmt_act(a, M2=rng.choice(others)))
+                    d += " | AT THE SAME TIME: " + extra[0]["d"]
+                    kwx = extra[0]["kw"]
+                else:
+                    kwx = ""
+                acts.append({"id": st["id"], "n": row.get("n", st["id"]), "d": d, "kw": r"%s" % ("|".join(x for x in (_pose_kw(row), kwx) if x) or ".")})
+    mx = max(2, int(max_acts or 0)) if max_acts else 0
+    if mx and len(acts) > mx:   # a short scene gets fewer acts: evenly spaced, always keeping the first and the last (the finish)
+        idx = sorted({round(i * (len(acts) - 1) / float(mx - 1)) for i in range(mx)})
+        acts = [acts[i] for i in idx]
+    n = len(acts)
+    out = []
+    for bi in range(nb):
+        out.append(acts[(n * bi) // nb:(n * (bi + 1)) // nb])
+    return out
+
+
+def _pose_kw(row):
+    k = row.get("k", "")
+    return {"warm": r"จูบ|นม|ถอด|เล้าโลม|ชัก|หนีบ", "oral": r"อม|เลีย|ดูด|เกี่ยว|69", "pen": r"เย็ด|ขย่ม|กระแทก|สอดใส่|ท่า", "finish": r"แตก|น้ำควย|น้ำเชื้อ", "recover": r"ปลุก|ชัก|อม", "after": r"กอด"}.get(k, "")
+
+
+def attach_act_plans(b, parts, cid="", salt=0):
+    """R147: give every sexual scene that has no old pose plan an ACT PLAN (p['acts']); story scenes and scenes with a pose plan are untouched."""
+    import random, zlib
+    info = char_info(b)
+    by_scene = {}
+    for p in parts:
+        by_scene.setdefault(p["scene"], []).append(p)
+    for sc, ps in sorted(by_scene.items()):
+        if any(p.get("pose") for p in ps):
+            continue
+        txt = ps[0]["text"]
+        if not is_sexual_text(txt):
+            continue
+        men, women = act_cast(txt, info)
+        kind = act_kind(txt, men, women)
+        if not kind:
+            continue
+        rng = random.Random(zlib.crc32(("%s|%s|%d|%d|acts" % (b, cid, sc, salt)).encode("utf-8")))
+        plan = make_act_plan(kind, len(ps), rng, men, women, max_acts=max(3, int(round(sum(p["words"] for p in ps) / 150.0))))   # about one act per 150 words
+        for p, steps in zip(ps, plan):
+            p["acts"] = {"kind": kind, "steps": steps, "men": men, "women": women, "last": p is ps[-1]}
+    return parts
+
+
+def acts_block(part):
+    """the ACT PLAN lines for one part (empty when the part has no act plan)."""
+    ap = (part or {}).get("acts")
+    if not ap or not ap.get("steps"):
+        return ""
+    L = ["ACT PLAN (ground truth: these acts come from a fixed bank so the scene uses real, varied acts; write EVERY act below as a real, detailed act of the sexual scene, in this order, each with the body words, the faces and the sounds; do not replace them with a generic 'they have sex'):"]
+    for k, a in enumerate(ap["steps"], 1):
+        L.append("ACT %d [%s]: %s" % (k, a["n"], a["d"]))
+    if ap.get("kind") in ("multi", "ritual") and ap.get("last") and ap.get("men"):
+        L.append("In the last act of this scene each of %s comes at least once: name whose cum it is and where it lands (mouth / face / breasts / inside / belly / the cup)." % ", ".join(ap["men"]))
+    L.append("ACT RULES: nobody touches or licks their own body parts except in a solo act; men never touch each other; a woman has only pussy, clit and breasts (no cock); one act at a time per body part (his cock is in one place at a time).")
+    return "\n".join(L)
+
+
+def acts_issues(text, part):
+    """acts of the ACT PLAN that the written part does not show (keyword check); empty when fine."""
+    ap = (part or {}).get("acts")
+    if not ap or not ap.get("steps"):
+        return []
+    miss = [a["n"] for a in ap["steps"] if a.get("kw") and not re.search(a["kw"], text or "")]
+    if len(miss) > max(0, len(ap["steps"]) // 3):
+        return ["acts of the ACT PLAN are missing from the text: " + " / ".join(miss[:4]) + " - write each of them as a real act with its body words"]
+    return []
+
+
 _CODA_RE = re.compile(r"ประตู[^\n“”]{0,15}(?:ถูก)?(?:เปิด|เคาะ|ดัง)|เสียงกริ่ง|เสียงเคาะ|ใครบางคน(?:เดิน|เปิด|เข้า)|(?:เดิน|ก้าว)เข้ามา(?:ใน)?ห้อง|เสียงฝีเท้า|มีคน(?:เปิด|เดิน|มา)")
 
 
 def plan_issues(text, part):
     """R66: wrapper: the pose-plan checks plus the coda check (a scene's last beat must not end on someone arriving: R64 'เสียงประตูห้องนอนถูกเปิดออก')."""
-    out = _plan_issues_pose(text, part)
+    out = _plan_issues_pose(text, part) + acts_issues(text, part)
     pt = part or {}
     if pt.get("beat") and pt.get("beat") == pt.get("beats") and not pt.get("last"):
         tail = "\n".join(re.sub(r"“[^”]*”?", "", ln) for ln in (text or "").split("\n") if ln.strip())[-350:]
@@ -2447,6 +2654,9 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
     pb = pose_block(p)
     if pb:
         lines.append(pb)
+    ab = acts_block(p)
+    if ab:
+        lines.append(ab)
     if avoid:
         lines.append("OVERUSED SO FAR - do not use these phrases again in this part, find fresh wording: " + ", ".join("“%s”" % a for a in avoid))
     lines.append("Begin the chapter's prose now (no title line)." if (i == 0 and first_empty) else "Continue directly after the last paragraph of the manuscript so far; do not repeat it.")
@@ -4596,6 +4806,8 @@ def aw_run(b, cid, key):
         text0 = read(fp)
         first_empty = body_words(text0) < 60
         parts = attach_pose_plans(b, plan_scenes(o.get("summary", ""), o.get("target", 0)), cid, pose_run_salt(b, cid) if poses_on() else 0)
+        if poses_on():
+            parts = attach_act_plans(b, parts, cid, pose_run_salt(b, cid))   # R147: every sexual scene without an old pose plan gets an ACT PLAN
         names = name_table(b)
         tpw = 1.3   # tokens per Thai "word" (body_words unit); recalibrated from the model's own usage numbers after each part
         job.update({"n": len(parts), "i": 0, "state": "running"})
