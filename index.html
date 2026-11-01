@@ -241,7 +241,7 @@ function parseProp(t){const m=/```proposal\s*\n([\s\S]*?)(```|$)/.exec(t);if(!m)
  try{prop=JSON.parse(m[1].trim())}catch(e){try{prop=JSON.parse(m[1].trim().replace(/,\s*([}\]])/g,"$1"))}catch(e2){try{prop=JSON.parse(fixJson(m[1].trim()))}catch(e3){err=true}}}return{text,prop,err}}
 function fixJson(s){const st=[];let o="",str=false,esc=false;for(const ch of s){if(str){o+=ch;if(esc)esc=false;else if(ch==="\\")esc=true;else if(ch==='"')str=false;continue}
  if(ch==='"'){str=true;o+=ch;continue}
- if(ch==='{'||ch==='['){st.push(ch==='{'?'}':']');o+=ch;continue}
+ if(ch==='{'||ch==='['){if(ch==='{'&&st.length&&st[st.length-1]==='}'&&/,\s*$/.test(o)){o=o.replace(/,\s*$/,"");while(st.length&&st[st.length-1]==='}')o+=st.pop();o+=","}st.push(ch==='{'?'}':']');o+=ch;continue}
  if(ch==='}'||ch===']'){if(!st.length)continue;while(st.length&&st[st.length-1]!==ch){o=o.replace(/,\s*$/,"");o+=st.pop()}if(st.length){st.pop();o+=ch}continue}
  o+=ch}
  if(str)o+='"';o=o.replace(/,\s*$/,"");while(st.length)o+=st.pop();return o.replace(/,\s*([}\]])/g,"$1")}

@@ -4787,6 +4787,13 @@ def fix_json_text(s):
             in_str = True
             o.append(ch)
         elif ch in "{[":
+            # a '{' where a property NAME is expected (right after ',' inside an object) means the previous object was never closed
+            # (seen in real replies: ...,"rel":"..."},{"name":... with the character's own '}' missing): close open objects first
+            if ch == "{" and st and st[-1] == "}" and "".join(o).rstrip()[-1:] == ",":
+                o = list("".join(o).rstrip().rstrip(","))
+                while st and st[-1] == "}":
+                    o.append(st.pop())
+                o.append(",")
             st.append("}" if ch == "{" else "]")
             o.append(ch)
         elif ch in "}]":
