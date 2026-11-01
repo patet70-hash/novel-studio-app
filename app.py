@@ -3956,6 +3956,76 @@ def weak_ending(t):
     return not _WIND_CUE.search(core)
 
 
+CLOSE_PASS = os.environ.get("NOVEL_CLOSE_PASS", "1") != "0"   # R142: separate closing-paragraph pass after the chapter is written (set 0 = old behaviour, for the A/B test)
+
+
+def _closing_lines(t):
+    return [x.strip() for x in (t or "").split("\n") if x.strip() and not x.lstrip().startswith("#")]
+
+
+def closing_ok(t):
+    """R142 (r141-m / r142-c, 1 Nov: the chapter ended on a chain of 4-6 short narration lines, r140-m on a quoted line; weak_ending let a chain of up to 3 short lines pass):
+    the chapter must end on ONE narration paragraph: the final line is not a quote, is long enough to be 3-5 sentences, has a winding-down cue and does not describe an act in progress."""
+    ls = _closing_lines(t)
+    if not ls or re.match(r"^[\u201c\"]", ls[-1]):
+        return False
+    core = re.sub(r"\s+", "", ls[-1])
+    if not (120 <= len(core) <= 900):
+        return False
+    if _ACT_NOW.search(core[-120:]):
+        return False
+    return bool(_WIND_CUE.search(core))
+
+
+def closing_call(msgs):
+    payload = {"messages": msgs, "stream": False, "max_tokens": 700, "temperature": 0.7, "chat_template_kwargs": {"enable_thinking": False}}
+    rq = urllib.request.Request(LLM + "/v1/chat/completions", json.dumps(payload).encode(), {"Content-Type": "application/json"})
+    return json.loads(urllib.request.urlopen(rq, timeout=300).read().decode("utf-8"))["choices"][0]["message"]["content"]
+
+
+def closing_pass(b, text, tries=3):
+    """Returns (text, how). If the chapter does not already end on one closing paragraph, the trailing run of short narration lines is cut and ONE closing
+    paragraph is written by a separate short model call from the real tail of the chapter (validated with closing_ok, up to `tries` attempts); the text is
+    only changed when a valid paragraph came back."""
+    if closing_ok(text):
+        return text, "ok"
+    lines = text.rstrip().split("\n")
+    cut = 0
+    while lines and cut < 8:
+        x = lines[-1].strip()
+        if not x:
+            lines.pop()
+            continue
+        c = re.sub(r"\s+", "", x)
+        if re.match(r"^[\u201c\"]", x) or len(c) > 90 or _ACT_NOW.search(c):
+            break
+        lines.pop()
+        cut += 1
+    base = "\n".join(lines).rstrip()
+    tail = base[-2200:]
+    names = name_table(b)
+    keep = [x for nm, th in names for x in (nm, th) if x and re.search(r"[A-Za-z]", x)]
+    info = char_info(b)
+    ask = ("Here are the final lines of a chapter of a Thai erotic novel:\n<<<\n" + tail + "\n>>>\n\n"
+           "Write the chapter's closing: ONE single paragraph (one line, no line breaks) of 3-5 full Thai sentences, narration only, no quoted speech. "
+           "First let the last act end and the bodies settle (breathing slowing down, sweat cooling, how each person feels or what each does next), then one quiet final image. "
+           "Same place and moment, same people and the same Thai names as above: no new character, nobody arrives, no change of place or time, nothing left half-done. "
+           "Do not repeat sentences that are already in the text. Use the same plain explicit vocabulary and tone as the text. Output ONLY the paragraph.")
+    msgs = [{"role": "system", "content": "You are a Thai novelist. Reply with Thai story prose only: no explanations, no code fences, no titles."}, {"role": "user", "content": ask}]
+    for k in range(tries):
+        try:
+            p = clean_part(closing_call(msgs) or "")
+            p = erotic_words(p, keep=keep, info=info)
+            p = fix_name_typos(p, names)
+            p = " ".join(x.strip() for x in p.split("\n") if x.strip())
+        except Exception:
+            continue
+        cand = base + "\n\n" + p
+        if p and "```" not in p and closing_ok(cand):
+            return cand + "\n", "written(cut=%d,try=%d)" % (cut, k + 1)
+    return text, "failed"
+
+
 def check_text(b, text, target=0):
     """quality report for a chapter text (Thai messages)."""
     issues = []
@@ -4658,6 +4728,14 @@ def aw_run(b, cid, key):
             job["words"] = body_words(new)
         if job.get("state") == "running":
             job["state"] = "done"
+            if CLOSE_PASS:
+                try:
+                    _ct, _how = closing_pass(b, read(fp))
+                    job["closing"] = _how
+                    if _ct != read(fp):
+                        write(fp, _ct)
+                except Exception as _e:
+                    job["closing"] = "err " + repr(_e)[:100]
         try:
             _cur = read(fp)
             _uni = chapter_polish(_cur, char_info(b))
