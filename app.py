@@ -4766,6 +4766,84 @@ INDEX = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.htm
     if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")) else "<h1>index.html missing</h1>"
 
 
+ASSIST_NORM = os.environ.get("NOVEL_ASSIST_NORM", "1") != "0"   # R141: server-side repair of assistant proposal JSON (set 0 = old behaviour, for the A/B test)
+
+
+def fix_json_text(s):
+    """Balance brackets in almost-valid JSON (R141): the model often drops a closing brace/bracket or leaves one open at the end.
+    Scans outside strings, inserts the missing closers when a different closer arrives, drops stray closers, closes an open string at the end."""
+    st, o, in_str, esc = [], [], False, False
+    for ch in s:
+        if in_str:
+            o.append(ch)
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+            o.append(ch)
+        elif ch in "{[":
+            st.append("}" if ch == "{" else "]")
+            o.append(ch)
+        elif ch in "}]":
+            if not st:
+                continue
+            while st and st[-1] != ch:
+                o = list("".join(o).rstrip().rstrip(","))
+                o.append(st.pop())
+            if st:
+                st.pop()
+                o.append(ch)
+        else:
+            o.append(ch)
+    t = "".join(o)
+    if in_str:
+        t += '"'
+    t = t.rstrip().rstrip(",")
+    t += "".join(reversed(st))
+    return re.sub(r",\s*([}\]])", r"\1", t)
+
+
+def normalize_proposal(txt):
+    """Make the proposal block in an assistant reply valid, canonical JSON so the UI can read it AND the history the model copies from stays clean.
+    Returns (text, status): status 'none' (no block), 'ok' (already valid, text unchanged), 'repaired', 'salvaged' (cut off: last item dropped) or 'bad'."""
+    m = re.search(r"```proposal\s*\n([\s\S]*?)(\n\s*```|$)", txt)
+    if not m:
+        return txt, "none"
+    body, closed = m.group(1).strip(), bool(m.group(2))
+    try:
+        json.loads(body)
+        if closed:
+            return txt, "ok"
+    except Exception:
+        pass
+    obj, status = None, "bad"
+    for cand in (body, re.sub(r",\s*([}\]])", r"\1", body), fix_json_text(body)):
+        try:
+            obj = json.loads(cand)
+            status = "repaired"
+            break
+        except Exception:
+            continue
+    if not isinstance(obj, dict):
+        return txt, "bad"
+    if not closed:
+        # cut off by max_tokens: the last character/location is probably unfinished, so drop it rather than keep half a person
+        for k in ("locations", "characters"):
+            if isinstance(obj.get(k), list) and obj[k]:
+                obj[k].pop()
+                break
+        if not any(obj.get(k) for k in ("characters", "locations", "top")):
+            return txt, "bad"
+        status = "salvaged"
+    block = "```proposal\n" + json.dumps(obj, ensure_ascii=False) + "\n```"
+    return (txt[:m.start()] + block + txt[m.end():]).strip(), status
+
+
 def english_share(txt):
     """Share of long free-text values (>=12 chars) in a proposal that contain no Thai letters; 0 when there is nothing to judge."""
     m = re.search(r"```proposal\s*\n([\s\S]*?)\n\s*```", txt)
@@ -5238,6 +5316,19 @@ class H(BaseHTTPRequestHandler):
         except Exception as e:
             return self._send(502, {"error": "LLM unavailable: %s" % e})
         txt = txt.strip()
+        if ASSIST_NORM:
+            txt, pst = normalize_proposal(txt)
+            if pst == "bad" and time.time() - t_start < 45:
+                # still unreadable: ask once for a clean block (only if there is time left before the ~100 s proxy cut)
+                try:
+                    t3 = ask(msgs + [{"role": "assistant", "content": txt}, {"role": "user", "content": "บล็อก proposal ของคุณเป็น JSON ที่ไม่ถูกต้อง (วงเล็บปีกกา/เหลี่ยมปิดไม่ครบ) ส่งใหม่อีกครั้ง ตอบสั้นๆ แล้วตามด้วยบล็อก proposal ที่ JSON ถูกต้องและปิดครบทุกวงเล็บ"}]).strip()
+                    t3n, p3 = normalize_proposal(t3)
+                    if p3 in ("ok", "repaired", "salvaged"):
+                        txt, pst = t3n, p3
+                except Exception:
+                    pass
+            if pst == "salvaged":
+                txt += "\n\n⚠ ข้อเสนอยาวเกินจนถูกตัด แสดงเฉพาะส่วนที่ครบ ขอส่วนที่เหลือได้ในรอบถัดไป"
         m = re.search(r"```proposal\s*\n", txt)
         if m and "```" not in txt[m.end():]:
             # unclosed proposal = cut off; the UI would show "invalid proposal", so replace it with a clear instruction
