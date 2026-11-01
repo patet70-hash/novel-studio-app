@@ -124,9 +124,12 @@ def _cfg():
 
 def set_thread_mode(b):
     try:
-        _TL.mode = meta(b).get("mode")
+        m = meta(b)
+        _TL.mode = m.get("mode")
+        _TL.sex_share = m.get("sex_share")
     except Exception:
         _TL.mode = None
+        _TL.sex_share = None
 
 
 def speech_lite(): return _cfg()["speech"]
@@ -518,6 +521,12 @@ def name_table(b):
     return out
 
 
+def sex_share():
+    """R145: per-book share of the chapter's words given to sexual scenes (book.json "sex_share", 0..0.95); default SEX_SHARE."""
+    v = getattr(_TL, "sex_share", None)
+    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 0.95 else SEX_SHARE
+
+
 SEX_SHARE = 0.78   # sexual scenes get this share of the words so that, with the warm-up of each sex scene counted as sexual, the chapter reaches 60-70% sexual content
 
 
@@ -538,7 +547,8 @@ def rebalance_sex_share(scenes, target):
     if not sx or not nx:
         return scenes
     total = sum(sc["words"] for sc in scenes)
-    want_sx, want_nx = total * SEX_SHARE, total * (1 - SEX_SHARE)
+    share = sex_share()
+    want_sx, want_nx = total * share, total * (1 - share)
     cur_sx, cur_nx = float(sum(sc["words"] for sc in sx)), float(sum(sc["words"] for sc in nx))
     if cur_sx >= want_sx:
         return scenes
@@ -5076,6 +5086,12 @@ class H(BaseHTTPRequestHandler):
                     m.update({k: d[k] for k in ("title", "author", "lang") if k in d})
                     if d.get("mode") in MODES:
                         m["mode"] = d["mode"]
+                    if "sex_share" in d:
+                        v = d["sex_share"]
+                        if v is None:
+                            m.pop("sex_share", None)
+                        elif isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 0.95:
+                            m["sex_share"] = float(v)
                     write(os.path.join(bdir(b), "book.json"), json.dumps(m, ensure_ascii=False))
                     return self._send(200, {"ok": True})
                 if p[3] == "outline" and len(p) == 4:
