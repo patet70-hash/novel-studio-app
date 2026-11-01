@@ -132,6 +132,7 @@ def set_thread_mode(b):
         _TL.sex_share = None
 
 
+DEPTH = os.environ.get("NOVEL_DEPTH", "1") != "0"   # R152 (user 1 Nov): depth per act is the standard for every chapter; NOVEL_DEPTH=0 switches it off
 def speech_lite(): return _cfg()["speech"]
 def poses_on(): return _cfg()["poses"]
 def beat_w(): return _cfg()["beatw"]
@@ -712,6 +713,8 @@ def dialogue_hint(p):
         extra = (" Round-9 style: keep the spoken lines FEW and natural (a moan, a command, a name, a short sentence), and between them write rich narration paragraphs of 2-4 sentences: the sensations in the body, breath, heat, wetness, muscle and skin, sounds in the room, what each person feels and wants, how the pleasure builds. About 40% of the text is such narration of feelings and sensations, not just a list of actions. Vary the speech tags (many lines need no tag: the action before it shows who speaks) and never repeat the same tag verb (ตอบกลับ, พูดขึ้น) more than twice.")
     elif speech_lite():
         share, rate, extra = ("about 40%", 26, "") if sexual else ("15-20%", 10, "")
+    if DEPTH and sexual:
+        extra += (" DEPTH (R152): write every act in detail. Sucking, licking, fingering and each position of the pounding get at least two narration paragraphs of 3-5 sentences saying how it is done: the posture, where the hands hold, how the tongue, mouth or hips move, the rhythm, the wetness and sounds, and how her body reacts. Never more than 4 quoted lines in a row; a change of position is its own step with its own description.")
     lines = max(6, int(words * rate / 1000))
     return ("DIALOGUE SHARE: about %s of this part's text must be spoken lines (quoted): at least %d spoken lines, alternating with narration. Every narration paragraph is at most 3-4 sentences, then somebody speaks. Polite situations (talking to an elder, a boss, a client, a stranger, or in a formal work setting) use full polite sentences ending with ครับ/ค่ะ/คะ; in ordinary calm conversation at least every second line carries a natural ending particle (นะ, สิ, นะครับ, นะคะ, ค่ะ, ครับ, เหรอ, ล่ะ) instead of bare clipped sentences.%s" % (share, lines, extra))
 
@@ -1807,12 +1810,12 @@ def pose_block_group(part):
     return " ".join(L[:1]) + "\n" + "\n".join(L[1:])
 
 
-_BODY_RULE = (" BODY STATE (R119): in EVERY step with sexual activity show, in plain raw words, what the bodies look like and do: "
+_BODY_RULE = ((" BODY STATE (R119): in EVERY step with sexual activity show, in plain raw words, what the bodies look like and do: "
               "(a) face and eyes: expression, gaze (แววตา), eyes rolling or closing, flushed cheeks, biting her lip, open mouth, panting; "
               "(b) body in motion: breasts bouncing and jiggling (นมกระเพื่อม / นมเด้ง / นมแกว่ง), hips rocking, back arching, belly and thighs shaking; "
               "(c) clenching and twitching: legs trembling, pussy clamping (ตอดรัด), muscles tensing (เกร็ง), twitching (กระตุก), toes curling, nails digging in. "
               "Give at least two or three DIFFERENT such details per step, from different groups, in fresh wording each time (never the same phrase twice); "
-              "attribute each to the right person by name. Keep these as short clauses inside the action paragraphs so the dialogue share stays high.")
+              "attribute each to the right person by name. Keep these as short clauses inside the action paragraphs so the dialogue share stays high.")) if not DEPTH else (" BODY STATE (R152): in EVERY step with sexual activity show, in plain raw words, the faces and eyes, the body in motion (breasts, hips, back) and the clenching and twitching, with fresh wording each time, written inside full narration paragraphs of 3-5 sentences, never as a list; attribute each to the right person by name.")
 
 
 _BODY_BREAST = "BREASTS REQUIRED IN EVERY STEP: show her breasts moving with what is happening to her in this step (นมกระเพื่อม, นมเด้งดึ๋ง, นมแกว่ง, นมสั่น, นมยวบ, หัวนมชูชัน) in one short clause, worded differently from every earlier step"   # R124 (user 31 Oct: breasts must be stronger)
@@ -2247,7 +2250,7 @@ def ritual_objects(txt):
     return drink, ves
 
 
-ACT_QUOTA = [(400, 2), (800, 4), (1500, 6), (2500, 8)]   # R151: (sex-scene words below, minimum acts)
+ACT_QUOTA = [(400, 2), (800, 3), (1500, 5), (2500, 7)] if DEPTH else [(400, 2), (800, 4), (1500, 6), (2500, 8)]   # R151: (sex-scene words below, minimum acts)
 
 
 def act_quota(words, women_n=1):
@@ -2784,7 +2787,7 @@ def part_message(b, parts, i, first_empty, names, avoid=None):
         st = speech_table(ci_list, info, kin_terms(b))
         if st:
             lines.append(st)
-    lines.append("SPEAKERS: every spoken line carries a speaker tag or sits right next to a narration beat naming who speaks; never write more than %d quoted lines in a row without a short action or tag line between them (even in the peak)." % (UNTAG_RUN - 4))
+    lines.append("SPEAKERS: every spoken line carries a speaker tag or sits right next to a narration beat naming who speaks; never write more than %d quoted lines in a row without a short action or tag line between them (even in the peak)." % (DLG_RUN_MAX - 1 if DEPTH else UNTAG_RUN - 4))
     hh = heat_hint(p)
     if hh:
         lines.append(hh)
@@ -4873,7 +4876,9 @@ def fix_name_typos(text, names, count_only=False):
 
 
 
-DLG_LOW = os.environ.get("NOVEL_DLG_LOW", "") == "1"   # experiment round 9 (user-approved 29 Oct, this trial only): peak parts 15-20% dialogue + feeling narration
+DLG_LOW = DEPTH or os.environ.get("NOVEL_DLG_LOW", "") == "1"   # experiment round 9 (user-approved 29 Oct); R152: now part of the standard depth mode
+DLG_RUN_MAX = 4   # R152: more than this many quoted lines in a row (tagged or not) in a sexual part = rewrite
+NARR_AVG_MIN = 150   # R152: average length (characters) of the narration paragraphs a sexual part of 300+ words must reach (ch01 R17 measured 93, ch03 R15 143)
 def dlg_min():
     return (0.12 if DLG_LOW else 0.35) if speech_lite() else 0.50   # a PEAK part with less spoken text than this is written again (at most twice), the version with the most dialogue is kept
 
@@ -4883,6 +4888,35 @@ def quote_share(t):
     if not t.strip():
         return 0.0
     return sum(len(x) for x in re.findall(r"[\u201c\"][^\u201d\"]*[\u201d\"]", t)) / float(len(t))
+
+
+def dlg_run_max(t):
+    """R152: longest run of consecutive lines that start with a quote (tagged or not); narration lines break a run."""
+    best = cur = 0
+    for ln in (t or "").split("\n"):
+        if not ln.strip():
+            continue
+        if re.match(r"^\s*[\u201c\"]", ln):
+            cur += 1
+            best = max(best, cur)
+        else:
+            cur = 0
+    return best
+
+
+def narr_avg(t):
+    """R152: average length in characters of the narration paragraphs (lines that do not start with a quote)."""
+    L = [len(x.strip()) for x in (t or "").split("\n") if x.strip() and not re.match(r"^\s*[\u201c\"#]", x)]
+    return (sum(L) / float(len(L))) if L else 0.0
+
+
+def depth_ok(t):
+    """R152: a sexual part of 300+ words must have narration paragraphs of real length and no long chain of quoted lines."""
+    if not DEPTH:
+        return True
+    if body_words("# x\n" + (t or "")) < 300:
+        return True
+    return narr_avg(t) >= NARR_AVG_MIN and dlg_run_max(t) <= DLG_RUN_MAX
 
 
 SEX_DENS_MIN = 5.0   # explicit sex words per 1000 characters a part of a sex scene must reach
@@ -4989,6 +5023,8 @@ def aw_run(b, cid, key):
                         why.append("it did not stay on the sex: this part must be the sexual act itself from the first sentence to the last, with the body parts named (ควย, หี, นม, หัวนม, น้ำเงี่ยน) in nearly every paragraph and no drifting into work, family, memories or chat")
                     if need_sex and not body_detail_ok(cand[1]):
                         why.append("it did not show the bodies enough: in every sexual step add short raw clauses about the faces and eyes (แววตา, flushed cheeks, biting lip, eyes rolling), the body in motion (นมกระเพื่อม / นมเด้ง, hips rocking, back arching) and the clenching and twitching (ขาสั่น, เกร็ง, กระตุก, ตอดรัด, toes curling), at least %d such details in this part, covering all three groups, all different words" % max(3, int(parts[i]["words"] * BODY_MIN_PER500 / 500) + 1))
+                    if need_sex and not depth_ok(cand[1]):
+                        why.append("it was too thin: the narration paragraphs averaged only %d characters and the longest chain of quoted lines was %d. Every act (sucking, licking, fingering, each position of the pounding) needs at least TWO narration paragraphs of 3-5 sentences saying HOW it is done: the posture, where the hands hold, how the tongue or hips move, the rhythm fast or slow, the wetness and sounds, and what her body does; never more than %d quoted lines in a row; and a change of position or partner is written as its own step before the next act" % (int(narr_avg(cand[1])), dlg_run_max(cand[1]), DLG_RUN_MAX))
                     if need_calm and sex_density(cand[1]) > CALM_DENS_MAX:
                         why.append("this is an ORDINARY scene (no sex yet): remove the explicit sex words and acts, keep it to talk, atmosphere, glances and light touches")
                     if anatomy_issues(cand[1], info0):
@@ -5048,9 +5084,9 @@ def aw_run(b, cid, key):
                         job.setdefault("raw_dup", []).append(round(dup_ratio(t, cur0), 3))
                         job.setdefault("raw_anat", []).append(anatomy_issues(t, info0))
                         job.setdefault("raw_untag", []).append(untag_t)
-                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)), bool(untag_t) or fh_t or bool(fam_t) or bool(pos_t) or part_too_long(t, parts[i])) - min(1.2, 0.3 * len(pos_t)) - (0.3 if (need_sex and not body_detail_ok(t)) else 0.0)   # R78: the version with fewer plan problems wins when none is clean
+                    sc_t = part_score(t, need_dlg, need_sex, need_calm, cur0, bool(anatomy_issues(t, info0)), bool(untag_t) or fh_t or bool(fam_t) or bool(pos_t) or part_too_long(t, parts[i])) - min(1.2, 0.3 * len(pos_t)) - (0.3 if (need_sex and not body_detail_ok(t)) else 0.0) - (0.4 if (need_sex and not depth_ok(t)) else 0.0)   # R78: the version with fewer plan problems wins when none is clean
                     ok_t = ((not need_dlg or quote_share(t) >= dlg_min()) and (not need_sex or sex_density(t) >= SEX_DENS_MIN)
-                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and (not need_sex or body_detail_ok(t)) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0) and not untag_t and not fh_t and not fam_t and not pos_t and not part_too_long(t, parts[i]))
+                            and (not need_calm or sex_density(t) <= CALM_DENS_MAX) and (not need_sex or body_detail_ok(t)) and dup_ratio(t, cur0) <= DUP_PART_MAX and not anatomy_issues(t, info0) and not untag_t and not fh_t and not fam_t and not pos_t and not part_too_long(t, parts[i]) and (not need_sex or depth_ok(t)))
                     if cand is not None:
                         job["retries"] = job.get("retries", 0) + 1
                         if sc_t >= cand[0]:
