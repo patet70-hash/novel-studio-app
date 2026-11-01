@@ -452,16 +452,47 @@ def kin_terms(b):
     return {"father": str(d.get("father") or "พ่อ")[:12], "mother": str(d.get("mother") or "แม่")[:12]}
 
 
+_REL_RE = re.compile(r"^\s*(พ่อเลี้ยง|แม่เลี้ยง|พ่อ|แม่|ลูกสาวเลี้ยง|ลูกชายเลี้ยง|ลูกเลี้ยง|ลูกสาว|ลูกชาย|พี่สาว|พี่ชาย|น้องสาว|น้องชาย)(?:แท้)?ของ\s*([^\s;,/()]+)")
+_REL_TAG = {"พ่อเลี้ยง": "stepfather", "แม่เลี้ยง": "stepmother", "พ่อ": "father", "แม่": "mother", "ลูกสาวเลี้ยง": "child", "ลูกชายเลี้ยง": "child", "ลูกเลี้ยง": "child", "ลูกสาว": "child", "ลูกชาย": "child", "พี่สาว": "sibling", "พี่ชาย": "sibling", "น้องสาว": "sibling", "น้องชาย": "sibling"}
+_SERVANT_RE = re.compile(r"คนรับใช้|สาวใช้|คนขับรถ|บอดี้การ์ด|แม่บ้าน|พ่อบ้าน|คนสวน|ยาม|พนักงานประจำบ้าน|maid|servant|butler|driver|bodyguard|housekeeper", re.I)
+
+
+def kin_tags(info):
+    """R150: {name: father|mother|stepfather|stepmother|child|sibling} from the English role words (father / biological mother / stepmother / daughter / son)
+    and from the Thai relation text 'แม่เลี้ยงของจูน' / 'ลูกสาวของธนา' / 'พี่ชายของ..' (only when the named person is in the cast list of the book)."""
+    tags = {}
+    for n, v in (info or {}).items():
+        r = (v or {}).get("role", "")
+        if re.search(r"step\s*-?\s*mother", r, re.I):
+            tags[n] = "stepmother"
+        elif re.search(r"step\s*-?\s*father", r, re.I):
+            tags[n] = "stepfather"
+        elif re.search(r"father", r, re.I):
+            tags[n] = "father"
+        elif re.search(r"biological mother", r, re.I):
+            tags[n] = "mother"
+        elif re.match(r"\s*(daughter|son)\b", r, re.I):
+            tags[n] = "child"
+        else:
+            m = _REL_RE.match((v or {}).get("rel", ""))
+            if m and any(m.group(2).startswith(o) for o in info if o and o != n):
+                tags[n] = _REL_TAG[m.group(1)]
+    return tags
+
+
 def speech_table(cast_info, info, kin=None):
-    """SPEECH TABLE for the characters of one part, derived from gender, age and role in the setup: how each refers to himself/herself and what each calls the others."""
+    """SPEECH TABLE for the characters of one part, derived from gender, age, role and relation text in the setup: how each refers to himself/herself and what each calls the others."""
     kin = kin or {"father": "พ่อ", "mother": "แม่"}
     FA, MO = kin["father"], kin["mother"]
-    role = lambda n: (info.get(n) or {}).get("role", "")
-    rel = lambda n: (info.get(n) or {}).get("rel", "")
-    SM = True   # R149: the Thai relation text (แม่เลี้ยง.. / ลูกสาว..) is always read; a stepmother says MO to her stepchildren and they call her MO (no switch)
-    isfather = lambda n: bool(re.search(r"father", role(n), re.I)) and not re.search(r"step", role(n), re.I)
-    iskid = lambda n: bool(re.match(r"\s*(daughter|son)\b", role(n), re.I)) or (SM and bool(re.match(r"\s*ลูก(?:สาว|ชาย)", rel(n))))
-    isstep = lambda n: bool(re.search(r"stepmother", role(n), re.I)) or (SM and bool(re.match(r"\s*แม่เลี้ยง", rel(n))))
+    tags = kin_tags(info)
+    tg = lambda n: tags.get(n, "")
+    PAR = ("father", "mother", "stepfather", "stepmother")
+    isfather = lambda n: tg(n) == "father"
+    iskid = lambda n: tg(n) == "child"
+    kidish = lambda n: tg(n) in ("child", "sibling")
+    isstep = lambda n: tg(n) in ("stepfather", "stepmother")
+    pword = lambda n: FA if tg(n) in ("father", "stepfather") else MO
+    servant = lambda n: bool(_SERVANT_RE.search(((info.get(n) or {}).get("occ", "") + " " + (info.get(n) or {}).get("rel", ""))))
     def age(n):
         try:
             return int(re.sub(r"\D", "", (info.get(n) or {}).get("age", "")) or 0)
@@ -471,12 +502,14 @@ def speech_table(cast_info, info, kin=None):
     rows = []
     for n in names:
         g = (info.get(n) or {}).get("g", "")
-        parent = isfather(n) or bool(re.search(r"biological mother", role(n), re.I))
+        parent = isfather(n) or tg(n) == "mother"
         if g == "M":
             me = "ผม" + (" (to his children and to his wife: " + FA + ")" if isfather(n) else "")
+            if tg(n) == "stepfather":
+                me = "ผม to the men and the servants; to his stepchildren in the cast: " + FA + " ONLY"
         elif g == "F":
             me = "own name / ชั้น (หนู to the father and elders)" + ("; to her children and to her husband: " + MO if parent else "")
-            if SM and isstep(n):
+            if tg(n) == "stepmother":
                 me = "ชั้น or her own name to the men and the servants; to her stepchildren in the cast (and in the sex scenes with them): " + MO + " ONLY (never her own name, never ชั้น with them)"
         else:
             me = "-"
@@ -484,21 +517,17 @@ def speech_table(cast_info, info, kin=None):
         for y in names:
             if y == n:
                 continue
-            if isfather(n) and iskid(y):
+            if tg(n) in PAR and iskid(y):
                 t = y
-            elif iskid(n) and isfather(y):
-                t = FA
-            elif iskid(n) and isstep(y):
-                t = MO if SM else "คุณ" + y
-            elif isstep(n) and iskid(y):
-                t = y
+            elif iskid(n) and tg(y) in PAR:
+                t = pword(y)
             elif isstep(n) and isfather(y):
                 t = FA + " (or " + y + " when it could be unclear who is meant)"
             elif isfather(n) and isstep(y):
                 t = MO + " (or " + y + " when it could be unclear who is meant)"
-            elif SM and isstep(y) and re.search(r"คนรับใช้|สาวใช้|คนขับรถ|บอดี้การ์ด|แม่บ้าน|พ่อบ้าน", rel(n)):
-                t = "คุณ" + y   # R149: a servant / driver / bodyguard of the house addresses the mistress politely
-            elif iskid(n) and iskid(y):
+            elif servant(n) and not servant(y) and (tg(y) in PAR or re.search(r"เจ้านาย|ประธาน|เจ้าของ", (info.get(y) or {}).get("occ", "") + (info.get(y) or {}).get("rel", ""))):
+                t = "คุณ" + y   # R149: a servant / driver / bodyguard of the house addresses the master / mistress politely
+            elif kidish(n) and kidish(y):
                 t = ("พี่" + y) if age(y) > age(n) else y
             elif age(n) and age(y) and age(y) - age(n) >= 8:
                 t = "คุณ" + y
@@ -2007,7 +2036,7 @@ def attach_pose_plans(b, parts, cid="", salt=0):
         present = [n for n in info if n and n in txt]
         men = [n for n in present if info[n].get("g") == "M"]
         women = [n for n in present if info[n].get("g") == "F"]
-        if act_kind(txt, *act_cast(txt, info)) in ("ritual", "public", "ff", "solo"):
+        if act_kind(txt, *act_cast(txt, info)) in ("ritual", "public", "ff", "solo") or custom_kind(b, txt):
             continue   # R147: context scenes (morning ritual, secret acts in public, women only, solo) get an ACT PLAN instead of a bed-position plan
         group = len(men) == 2 and len(women) == 1
         group3 = len(men) == 3 and len(women) == 1
@@ -2091,6 +2120,10 @@ def attach_pose_plans(b, parts, cid="", salt=0):
 # 1M1F, 2M1F, 3M1F and 4M2F (4+ beats); every other scene (morning ritual, women with women, solo, public, odd cast sizes) got no plan at all.
 # attach_act_plans() gives those scenes an ACT PLAN (p["acts"]); the old plans stay untouched (scenes that already have p["pose"] are skipped).
 # ---------------------------------------------------------------------------------------------------------------------------------
+_DRINKS = ("กาแฟ", "ชา", "ไวน์", "นม", "โกโก้", "น้ำผลไม้", "น้ำส้ม", "เครื่องดื่ม", "ซุป", "โจ๊ก", "น้ำ")
+_VESSELS = ("ถ้วย", "แก้ว", "ชาม", "จอก", "เหยือก")
+
+
 def _A(i, n, d, kw):
     return {"id": i, "n": n, "d": d, "kw": kw}
 
@@ -2116,12 +2149,12 @@ ACT_BANK = {
         _A("W8", "น้ำแตกพร้อมกัน", "{A} and {B} come, one after the other or together, shaking and holding each other (squirt allowed)", r"แตก"),
     ],
     "ritual": [
-        _A("R1", "ชายชักว่าวใส่ถ้วยกาแฟ", "the men stand around the table holding their cocks over the women's coffee cups and stroke until each comes, the cum (น้ำควย) dripping into the cups; show the cum falling into the coffee", r"ถ้วย|แก้ว|กาแฟ"),
+        _A("R1", "ชายชักว่าวใส่{VES}{OBJ}", "the men stand around the table holding their cocks over the women's {OBJ} {VES}s and stroke until each comes, the cum (น้ำควย) dripping into the {VES}s; show the cum falling into the {OBJ}", r"{VES}|{OBJ}|ถ้วย|แก้ว"),
         _A("R5", "หญิงช่วยตัวเองใต้ชุดนอน", "while they watch, {W} slides a hand under her silk robe and rubs her clit (เม็ดแตด) or hooks her fingers inside (เกี่ยว)", r"ช่วยตัวเอง|เกี่ยว|เม็ดแตด|ใต้ชุด"),
         _A("R2", "หญิงอมควยสดๆ", "{W} takes one man's fresh cock in her mouth and sucks it, hands stroking the other men beside her", r"อม|ดูด"),
         _A("R3", "ชักว่าวให้ชายแตกใส่หน้า", "{W} strokes a man with both hands until he comes on her tongue and face", r"ชัก|แตกใส่"),
         _A("R6", "กลืนน้ำควย", "{W} swallows the cum in her mouth and shows her empty tongue", r"กลืน"),
-        _A("R4", "คนกาแฟแล้วดื่ม", "{W} stirs the coffee that now holds the men's cum, lifts the cup and drinks it down to the last drop, and she is calmer after it", r"คน|ดื่ม|จิบ"),
+        _A("R4", "คน{OBJ}แล้วดื่ม", "{W} stirs the {OBJ} that now holds the men's cum, lifts the {VES} and drinks it down to the last drop, and she is calmer after it", r"คน|ดื่ม|จิบ"),
     ],
     "public": [
         _A("P1", "ชักว่าวให้ชายใต้โต๊ะ", "{W} slips her hand under the table (or the seat, or the lift's corner) and strokes his cock through the open zip while everyone nearby carries on talking", r"ใต้โต๊ะ|ใต้|ซิป|ชัก"),
@@ -2140,7 +2173,8 @@ ACT_BANK = {
 
 _GENERIC_MEN_RE = re.compile(r"คนรับใช้ชาย|ชายในบ้าน|พ่อบ้าน|ยาม|คนขับรถ|ช่างซ่อม|บอดี้การ์ด|ผู้ชาย|ชายหลายคน|ชายทั้ง")
 _GENERIC_WOMEN_RE = re.compile(r"แม่บ้าน|สาวใช้|พนักงานหญิง|เลขา")
-_RITUAL_RE = re.compile(r"พิธี|น้ำควย.{0,30}(?:ถ้วย|แก้ว|กาแฟ)|(?:ถ้วย|แก้ว|กาแฟ).{0,40}(?:น้ำควย|ชักว่าว|ชักควย)")
+_RIT_W = "|".join(_VESSELS + _DRINKS)
+_RITUAL_RE = re.compile(r"พิธี|น้ำควย.{0,30}(?:%s)|(?:%s).{0,40}(?:น้ำควย|ชักว่าว|ชักควย)" % (_RIT_W, _RIT_W))
 _PUBLIC_RE = re.compile(r"ใต้โต๊ะ|ในลิฟต์|ในรถ|ที่นั่งหลัง|แอบ.{0,20}(?:ชักว่าว|ชักควย|เกี่ยว)|ถูกเกี่ยวหี")
 
 
@@ -2154,6 +2188,33 @@ def act_cast(txt, info):
     if not men and _GENERIC_MEN_RE.search(txt):
         men.append("ชายรับใช้")
     return men, women
+
+
+def book_act_kinds(b):
+    """R150: per-book act kinds from the book dir file acts.json: {"kinds": [{"name": "x", "re": "regex on the scene text", "acts": [{"id": "X1", "n": "name", "d": "English description (placeholders {W} {A} {B} {M} {M2})", "kw": "Thai keyword regex"}]}]}. Bad files are ignored."""
+    try:
+        d = json.loads(read(os.path.join(bdir(b), "acts.json"), "{}") or "{}")
+    except Exception:
+        return []
+    out = []
+    for k in (d.get("kinds") or []) if isinstance(d, dict) else []:
+        try:
+            nm = re.sub(r"[^\w\-]", "", str(k.get("name") or ""))[:30]
+            rx = re.compile(str(k.get("re") or ""))
+            acts = [{"id": str(a.get("id") or "X%d" % i), "n": str(a.get("n") or "")[:60], "d": str(a.get("d") or "")[:600], "kw": str(a.get("kw") or "")[:200]} for i, a in enumerate(k.get("acts") or []) if isinstance(a, dict) and a.get("d")]
+            if nm and k.get("re") and acts:
+                out.append({"name": nm, "rx": rx, "acts": acts[:12]})
+        except Exception:
+            continue
+    return out
+
+
+def custom_kind(b, txt):
+    """the per-book kind whose regex matches the scene text, or None."""
+    for k in book_act_kinds(b):
+        if k["rx"].search(txt or ""):
+            return k
+    return None
 
 
 def act_kind(txt, men, women):
@@ -2170,13 +2231,23 @@ def act_kind(txt, men, women):
 
 
 def _fmt_act(a, **kw):
-    d = a["d"]
+    d, n, k2 = a["d"], a["n"], a["kw"]
     for k, v in kw.items():
         d = d.replace("{%s}" % k, v)
-    return {"id": a["id"], "n": a["n"], "d": d, "kw": a["kw"]}
+        n = n.replace("{%s}" % k, v)
+        k2 = k2.replace("{%s}" % k, re.escape(v))
+    return {"id": a["id"], "n": n, "d": d, "kw": k2}
 
 
-def make_act_plan(kind, nbeats, rng, men, women, table=None, max_acts=None):
+def ritual_objects(txt):
+    """R150: the drink and the vessel of a morning ritual scene are read from the scene text (default coffee cup)."""
+    t = txt or ""
+    drink = next((d for d in _DRINKS if d in t), "กาแฟ")
+    ves = next((v for v in _VESSELS if v in t), "ถ้วย")
+    return drink, ves
+
+
+def make_act_plan(kind, nbeats, rng, men, women, table=None, max_acts=None, ctx="", custom=None):
     """a list (one list of act dicts per beat) for a scene without an old pose plan. Every act has a name, an English description for the model and a
     Thai keyword regex the checker uses to see that the act was really written."""
     nb = max(1, int(nbeats))
@@ -2197,9 +2268,15 @@ def make_act_plan(kind, nbeats, rng, men, women, table=None, max_acts=None):
     elif kind == "ritual":
         bank = {a["id"]: a for a in ACT_BANK["ritual"]}
         order = ["R1", "R5", "R2", "R3", "R6", "R4"]
+        OBJ, VES = ritual_objects(ctx)
         for i in order:
             a = bank[i]
-            acts.append(_fmt_act(a, W=rng.choice(women)))
+            acts.append(_fmt_act(a, W=rng.choice(women), OBJ=OBJ, VES=VES))
+    elif kind.startswith("custom:") and custom:   # R150: acts of a per-book kind (book-dir acts.json)
+        A = women[0] if women else "she"
+        B = women[1] if len(women) > 1 else (men[0] if men else "he")
+        M = men[0] if men else "he"
+        acts = [_fmt_act({"id": a["id"], "n": a["n"], "d": a["d"], "kw": a.get("kw") or "."}, W=A, A=A, B=B, M=M, M2=(men[1] if len(men) > 1 else M)) for a in custom]
     elif kind == "public":
         bank = {a["id"]: a for a in ACT_BANK["public"]}
         acts = [_fmt_act(bank[i], W=W) for i in ["P1", "P2", "P3", "P4"]]
@@ -2274,11 +2351,12 @@ def attach_act_plans(b, parts, cid="", salt=0):
         if not is_sexual_text(txt):
             continue
         men, women = act_cast(txt, info)
-        kind = act_kind(txt, men, women)
+        ck = custom_kind(b, txt) if women else None
+        kind = ("custom:" + ck["name"]) if ck else act_kind(txt, men, women)
         if not kind:
             continue
         rng = random.Random(zlib.crc32(("%s|%s|%d|%d|acts" % (b, cid, sc, salt)).encode("utf-8")))
-        plan = make_act_plan(kind, len(ps), rng, men, women, max_acts=max(3, int(round(sum(p["words"] for p in ps) / 150.0))))   # about one act per 150 words
+        plan = make_act_plan(kind, len(ps), rng, men, women, max_acts=max(3, int(round(sum(p["words"] for p in ps) / 150.0))), ctx=txt, custom=(ck["acts"] if ck else None))   # about one act per 150 words
         for p, steps in zip(ps, plan):
             p["acts"] = {"kind": kind, "steps": steps, "men": men, "women": women, "last": p is ps[-1]}
     return parts
@@ -2754,7 +2832,7 @@ def char_info(b):
         if not nm:
             continue
         v = c.get("v") or {}
-        out[th or nm] = {"g": _gender_of(c), "age": str((v.get("age") or {}).get("c") or "").strip(), "role": str((v.get("role") or {}).get("c") or "").strip()[:60], "rel": str((v.get("rel") or {}).get("c") or "").strip()[:80]}
+        out[th or nm] = {"g": _gender_of(c), "age": str((v.get("age") or {}).get("c") or "").strip(), "role": str((v.get("role") or {}).get("c") or "").strip()[:60], "rel": str((v.get("rel") or {}).get("c") or "").strip()[:80], "occ": str((v.get("occ") or {}).get("c") or "").strip()[:80]}
     fem = sorted({k for k, v in out.items() if v["g"] == "F" and len(k) >= 2}, key=len, reverse=True)
     _FEM[0] = "(?:%s)" % "|".join(re.escape(x) for x in fem) if fem else ""
     _WOMEN_RX[0] = re.compile("(?:%s)(?:แตก|ถึง)" % "|".join(re.escape(x) for x in fem)) if fem else None
