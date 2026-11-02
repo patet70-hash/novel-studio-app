@@ -5244,10 +5244,12 @@ def make_pdf(b, size, only=None, fs="m", lh="n"):
     lh_v = round(base_lh + LH_ADD.get(lh, 0.0), 2)
     m = meta(b)
     parts = []
-    for c in chapters(b):
+    for pos, c in enumerate(chapters(b), 1):
         if only and c["id"] not in only:
             continue
         t = read(os.path.join(bdir(b), "chapters", c["id"] + ".md"))
+        # heading number follows the real position (same number as the file name), so inserting a chapter never leaves a stale "ตอน N"
+        t = re.sub(r"^(\s*#\s+ตอน(?:ที่)?\s*)\d+", lambda m: m.group(1) + str(pos), t, count=1)
         t = re.sub(r"^\s*(\*\s*\*\s*\*|---+|\*\*\*+)\s*$", "\n<div class='sb'>&#10059;</div>\n", t, flags=re.M)
         t = re.sub(r"(?<=\S)[ \t]*\n(?=[ \t]*\S)", "\n\n", t)   # every line is its own paragraph (dialogue lines no longer merge)
         parts.append("<section class='ch'>" + wrap_thai(md.markdown(t, extensions=["extra"])) + "</section>")
