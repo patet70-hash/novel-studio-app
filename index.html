@@ -432,7 +432,7 @@ function dlPdf(url){toast("กำลังสร้าง PDF…");return fetch(
  document.body.appendChild(d);const close=()=>{d.remove();setTimeout(()=>URL.revokeObjectURL(u),30000)};
  d.querySelector("[data-p=x]").onclick=close;
  d.querySelector("[data-p=open]").onclick=()=>{window.open(u,"_blank")};
- d.querySelector("[data-p=save]").onclick=async()=>{try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:name});close();return}}catch(e){if(e&&e.name==="AbortError")return}
+ d.querySelector("[data-p=save]").onclick=async()=>{try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file]});close();return}}catch(e){if(e&&e.name==="AbortError")return}
   const a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();toast("ส่งไฟล์ให้เบราว์เซอร์แล้ว — ถ้าไม่ขึ้น กด “เปิดอ่าน” แล้วใช้ปุ่มแชร์")}
  }).catch(e=>toast("สร้าง PDF ไม่สำเร็จ: "+e.message))}
 const shortBar=(i,s)=>`<div class="prop small">⚠ ตอนนี้ยาว ${s.have} คำ สั้นกว่าเป้า ${s.target} คำ (${Math.round(s.have/s.target*100)}%) <button data-act="short" data-mi="${i}">เขียนต่อให้ถึงเป้า</button></div>`;
