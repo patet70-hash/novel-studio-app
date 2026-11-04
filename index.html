@@ -626,6 +626,41 @@ $("#book").onchange=()=>{book=$("#book").value;loadBook()};
 $("#dls").onclick=async()=>{const ids=chs.filter(c=>window._exsel[c.id]).map(c=>c.id);if(!ids.length){toast("ติ๊กเลือกตอนที่ต้องการก่อน");return}
  for(const id of ids){try{clearTimeout(saveTm[id]);if(CT[id]!==undefined)await saveChapter(id,true)}catch(e){}}
  dlPdf(`api/books/${book}/export.pdf?size=${$("#sz").value}&fs=${$("#fs").value}&lh=${$("#lh").value}&ch=${ids.join(",")}`)};
+;(function(){
+const b=document.createElement("button");b.id="dle";b.textContent="ดาวน์โหลดแยกไฟล์ (1 ตอน = 1 ไฟล์)";
+const ref=$("#dls");ref.parentNode.insertBefore(b,ref.nextSibling);ref.parentNode.insertBefore(document.createTextNode(" "),b);
+b.onclick=async()=>{
+const ids=chs.filter(c=>window._exsel[c.id]).map(c=>c.id);
+if(!ids.length){toast("ติ๊กเลือกตอนที่ต้องการก่อน");return}
+for(const id of ids){try{clearTimeout(saveTm[id]);if(CT[id]!==undefined)await saveChapter(id,true)}catch(e){}}
+const files=[];
+for(let k=0;k<ids.length;k++){
+toast("กำลังสร้าง PDF "+(k+1)+"/"+ids.length);
+try{
+const r=await fetch("api/books/"+book+"/export.pdf?size="+$("#sz").value+"&fs="+$("#fs").value+"&lh="+$("#lh").value+"&ch="+ids[k]);
+if(!r.ok){let m="";try{m=(await r.json()).error}catch(e){}throw new Error(m||("HTTP "+r.status))}
+const cd=r.headers.get("content-disposition")||"";
+const fx=/filename\*=UTF-8''([^;]+)/i.exec(cd);const fm=/filename="?([^";]+)"?/.exec(cd);
+let name=fm?fm[1]:("ch"+(k+1)+".pdf");if(fx){try{name=decodeURIComponent(fx[1])}catch(e){}}
+files.push({name:name,blob:await r.blob()});
+}catch(e){toast("ตอนที่ "+(k+1)+" สร้างไม่สำเร็จ: "+e.message)}}
+if(!files.length)return;
+const old=document.getElementById("pdfdlg");if(old)old.remove();
+const d=document.createElement("div");d.id="pdfdlg";
+d.style.cssText="position:fixed;left:8px;right:8px;bottom:12px;z-index:9999;background:#262421;color:#f2ede4;padding:12px;border-radius:12px;max-height:60vh;overflow:auto";
+const hd=document.createElement("div");hd.style.cssText="margin-bottom:8px;font-weight:bold";hd.textContent="PDF พร้อมแล้ว "+files.length+" ไฟล์";d.appendChild(hd);
+const anchorSave=f=>{const u=URL.createObjectURL(f.blob);const a=document.createElement("a");a.href=u;a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000)};
+const mobile=/iPhone|iPad|Android/i.test(navigator.userAgent);
+const one=async f=>{const file=new File([f.blob],f.name,{type:"application/pdf"});try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file]});return}}catch(e){if(e&&e.name==="AbortError")return}anchorSave(f)};
+files.forEach(f=>{const row=document.createElement("div");row.style.cssText="display:flex;gap:8px;align-items:center;margin:4px 0";const s=document.createElement("span");s.style.cssText="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";s.textContent=f.name+" ("+Math.round(f.blob.size/1024)+" KB)";const bt=document.createElement("button");bt.textContent="บันทึก";bt.onclick=()=>one(f);row.appendChild(s);row.appendChild(bt);d.appendChild(row)});
+const bar=document.createElement("div");bar.style.cssText="display:flex;gap:8px;margin-top:8px";
+const ba=document.createElement("button");ba.className="p";ba.textContent="บันทึกทั้งหมด";
+ba.onclick=async()=>{const fl=files.map(f=>new File([f.blob],f.name,{type:"application/pdf"}));try{if(mobile&&navigator.canShare&&navigator.canShare({files:fl})){await navigator.share({files:fl});return}}catch(e){if(e&&e.name==="AbortError")return}for(const f of files){anchorSave(f);await new Promise(r=>setTimeout(r,700))}};
+const bc=document.createElement("button");bc.textContent="ปิด";bc.onclick=()=>d.remove();
+bar.appendChild(ba);bar.appendChild(bc);d.appendChild(bar);document.body.appendChild(d);
+};
+})();
+
 $("#dla").onclick=()=>{chs.forEach(c=>window._exsel[c.id]=true);drawExl()};$("#dlc").onclick=()=>{window._exsel={};drawExl()};
 $("#dl").onclick=()=>{dlPdf(`api/books/${book}/export.pdf?size=${$("#sz").value}&fs=${$("#fs").value}&lh=${$("#lh").value}`)};
 $("#csel").onchange=()=>{cur=$("#csel").value};
