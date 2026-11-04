@@ -661,6 +661,17 @@ bar.appendChild(ba);bar.appendChild(bc);d.appendChild(bar);document.body.appendC
 };
 })();
 
+
+;(function(){
+const orig=drawExl;
+drawExl=function(){orig();document.querySelectorAll("#exl label").forEach(function(lb){
+const cb=lb.querySelector("input");if(!cb||lb.querySelector(".dl1"))return;
+const bt=document.createElement("button");bt.type="button";bt.className="dl1";bt.textContent="↓ PDF";bt.style.cssText="padding:2px 8px;font-size:12px;flex:none";
+bt.onclick=async function(ev){ev.preventDefault();ev.stopPropagation();const id=cb.dataset.id;
+try{clearTimeout(saveTm[id]);if(CT[id]!==undefined)await saveChapter(id,true)}catch(e){}
+dlPdf("api/books/"+book+"/export.pdf?size="+$("#sz").value+"&fs="+$("#fs").value+"&lh="+$("#lh").value+"&ch="+id)};
+lb.appendChild(bt)})};
+})();
 $("#dla").onclick=()=>{chs.forEach(c=>window._exsel[c.id]=true);drawExl()};$("#dlc").onclick=()=>{window._exsel={};drawExl()};
 $("#dl").onclick=()=>{dlPdf(`api/books/${book}/export.pdf?size=${$("#sz").value}&fs=${$("#fs").value}&lh=${$("#lh").value}`)};
 $("#csel").onchange=()=>{cur=$("#csel").value};
